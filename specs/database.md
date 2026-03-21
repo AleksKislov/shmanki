@@ -1,0 +1,327 @@
+# Database Schema Specification
+
+## Technology
+
+- **PostgreSQL 16+**
+- **Driver**: `pgx/v5` (no ORM)
+- **Migrations**: `golang-migrate/migrate`
+- **UUID generation**: `gen_random_uuid()` (pgcrypto)
+
+---
+
+## Tables
+
+### `users`
+
+Stores registered users.
+
+```sql
+CREATE TABLE users (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email         VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,         -- bcrypt, cost=12
+    created_at    TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMP NOT NULL DEFAULT NOW()
+);
+```
+
+---
+
+### `decks`
+
+A deck is a collection of info objects belonging to a user.
+
+```sql
+CREATE TABLE decks (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title       VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    created_at  TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_decks_user_id ON decks(user_id);
+```
+
+---
+
+### `info_objects`
+
+A group of related cards. Stores the full reference content (text or code)
+that is displayed to the user alongside the cards.
+
+```sql
+CREATE TABLE info_objects (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    deck_id      UUID NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
+    title        VARCHAR(255) NOT NULL,
+
+    content      TEXT NOT NULL DEFAULT '',
+    -- Full text or code to display as reference material.
+    -- Example: complete Go implementation of a LinkedList.
+
+    discipline    VARCHAR(50) NOT NULL DEFAULT 'programming',
+    -- Broad category of info object, e.g. 'programming', 'foreign language', 'history'.
+
+    content_type VARCHAR(50) NOT NULL DEFAULT 'text',
+    -- Values: 'text' | 'go' | 'python' | 'javascript' etc for programming discipline.
+    -- Can be 'chinese', 'english' etc for language learning disciplines etc
+
+    created_at   TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_info_objects_deck_id ON info_objects(deck_id);
+```
+
+---
+
+### `cards`
+
+A single flashcard belonging to an info object.
+Cards within an info object are grouped by `step`.
+Step 0 cards are always available. Step N cards unlock
+only when all step N-1 cards have stability >= 14 days.
+
+```sql
+CREATE TABLE cards (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    info_object_id  UUID NOT NULL REFERENCES info_objects(id) ON DELETE CASCADE,
+
+    front           TEXT NOT NULL,
+    -- The question shown to the user.
+    -- Example: "Реализация метода AddToTail"
+
+    step            INT NOT NULL DEFAULT 0,
+    -- Unlock order within the info object.
+    -- Step 0: always available.
+    -- Step N: unlocks when all step N-1 cards have S >= 14 days.
+
+    correct_answers JSONB NOT NULL DEFAULT '[]',
+    -- Array of valid answer token sequences.
+    -- Each sequence is an ordered array of strings.
+    -- The user must click tokens in the exact order of one sequence.
+    -- Example: [["go", "myFunc()"], ["go", "myFunc(arg)"]]
+    -- Currently UI enforces single correct answer; multiple kept for flexibility.
+
+    distractors     JSONB NOT NULL DEFAULT '[]',
+    -- Array of incorrect token strings shown alongside correct tokens.
+    -- Example: ["defer", "func myFunc()", "goroutine", "chan struct{}"]
+
+    highlight_lines JSONB NOT NULL DEFAULT '[]',
+    -- Line numbers (1-indexed) of info_object.content to highlight
+    -- when this card is being reviewed.
+    -- Example: [11, 12, 13, 14, 15]
+    -- Lines are determined at content-creation time; no extra storage needed in content.
+
+    created_at      TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_cards_info_object_id ON cards(info_object_id);
+CREATE INDEX idx_cards_step ON cards(info_object_id, step);
+```
+
+---
+
+### `card_states`
+
+FSRS state per (card, user) pair. One row per card per user.
+Created when a user first encounters a card (status = 'new' or 'locked').
+
+```sql
+CREATE TABLE card_states (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    card_id         UUID NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+
+    -- FSRS parameters
+    stability       FLOAT NOT NULL DEFAULT 0,
+    -- S: number of days until R drops to 0.9.
+    -- 0 means card has never been reviewed.
+
+    difficulty      FLOAT NOT NULL DEFAULT 5,
+    -- D: card difficulty for this user, range 1.0–10.0.
+
+    retrievability  FLOAT NOT NULL DEFAULT 0,
+    -- R: recall probability at last_review moment (stored for quick stats queries).
+    -- Recomputed after each review; not used for scheduling (computed dynamically).
+
+    -- Scheduling
+    due_date        TIMESTAMP,
+    -- When to show this card next. NULL for locked/new cards.
+
+    last_review     TIMESTAMP,
+    -- Timestamp of the most recent review. NULL if never reviewed.
+
+    interval_days   FLOAT NOT NULL DEFAULT 0,
+    -- Current scheduled interval in days.
+
+    -- Status
+    status          VARCHAR(20) NOT NULL DEFAULT 'new',
+    -- 'locked'      step prerequisites not yet met
+    -- 'new'         available, never reviewed
+    -- 'learning'    S < 21 days
+    -- 'review'      S >= 21 days
+    -- 'relearning'  answered Again after being in review
+
+    -- Counters
+    reps            INT NOT NULL DEFAULT 0,
+    -- Total number of successful reviews (rating >= 2).
+
+    lapses          INT NOT NULL DEFAULT 0,
+    -- Total number of Again ratings after entering review status.
+
+    UNIQUE (card_id, user_id)
+);
+
+CREATE INDEX idx_card_states_due ON card_states(user_id, due_date)
+    WHERE status IN ('learning', 'review', 'relearning');
+
+CREATE INDEX idx_card_states_user_status ON card_states(user_id, status);
+```
+
+---
+
+### `review_logs`
+
+Immutable history of every review event.
+Used for analytics, debugging, and future per-user weight optimization.
+
+```sql
+CREATE TABLE review_logs (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    card_id         UUID NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+
+    -- State before this review
+    stability_before      FLOAT NOT NULL,
+    difficulty_before     FLOAT NOT NULL,
+    retrievability_before FLOAT NOT NULL,
+    interval_before       FLOAT NOT NULL,
+    status_before         VARCHAR(20) NOT NULL,
+
+    -- State after this review
+    stability_after       FLOAT NOT NULL,
+    difficulty_after      FLOAT NOT NULL,
+    interval_after        FLOAT NOT NULL,
+    status_after          VARCHAR(20) NOT NULL,
+
+    -- User input
+    rating          SMALLINT NOT NULL,
+    -- 1=Again, 2=Hard, 3=Good, 4=Easy
+
+    answered_tokens JSONB NOT NULL DEFAULT '[]',
+    -- The token sequence the user actually clicked.
+    -- Example: ["go", "myFunc()"]
+    -- Stored for replay and analysis.
+
+    was_correct     BOOLEAN NOT NULL,
+    -- Whether the user's token sequence matched a correct_answer.
+
+    reviewed_at     TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_review_logs_card_user ON review_logs(card_id, user_id, reviewed_at DESC);
+CREATE INDEX idx_review_logs_user ON review_logs(user_id, reviewed_at DESC);
+```
+
+---
+
+### `generation_logs`
+
+Audit log of LLM-based card generation requests.
+
+```sql
+CREATE TABLE generation_logs (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    deck_id      UUID NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
+    user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    prompt       TEXT NOT NULL,
+    model        VARCHAR(100) NOT NULL,
+    cards_count  INT NOT NULL DEFAULT 0,
+    created_at   TIMESTAMP NOT NULL DEFAULT NOW()
+);
+```
+
+---
+
+## Key Queries
+
+### Get due cards for a user session
+
+```sql
+SELECT
+    c.id,
+    c.front,
+    c.correct_answers,
+    c.distractors,
+    c.highlight_lines,
+    c.step,
+    cs.stability,
+    cs.difficulty,
+    cs.due_date,
+    cs.status,
+    cs.reps,
+    cs.lapses,
+    io.content,
+    io.content_type
+FROM card_states cs
+JOIN cards c        ON c.id = cs.card_id
+JOIN info_objects io ON io.id = c.info_object_id
+WHERE
+    cs.user_id = $1
+    AND cs.status IN ('learning', 'review', 'relearning')
+    AND cs.due_date <= NOW()
+ORDER BY cs.due_date ASC
+LIMIT $2;
+```
+
+### Check if step N should be unlocked for a user
+
+```sql
+SELECT COUNT(*) = 0 AS should_unlock
+FROM cards c
+JOIN card_states cs ON cs.card_id = c.id AND cs.user_id = $1
+WHERE
+    c.info_object_id = $2
+    AND c.step = $3          -- step N-1
+    AND cs.stability < 14;
+```
+
+### Unlock next step cards
+
+```sql
+UPDATE card_states
+SET status = 'new', due_date = NOW()
+WHERE
+    user_id = $1
+    AND status = 'locked'
+    AND card_id IN (
+        SELECT id FROM cards
+        WHERE info_object_id = $2
+        AND step = $3         -- step N
+    );
+```
+
+---
+
+## Migrations
+
+All migrations live in `migrations/` directory, numbered sequentially:
+
+```
+migrations/
+  000001_create_users.up.sql
+  000001_create_users.down.sql
+  000002_create_decks.up.sql
+  000002_create_decks.down.sql
+  ...
+```
+
+Run with:
+
+```bash
+migrate -path migrations -database $DATABASE_URL up
+```
