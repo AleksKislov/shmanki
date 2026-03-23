@@ -16,36 +16,40 @@ Key differentiators vs Anki:
 
 ## Repository Structure
 
+Current docs assume this target layout:
+
 ```
 .
 ├── .ai/
-│   ├── project.md                ← this file
-│   ├── guidelines/
-│   │   ├── backend.md            ← Go backend code conventions
-│   │   └── frontend.md           ← Qwik frontend code conventions
+│   ├── README.md
+│   ├── project.md
+│   └── guidelines/
+│       ├── backend.md
+│       └── frontend.md
 │
-├── backend/                      ← Go modular monolith REST API
-│   ├── cmd/api/main.go
-│   ├── internal/
-│   │   ├── user/
-│   │   ├── deck/
-│   │   ├── card/
-│   │   ├── review/
-│   │   ├── fsrs/
-│   │   ├── generate/
-│   │   └── platform/
-│   └── migrations/
-│
-├── frontend/                    ← Qwik + TypeScript SPA
+├── cmd/
+│   └── api/
+│       └── main.go
+├── internal/
+│   ├── user/
+│   ├── deck/
+│   ├── card/
+│   ├── review/
+│   ├── fsrs/
+│   ├── generate/
+│   └── platform/
+├── migrations/
+├── frontend/
 │   └── src/
 │       ├── routes/
 │       ├── components/
 │       └── lib/
-│
 └── specs/
-    ├── scheduler_algorithm.md      ← Custom FSRS algorithm spec
-    ├── database.md                 ← PostgreSQL schema
-    └── architecture.md             ← backend architecture, API endpoints
+    ├── scheduler_algorithm.md
+    ├── database.md
+    └── architecture/
+        ├── backend.md
+        └── frontend.md
 ```
 
 ---
@@ -76,8 +80,8 @@ Key differentiators vs Anki:
 User
  └── Deck (collection of info objects)
        └── InfoObject (a concept/topic with full reference content)
-             ├── content: string        (full code/text shown as reference)
-             ├── content_type: string   (code_go | code_python | text | ...)
+              ├── content: string        (full code/text shown as reference)
+              ├── content_type: string   (text | code_go | code_python | ...)
              └── Card (a question about the info object)
                    ├── step: int              (unlock order, 0 = always available)
                    ├── correct_answers: JSONB ([[token, token, ...], ...])
@@ -105,9 +109,11 @@ Factor = 19/81 ≈ 0.2346,  Decay = -0.5
 
 Ratings:  1=Again  2=Hard  3=Good  4=Easy
           ↓
-          Determined automatically from whether token answer was correct:
-          correct   → Good (3)
-          incorrect → Again (1)
+          Determined automatically from review attempt metadata:
+          incorrect final answer                      → Again (1)
+          correct, but with at least one wrong attempt → Hard (2)
+          correct, no wrong attempts, some distractors → Good (3)
+          correct on first clean attempt               → Easy (4)
 
 Step unlock: all cards at step N need S >= 14 days → step N+1 unlocks
 ```
@@ -118,8 +124,16 @@ Step unlock: all cards at step N need S >= 14 days → step N+1 unlocks
 
 The user sees a shuffled pool of `correct_answers[0]` tokens + `distractors`.
 They click tokens one by one — order matters.
-Backend checks if clicked sequence matches any entry in `correct_answers`.
-Result maps to FSRS rating: correct → Good (3), incorrect → Again (1).
+Frontend tracks the full attempt history for the card, including:
+
+- final `answered_tokens`
+- `wrong_attempts_count`
+- `distractor_clicks_count`
+- `incorrect_tokens_clicked`
+- `attempts` history for replay/debugging
+
+Backend checks whether the final sequence matches any entry in `correct_answers`
+and derives the FSRS rating from correctness plus the attempt metadata.
 
 ---
 
@@ -131,7 +145,7 @@ Result maps to FSRS rating: correct → Good (3), incorrect → Again (1).
 | HTTP router         | chi v5                    |
 | Database            | PostgreSQL 16+ via pgx/v5 |
 | Auth                | JWT (golang-jwt/jwt v5)   |
-| Frontend framework  | Qwik + TypeScript         |
+| Frontend framework  | Qwik + Qwik City          |
 | Syntax highlighting | Shiki                     |
 | LLM                 | Anthropic API             |
 

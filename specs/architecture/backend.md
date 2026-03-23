@@ -94,13 +94,18 @@ making it easy to extract into microservices later if needed.
 │   └── ...
 │
 ├── specs/                       # project documentation
-│   ├── architecture.md          # this file
 │   ├── database.md
-│   ├── fsrs.md
-│   └── api.md
+│   ├── scheduler_algorithm.md
+│   └── architecture/
+│       ├── backend.md
+│       └── frontend.md
 │
 ├── .ai/                         # AI agent guidelines
-│   └── guidelines.md
+│   ├── README.md
+│   ├── project.md
+│   └── guidelines/
+│       ├── backend.md
+│       └── frontend.md
 │
 ├── .env.example
 ├── go.mod
@@ -175,11 +180,11 @@ Handler
 
 ## Authentication
 
-- **Registration**: `POST /api/v1/auth/register` → bcrypt password → store user → return JWT
-- **Login**: `POST /api/v1/auth/login` → verify bcrypt → return JWT
+- **Registration**: `POST /api/v1/auth/register` → bcrypt password → store user → set auth cookie
+- **Login**: `POST /api/v1/auth/login` → verify bcrypt → set auth cookie
 - **JWT payload**: `{ "sub": "<userID>", "exp": <unix> }`
 - **JWT lifetime**: 7 days (configurable via `JWT_TTL_HOURS` env)
-- **All other endpoints**: require `Authorization: Bearer <token>` header
+- **Transport**: JWT is set in an auth cookie and sent automatically by the browser
 - **Middleware** validates token and injects `userID` into `context.Context`
 
 ```go
@@ -195,8 +200,8 @@ userID := middleware.UserIDFromContext(r.Context())
 
 | Method | Path                  | Description        |
 | ------ | --------------------- | ------------------ |
-| POST   | /api/v1/auth/register | Register new user  |
-| POST   | /api/v1/auth/login    | Login, receive JWT |
+| POST   | /api/v1/auth/register | Register new user and set auth cookie |
+| POST   | /api/v1/auth/login    | Login and set auth cookie |
 
 ### Decks
 
@@ -230,8 +235,51 @@ userID := middleware.UserIDFromContext(r.Context())
 
 | Method | Path                   | Description                        |
 | ------ | ---------------------- | ---------------------------------- |
-| GET    | /api/v1/review/session | Get due cards for review session   |
-| POST   | /api/v1/review/submit  | Submit answer, get next FSRS state |
+| GET    | /api/v1/review/session | Get unlocked new cards and due cards for review session |
+| POST   | /api/v1/review/submit  | Submit answer metadata and get rating + next FSRS state |
+
+`POST /api/v1/review/submit` request body:
+
+```json
+{
+  "cardId": "uuid",
+  "answeredTokens": ["go", "myFunc()"],
+  "attempts": [
+    {
+      "tokens": ["defer"],
+      "hadDistractor": true,
+      "wasCorrect": false
+    },
+    {
+      "tokens": ["go", "myFunc()"],
+      "hadDistractor": false,
+      "wasCorrect": true
+    }
+  ],
+  "wrongAttemptsCount": 1,
+  "distractorClicksCount": 1,
+  "incorrectTokensClicked": ["defer"]
+}
+```
+
+Response body:
+
+```json
+{
+  "state": {
+    "cardId": "uuid",
+    "stability": 12.4,
+    "difficulty": 5.8,
+    "retrievability": 1,
+    "dueDate": "2026-03-24T12:00:00Z",
+    "status": "learning",
+    "reps": 4,
+    "lapses": 1
+  },
+  "rating": 2,
+  "wasCorrect": true
+}
+```
 
 ### Stats
 

@@ -15,7 +15,7 @@
 | ------------------- | ---------------------------------- |
 | Framework           | Qwik + Qwik City (meta-framework)  |
 | Language            | TypeScript 5+ (strict mode)        |
-| Styling             | CSS Modules + global CSS variables |
+| Styling             | Per-component CSS files + global CSS variables |
 | Syntax highlighting | Shiki                              |
 | Build tool          | Vite                               |
 | Package manager     | npm                                |
@@ -127,7 +127,7 @@ export const useDecks = routeLoader$(async ({ cookie, redirect }) => {
   if (!token) throw redirect(302, "/auth/login");
 
   const res = await fetch(`${process.env.API_URL}/api/v1/decks`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Cookie: `jwt=${token}` },
   });
   if (!res.ok) throw redirect(302, "/auth/login");
   return res.json() as Promise<Deck[]>;
@@ -151,7 +151,7 @@ export const useCreateDeck = routeAction$(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Cookie: `jwt=${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -184,27 +184,23 @@ api.*         → review session: submit answer, get next card
         ↓
 3. Backend returns { token: "eyJ..." }
         ↓
-4. Action stores token in httpOnly cookie: cookie.set('jwt', token)
+4. Action stores token in httpOnly cookie: cookie.set('jwt', token, { httpOnly: true, path: '/' })
         ↓
 5. Redirect to /decks
         ↓
 6. All subsequent routeLoader$ and routeAction$ read token from cookie
-7. All subsequent client-side api.* calls read token from cookie via document.cookie
+7. All subsequent client-side api.* calls use `credentials: "include"`
 ```
 
 **JWT is stored in an httpOnly cookie** — not localStorage.
 This prevents XSS access to the token.
 
 ```tsx
-// lib/auth.ts
-export function getTokenFromCookie(): string | null {
-  const match = document.cookie.match(/(?:^|; )jwt=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
-export function clearAuth() {
-  document.cookie = "jwt=; Max-Age=0; path=/";
-}
+// routes/auth/logout/index.tsx
+export const useLogout = routeAction$(async (_, { cookie, redirect }) => {
+  cookie.delete("jwt", { path: "/" });
+  throw redirect(302, "/auth/login");
+});
 ```
 
 ---
@@ -215,7 +211,7 @@ This is the most complex UI flow in the app.
 
 ```
 1. Page load → routeLoader$ fetches GET /api/v1/review/session
-   Returns: ReviewCard[] (up to 20 due cards)
+   Returns: ReviewCard[] (up to 20 unlocked new cards + due cards)
         ↓
 2. Store cards in useStore({ queue: ReviewCard[], current: 0 })
         ↓
@@ -226,15 +222,20 @@ This is the most complex UI flow in the app.
         ↓
 4. User clicks tokens in order
         ↓
-5. TokenAnswer checks sequence client-side (fast feedback)
-   ├── CORRECT → show success state briefly
-   └── WRONG   → show error state, reset clicked tokens
+5. TokenAnswer checks sequence client-side and records interaction metadata
+   ├── final answered tokens
+   ├── wrong attempts count
+   ├── distractor clicks count
+   ├── incorrect tokens clicked
+   └── ordered attempt history
         ↓
-6. api.review.submit({ cardId, answeredTokens }) → POST /api/v1/review/submit
-   Backend runs FSRS, returns updated CardState
+6. api.review.submit({ cardId, answeredTokens, attempts, wrongAttemptsCount,
+   distractorClicksCount, incorrectTokensClicked }) → POST /api/v1/review/submit
+   Backend derives Rating (Again/Hard/Good/Easy), stores analytics metadata,
+   runs FSRS, and returns `ReviewResult`
         ↓
 7. current++ → show next card
-   If current >= queue.length → show session complete screen
+    If current >= queue.length → show session complete screen
 ```
 
 ### Component hierarchy for review screen
@@ -259,6 +260,25 @@ interface ReviewSessionState {
   currentIndex: number; // which card we're on
   results: ReviewResult[]; // history of this session's answers
   status: "loading" | "active" | "complete";
+}
+
+interface ReviewSubmission {
+  cardId: string;
+  answeredTokens: string[];
+  attempts: Array<{
+    tokens: string[];
+    hadDistractor: boolean;
+    wasCorrect: boolean;
+  }>;
+  wrongAttemptsCount: number;
+  distractorClicksCount: number;
+  incorrectTokensClicked: string[];
+}
+
+interface ReviewResult {
+  state: CardState;
+  rating: Rating;
+  wasCorrect: boolean;
 }
 
 const session = useStore<ReviewSessionState>({
@@ -390,9 +410,10 @@ export default component$(() => {
 ```tsx
 const error = useSignal<string | null>(null);
 
-const submitAnswer = $(async (tokens: string[]) => {
+const submitAnswer = $(async (submission: ReviewSubmission) => {
   try {
-    await api.review.submit({ cardId: current.id, answeredTokens: tokens });
+    const result = await api.review.submit(submission);
+    session.results.push(result);
   } catch (e) {
     error.value = e instanceof Error ? e.message : "Something went wrong";
   }
@@ -405,6 +426,7 @@ const submitAnswer = $(async (tokens: string[]) => {
 
 - **No business logic in components** — components render and emit events only
 - **No raw `fetch` in components** — always use `routeLoader$`, `routeAction$`, or `api.*`
+- **Review submissions include interaction metadata** — final answer, wrong attempts, distractor clicks, incorrect tokens, and attempt history
 - **No `any` in TypeScript** — use types from `lib/types.ts`
 - **No hardcoded colors or sizes** — always use CSS variables from `global.css`
 - **No `window`/`document` outside `useVisibleTask$`**

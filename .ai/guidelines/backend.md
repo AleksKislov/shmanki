@@ -103,6 +103,21 @@ type ReviewService struct {
 }
 ```
 
+For review submissions, the handler request DTO should carry the full attempt metadata,
+not just the final answer tokens. Persist the metadata to `review_logs` and derive the
+final FSRS rating in the service layer.
+
+```go
+type ReviewRequest struct {
+    CardID                uuid.UUID       `json:"cardId"`
+    AnsweredTokens        []string        `json:"answeredTokens"`
+    Attempts              []ReviewAttempt `json:"attempts"`
+    WrongAttemptsCount    int             `json:"wrongAttemptsCount"`
+    DistractorClicksCount int             `json:"distractorClicksCount"`
+    IncorrectTokensClicked []string       `json:"incorrectTokensClicked"`
+}
+```
+
 ### Handler layer
 
 Handlers only: parse input → call service → write response. No business logic.

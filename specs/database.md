@@ -65,7 +65,7 @@ CREATE TABLE info_objects (
     -- Broad category of info object, e.g. 'programming', 'foreign language', 'history'.
 
     content_type VARCHAR(50) NOT NULL DEFAULT 'text',
-    -- Values: 'text' | 'go' | 'python' | 'javascript' etc for programming discipline.
+    -- Values: 'text' | 'code_go' | 'code_python' | 'code_js' | 'code_ts' | 'code_rust'.
     -- Can be 'chinese', 'english' etc for language learning disciplines etc
 
     created_at   TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -171,7 +171,7 @@ CREATE TABLE card_states (
     -- Total number of successful reviews (rating >= 2).
 
     lapses          INT NOT NULL DEFAULT 0,
-    -- Total number of Again ratings after entering review status.
+    -- Total number of Again ratings after a card has already reached review status.
 
     UNIQUE (card_id, user_id)
 );
@@ -220,6 +220,23 @@ CREATE TABLE review_logs (
     was_correct     BOOLEAN NOT NULL,
     -- Whether the user's token sequence matched a correct_answer.
 
+    wrong_attempts_count   INT NOT NULL DEFAULT 0,
+    -- Number of failed attempts before the final submission.
+
+    distractor_clicks_count INT NOT NULL DEFAULT 0,
+    -- Total number of distractor token clicks across the whole review interaction.
+
+    incorrect_tokens_clicked JSONB NOT NULL DEFAULT '[]',
+    -- Flat list of incorrect tokens clicked during the review interaction.
+
+    attempts JSONB NOT NULL DEFAULT '[]',
+    -- Ordered history of attempts.
+    -- Example:
+    -- [
+    --   {"tokens": ["defer"], "had_distractor": true, "was_correct": false},
+    --   {"tokens": ["go", "myFunc()"], "had_distractor": false, "was_correct": true}
+    -- ]
+
     reviewed_at     TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -251,6 +268,12 @@ CREATE TABLE generation_logs (
 
 ### Get due cards for a user session
 
+Session loading should include both cards that are due and cards that are available for a first review.
+That means:
+
+- `learning` / `review` / `relearning` cards with `due_date <= NOW()`
+- `new` cards that are already unlocked
+
 ```sql
 SELECT
     c.id,
@@ -272,8 +295,10 @@ JOIN cards c        ON c.id = cs.card_id
 JOIN info_objects io ON io.id = c.info_object_id
 WHERE
     cs.user_id = $1
-    AND cs.status IN ('learning', 'review', 'relearning')
-    AND cs.due_date <= NOW()
+    AND (
+        (cs.status IN ('learning', 'review', 'relearning') AND cs.due_date <= NOW())
+        OR cs.status = 'new'
+    )
 ORDER BY cs.due_date ASC
 LIMIT $2;
 ```

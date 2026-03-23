@@ -82,8 +82,11 @@ frontend/
 │   │   │   └── register/index.tsx
 │   │   ├── decks/
 │   │   │   ├── index.tsx        # /decks — list
-│   │   │   └── [id]/
-│   │   │       └── index.tsx    # /decks/:id — deck detail
+│   │   │   └── [deckId]/
+│   │   │       └── index.tsx    # /decks/:deckId — deck detail
+│   │   ├── objects/
+│   │   │   └── [objectId]/
+│   │   │       └── index.tsx    # /objects/:objectId — info object detail
 │   │   └── review/
 │   │       └── index.tsx        # /review — review session
 │   │
@@ -161,23 +164,44 @@ export interface ReviewCard extends Card {
   state: CardState;
   infoObject: InfoObject;
 }
+
+export interface ReviewAttempt {
+  tokens: string[];
+  hadDistractor: boolean;
+  wasCorrect: boolean;
+}
+
+export interface ReviewSubmission {
+  cardId: string;
+  answeredTokens: string[];
+  attempts: ReviewAttempt[];
+  wrongAttemptsCount: number;
+  distractorClicksCount: number;
+  incorrectTokensClicked: string[];
+}
+
+export interface ReviewResult {
+  state: CardState;
+  rating: Rating;
+  wasCorrect: boolean;
+}
 ```
 
 ---
 
 ## API Client (`lib/api.ts`)
 
-All backend calls go through a single typed client — never use raw `fetch` in components:
+All client-side backend calls go through a single typed client.
+Use it for post-load interactions such as the review loop; page data and form mutations still belong in `routeLoader$` and `routeAction$`.
 
 ```typescript
 const BASE_URL = import.meta.env.PUBLIC_API_URL ?? "http://localhost:8080";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = localStorage.getItem("jwt");
   const res = await fetch(`${BASE_URL}${path}`, {
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     ...options,
   });
@@ -191,12 +215,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 export const api = {
   auth: {
     login: (email: string, password: string) =>
-      request<{ token: string }>("/api/v1/auth/login", {
+      request<{ ok: true }>("/api/v1/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       }),
     register: (email: string, password: string) =>
-      request<{ token: string }>("/api/v1/auth/register", {
+      request<{ ok: true }>("/api/v1/auth/register", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       }),
@@ -211,16 +235,14 @@ export const api = {
   },
   review: {
     getSession: (limit = 20) => request<ReviewCard[]>(`/api/v1/review/session?limit=${limit}`),
-    submit: (cardId: string, tokens: string[]) =>
-      request<CardState>("/api/v1/review/submit", {
+    submit: (input: ReviewSubmission) =>
+      request<ReviewResult>("/api/v1/review/submit", {
         method: "POST",
-        body: JSON.stringify({ cardId, answeredTokens: tokens }),
+        body: JSON.stringify(input),
       }),
   },
 };
 ```
-
----
 
 ## Token Answer Component
 
@@ -233,36 +255,63 @@ import { component$, useSignal, $ } from "@builder.io/qwik";
 interface Props {
   correctAnswers: string[][]; // [[token, token], ...]
   distractors: string[];
-  onCorrect$: () => void;
-  onWrong$: () => void;
+  cardId: string;
+  onSubmit$: (submission: ReviewSubmission) => void;
 }
 
 export const TokenAnswer = component$<Props>(
-  ({ correctAnswers, distractors, onCorrect$, onWrong$ }) => {
+  ({ correctAnswers, distractors, cardId, onSubmit$ }) => {
     // Shuffle correct tokens from first answer + distractors
     const allTokens = [...correctAnswers[0], ...distractors].sort(() => Math.random() - 0.5);
 
     const clicked = useSignal<string[]>([]);
     const failed = useSignal(false);
+    const attempts = useSignal<ReviewAttempt[]>([]);
+    const wrongAttemptsCount = useSignal(0);
+    const distractorClicksCount = useSignal(0);
+    const incorrectTokensClicked = useSignal<string[]>([]);
 
     const handleToken = $((token: string) => {
       const next = [...clicked.value, token];
       clicked.value = next;
 
       const expected = correctAnswers[0];
+      const currentAttemptHasDistractor = next.some((part) => distractors.includes(part));
+
+      if (distractors.includes(token)) {
+        distractorClicksCount.value++;
+        incorrectTokensClicked.value = [...incorrectTokensClicked.value, token];
+      }
 
       // Check if still on a valid path
       for (let i = 0; i < next.length; i++) {
         if (next[i] !== expected[i]) {
           failed.value = true;
+          wrongAttemptsCount.value++;
+          attempts.value = [
+            ...attempts.value,
+            { tokens: next, hadDistractor: currentAttemptHasDistractor, wasCorrect: false },
+          ];
           clicked.value = [];
-          onWrong$();
           return;
         }
       }
+
       // Check if complete
       if (next.length === expected.length) {
-        onCorrect$();
+        const completedAttempts = [
+          ...attempts.value,
+          { tokens: next, hadDistractor: currentAttemptHasDistractor, wasCorrect: true },
+        ];
+        attempts.value = completedAttempts;
+        onSubmit$({
+          cardId,
+          answeredTokens: next,
+          attempts: completedAttempts,
+          wrongAttemptsCount: wrongAttemptsCount.value,
+          distractorClicksCount: distractorClicksCount.value,
+          incorrectTokensClicked: incorrectTokensClicked.value,
+        });
       }
     });
 
@@ -384,6 +433,8 @@ export default component$(() => {
 
 - All components in `components/` are **presentational** — no direct API calls
 - All data fetching happens in `routeLoader$` or `routeAction$` in route files
+- JWT is stored in a cookie-based auth flow; do not use `localStorage` for the session token
+- Review submissions must send final answer plus attempt metadata for backend rating and analytics
 - Never use `any` in TypeScript
 - CSS: use CSS variables from `global.css` for colors and spacing — no hardcoded hex values in components
 - File names: `kebab-case` for files and folders

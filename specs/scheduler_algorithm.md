@@ -62,14 +62,27 @@ const (
 ### How rating is determined in this app
 
 Unlike standard FSRS (where users click Again/Good buttons),
-this app **determines rating automatically** from the user's answer:
+this app **determines rating automatically** from the user's answer metadata.
+
+The review submission payload includes:
+
+- `answered_tokens`: final token sequence submitted for scoring
+- `attempts`: ordered list of attempts made during the card review
+- `wrong_attempts_count`: number of failed attempts before the final submission
+- `distractor_clicks_count`: total number of distractor token clicks across the review
+- `incorrect_tokens_clicked`: flat list of wrong tokens clicked for analytics/debugging
 
 ```
-User answered all tokens correctly on first attempt                  → RatingEasy (4)
-User answered all tokens correctly, but pressed distractors as well  → RatingGood (3)
-User answered correctly but submitted one incorrect attempt          → RatingHard (2)
-User answered incorrectly                                            → RatingAgain (1)
+Final submission is incorrect                                        → RatingAgain (1)
+Final submission is correct, but wrong_attempts_count > 0            → RatingHard (2)
+Final submission is correct, wrong_attempts_count = 0,
+and distractor_clicks_count > 0                                      → RatingGood (3)
+Final submission is correct, wrong_attempts_count = 0,
+and distractor_clicks_count = 0                                      → RatingEasy (4)
 ```
+
+`attempts` is stored primarily for replay, debugging, and analytics.
+The scheduler itself only needs the derived rating.
 
 ---
 
@@ -158,10 +171,11 @@ func UpdateDifficulty(d float64, rating Rating, w [19]float64) float64 {
 ### Stability After Successful Review (SInc)
 
 ```
-SInc = S × e^(W[17] × (11 - D) × S^(-W[18]) × (e^(W[19]×(1-R)) - 1) + 1)
+SInc = S × e^(W[17] × (11 - D) × S^(-W[18]) × (e^(W[18]×(1-R)) - 1) + 1)
 ```
 
-Note: index offset — W[17], W[18] map to w[16], w[17] in 0-indexed array.
+Note: the project uses a 19-element weight array `w[0]..w[18]`.
+In code, the final multiplier term uses `w[18]`; there is no `w[19]`.
 
 ```go
 func StabilityAfterRecall(s, d, r float64, rating Rating, w [19]float64) float64 {
@@ -173,7 +187,7 @@ func StabilityAfterRecall(s, d, r float64, rating Rating, w [19]float64) float64
     if rating == RatingEasy {
         easyBonus = w[16]
     }
-    sinc := math.Exp(w[17]*(11-d)*math.Pow(s, -w[18])*(math.Exp((1-r)*w[19])-1)+1)
+    sinc := math.Exp(w[17]*(11-d)*math.Pow(s, -w[18])*(math.Exp((1-r)*w[18])-1)+1)
     return s * sinc * hardPenalty * easyBonus
 }
 ```
@@ -228,8 +242,9 @@ func (sc *Scheduler) Schedule(state CardState, rating Rating, now time.Time) Car
     if rating == RatingAgain {
         newS = StabilityAfterForgetting(state.Stability, state.Difficulty, r, w)
         newD = UpdateDifficulty(state.Difficulty, rating, w)
-        state.Lapses++
-        state.Reps = 0
+        if state.Status == StatusReview {
+            state.Lapses++
+        }
         state.Status = StatusRelearning
     } else {
         newS = StabilityAfterRecall(state.Stability, state.Difficulty, r, rating, w)
