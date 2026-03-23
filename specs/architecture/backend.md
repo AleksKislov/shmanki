@@ -180,11 +180,12 @@ Handler
 
 ## Authentication
 
-- **Registration**: `POST /api/v1/auth/register` → bcrypt password → store user → set auth cookie
-- **Login**: `POST /api/v1/auth/login` → verify bcrypt → set auth cookie
+- **Registration**: `POST /api/v1/auth/register` → bcrypt password → store user → return JWT
+- **Login**: `POST /api/v1/auth/login` → verify bcrypt → return JWT
 - **JWT payload**: `{ "sub": "<userID>", "exp": <unix> }`
 - **JWT lifetime**: 7 days (configurable via `JWT_TTL_HOURS` env)
-- **Transport**: JWT is set in an auth cookie and sent automatically by the browser
+- **Transport**: clients send `Authorization: Bearer <token>`
+- **Storage**: web frontend stores JWT in `localStorage`; mobile clients store it in platform-local persistent storage and send the same bearer header
 - **Middleware** validates token and injects `userID` into `context.Context`
 
 ```go
@@ -200,8 +201,8 @@ userID := middleware.UserIDFromContext(r.Context())
 
 | Method | Path                  | Description        |
 | ------ | --------------------- | ------------------ |
-| POST   | /api/v1/auth/register | Register new user and set auth cookie |
-| POST   | /api/v1/auth/login    | Login and set auth cookie |
+| POST   | /api/v1/auth/register | Register new user and return JWT |
+| POST   | /api/v1/auth/login    | Login and return JWT |
 
 ### Decks
 

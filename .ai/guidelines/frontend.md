@@ -192,16 +192,18 @@ export interface ReviewResult {
 ## API Client (`lib/api.ts`)
 
 All client-side backend calls go through a single typed client.
-Use it for post-load interactions such as the review loop; page data and form mutations still belong in `routeLoader$` and `routeAction$`.
+With bearer auth stored in `localStorage`, authenticated data fetching and mutations should go through this client.
+`routeLoader$` / `routeAction$` are still fine for public or non-authenticated pages.
 
 ```typescript
 const BASE_URL = import.meta.env.PUBLIC_API_URL ?? "http://localhost:8080";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = localStorage.getItem("jwt");
   const res = await fetch(`${BASE_URL}${path}`, {
-    credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     ...options,
   });
@@ -215,12 +217,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 export const api = {
   auth: {
     login: (email: string, password: string) =>
-      request<{ ok: true }>("/api/v1/auth/login", {
+      request<{ token: string }>("/api/v1/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       }),
     register: (email: string, password: string) =>
-      request<{ ok: true }>("/api/v1/auth/register", {
+      request<{ token: string }>("/api/v1/auth/register", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       }),
@@ -409,20 +411,20 @@ export const CodeBlock = component$<Props>(({ code, contentType, highlightLines 
 
 ```tsx
 // routes/layout.tsx
-import { component$, Slot } from "@builder.io/qwik";
-import { routeLoader$ } from "@builder.io/qwik-city";
-import { redirect } from "@builder.io/qwik-city";
-
-export const useAuthGuard = routeLoader$(({ cookie, url, redirect }) => {
-  const token = cookie.get("jwt")?.value;
-  const isAuthRoute = url.pathname.startsWith("/auth");
-  if (!token && !isAuthRoute) {
-    throw redirect(302, "/auth/login");
-  }
-  return { authenticated: !!token };
-});
+import { component$, Slot, useVisibleTask$ } from "@builder.io/qwik";
+import { useNavigate } from "@builder.io/qwik-city";
 
 export default component$(() => {
+  const nav = useNavigate();
+
+  useVisibleTask$(() => {
+    const token = localStorage.getItem("jwt");
+    const isAuthRoute = window.location.pathname.startsWith("/auth");
+    if (!token && !isAuthRoute) {
+      nav("/auth/login");
+    }
+  });
+
   return <Slot />;
 });
 ```
@@ -432,8 +434,8 @@ export default component$(() => {
 ## Conventions
 
 - All components in `components/` are **presentational** — no direct API calls
-- All data fetching happens in `routeLoader$` or `routeAction$` in route files
-- JWT is stored in a cookie-based auth flow; do not use `localStorage` for the session token
+- Authenticated requests use the shared `api` client with `Authorization: Bearer <token>`
+- Store JWT in `localStorage` on web; mobile clients should store the same token in platform-local persistent storage
 - Review submissions must send final answer plus attempt metadata for backend rating and analytics
 - Never use `any` in TypeScript
 - CSS: use CSS variables from `global.css` for colors and spacing — no hardcoded hex values in components

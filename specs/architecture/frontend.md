@@ -96,16 +96,22 @@ Qwik City uses **file-based routing** — each `index.tsx` in `routes/` maps to 
 
 ### Auth guard
 
-Defined once in `routes/layout.tsx` — applies to all routes:
+Defined once in `routes/layout.tsx` — applies to all routes.
+Because the token is stored in `localStorage`, route protection is enforced on the client after hydration:
 
 ```tsx
-export const useAuthGuard = routeLoader$(({ cookie, url, redirect }) => {
-  const token = cookie.get("jwt")?.value;
-  const isPublic = url.pathname.startsWith("/auth");
-  if (!token && !isPublic) {
-    throw redirect(302, "/auth/login");
-  }
-  return { authenticated: !!token };
+export default component$(() => {
+  const nav = useNavigate();
+
+  useVisibleTask$(() => {
+    const token = localStorage.getItem("jwt");
+    const isPublic = window.location.pathname.startsWith("/auth");
+    if (!token && !isPublic) {
+      nav("/auth/login");
+    }
+  });
+
+  return <Slot />;
 });
 ```
 
@@ -113,64 +119,54 @@ export const useAuthGuard = routeLoader$(({ cookie, url, redirect }) => {
 
 ## Data Fetching
 
-Qwik City provides two patterns for server-side data fetching.
-**Never call `api.*` directly in component body** — use these patterns instead.
+Qwik City provides two patterns for route-driven data fetching.
+Because auth uses `localStorage`, authenticated requests should generally use the shared `api.*` client from client-visible code.
 
-### `routeLoader$` — fetch data for a page
+### `routeLoader$` — fetch public or non-authenticated page data
 
-Runs on the server before the page renders. Use for initial page data.
+Runs before the page renders. Use it when the request does not depend on the browser-held JWT.
 
 ```tsx
-// routes/decks/index.tsx
-export const useDecks = routeLoader$(async ({ cookie, redirect }) => {
-  const token = cookie.get("jwt")?.value;
-  if (!token) throw redirect(302, "/auth/login");
-
-  const res = await fetch(`${process.env.API_URL}/api/v1/decks`, {
-    headers: { Cookie: `jwt=${token}` },
-  });
-  if (!res.ok) throw redirect(302, "/auth/login");
-  return res.json() as Promise<Deck[]>;
+// routes/index.tsx
+export const useLandingContent = routeLoader$(async () => {
+  return { headline: "Learn faster with spaced repetition" };
 });
 
 export default component$(() => {
-  const decks = useDecks(); // signal, always populated on render
-  return <DeckList decks={decks.value} />;
+  const content = useLandingContent();
+  return <Hero headline={content.value.headline} />;
 });
 ```
 
 ### `routeAction$` — handle form submissions / mutations
 
-Use for create, update, delete, login, logout.
+Use for forms that do not require direct access to the browser-held JWT, such as login.
 
 ```tsx
-export const useCreateDeck = routeAction$(
-  async (data, { cookie, fail }) => {
-    const token = cookie.get("jwt")?.value;
-    const res = await fetch(`${process.env.API_URL}/api/v1/decks`, {
+export const useLogin = routeAction$(
+  async (data, { fail }) => {
+    const res = await fetch(`${process.env.API_URL}/api/v1/auth/login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Cookie: `jwt=${token}`,
       },
       body: JSON.stringify(data),
     });
-    if (!res.ok) return fail(400, { message: "Failed to create deck" });
-    return res.json();
+    if (!res.ok) return fail(400, { message: "Failed to log in" });
+    return res.json() as Promise<{ token: string }>;
   },
-  zod$({ title: z.string().min(1), description: z.string() }),
+  zod$({ email: z.string().email(), password: z.string().min(8) }),
 );
 ```
 
 ### Client-side fetching (`api.*`)
 
-Only use for interactions that happen **after** the page loads
-and don't need SSR — specifically the review session loop:
+Use for all authenticated requests, because the JWT lives in `localStorage`:
 
 ```
-routeLoader$  → initial page data, deck/object/card lists
-routeAction$  → form submissions, CRUD mutations, login
-api.*         → review session: submit answer, get next card
+routeLoader$  → public or non-authenticated page data
+routeAction$  → login/register forms and similar route actions
+api.*         → authenticated deck/object/card/review calls
 ```
 
 ---
@@ -184,23 +180,30 @@ api.*         → review session: submit answer, get next card
         ↓
 3. Backend returns { token: "eyJ..." }
         ↓
-4. Action stores token in httpOnly cookie: cookie.set('jwt', token, { httpOnly: true, path: '/' })
+4. Frontend stores token in `localStorage`
         ↓
 5. Redirect to /decks
         ↓
-6. All subsequent routeLoader$ and routeAction$ read token from cookie
-7. All subsequent client-side api.* calls use `credentials: "include"`
+6. Route guards and pages read auth state from `localStorage`
+7. All subsequent API calls send `Authorization: Bearer <token>`
 ```
 
-**JWT is stored in an httpOnly cookie** — not localStorage.
-This prevents XSS access to the token.
+**JWT is stored in `localStorage`** for consistency with future mobile clients.
+Mobile apps should store the same JWT in the platform's local persistent storage and send the same bearer header.
 
 ```tsx
-// routes/auth/logout/index.tsx
-export const useLogout = routeAction$(async (_, { cookie, redirect }) => {
-  cookie.delete("jwt", { path: "/" });
-  throw redirect(302, "/auth/login");
-});
+// lib/auth.ts
+export function getToken(): string | null {
+  return localStorage.getItem("jwt");
+}
+
+export function setToken(token: string) {
+  localStorage.setItem("jwt", token);
+}
+
+export function clearAuth() {
+  localStorage.removeItem("jwt");
+}
 ```
 
 ---
@@ -302,7 +305,7 @@ Qwik has no global store like Redux. Use this hierarchy:
 | Page-level server data         | `routeLoader$`              | initial data for a route    |
 | Cross-component (parent→child) | props                       | pass data down              |
 | Cross-component (child→parent) | `QRL` callbacks (`onDone$`) | events up                   |
-| Global (auth token)            | httpOnly cookie             | JWT only                    |
+| Global (auth token)            | `localStorage`              | JWT only                    |
 
 There is **no global client-side store**. If two sibling components need shared state,
 lift it to their common parent route.
