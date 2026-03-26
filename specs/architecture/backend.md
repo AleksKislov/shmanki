@@ -6,6 +6,7 @@
 - Frontend architecture: `specs/architecture/frontend.md`
 - FSRS algorithm: `specs/scheduler_algorithm.md`
 - Database schema: `specs/database.md`
+- Internationalization: `specs/i18n.md`
 
 ---
 
@@ -302,40 +303,9 @@ Response body:
 - Auth responses include `token` and `user.preferredLanguage`
 - `POST /api/v1/decks` and `PUT /api/v1/decks/:id` accept `languageCode`
 - Deck responses include `languageCode`
-- Generation uses the target deck's `languageCode` for prompt construction and output validation
+- Generation uses the target deck's `languageCode`
 
-Example register request:
-
-```json
-{
-  "email": "user@example.com",
-  "password": "secret123",
-  "preferredLanguage": "en"
-}
-```
-
-Example auth response:
-
-```json
-{
-  "token": "eyJ...",
-  "user": {
-    "id": "uuid",
-    "email": "user@example.com",
-    "preferredLanguage": "en"
-  }
-}
-```
-
-Example create deck request:
-
-```json
-{
-  "title": "Spanish Basics",
-  "description": "Starter deck for common phrases",
-  "languageCode": "es"
-}
-```
+Detailed language ownership and behavior live in `specs/i18n.md`.
 
 ---
 
@@ -394,12 +364,7 @@ DEFAULT_LANGUAGE=en
 
 ## Language Rules
 
-- Language codes use BCP 47 format, e.g. `en`, `ru`, `es`, `de`, `fr`, `ja`, `zh-CN`
-- `users.preferred_language` is the user's UI language and the default for new decks
-- `decks.language_code` is the source of truth for all nested study content
-- `info_objects` and `cards` inherit deck language; they do not store language overrides in this version
-- LLM generation, validation, and output formatting must use the deck language rather than assuming English
-- Error payloads remain non-localized in this version; UI localization happens on the client
+Backend language ownership, validation rules, and scope limits are defined in `specs/i18n.md`.
 
 ---
 

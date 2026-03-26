@@ -68,6 +68,7 @@ Current docs assume this target layout:
 | -------------------------------- | ---------------------------------------------------------------- |
 | `specs/scheduler_algorithm.md`   | FSRS algorithm: all formulas, weights, rating logic, step unlock |
 | `specs/database.md`              | Full PostgreSQL schema with all tables, indexes, key queries     |
+| `specs/i18n.md`                  | UI localization rules, deck language ownership, language scope   |
 | `specs/architecture/backend.md`  | Backend structure, modules, API endpoints, error format, config  |
 | `specs/architecture/frontend.md` | Frontend structure, components, routes, API integration, config  |
 
@@ -147,11 +148,7 @@ does not apply language-specific grammar or morphology rules yet.
 
 ## Language Model
 
-- `users.preferred_language` is the user's chosen UI language and default deck language
-- `decks.language_code` is the source of truth for all nested content in that deck
-- `info_objects` and `cards` inherit language from their parent deck rather than storing overrides
-- Language codes use BCP 47 format, e.g. `en`, `ru`, `es`, `de`, `fr`, `ja`, `zh-CN`
-- LLM generation uses the deck language when producing titles, content, questions, and distractors
+See `specs/i18n.md` for language ownership, localization rules, and scope limits.
 
 ---
 

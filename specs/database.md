@@ -7,6 +7,13 @@
 - **Migrations**: `golang-migrate/migrate`
 - **UUID generation**: `gen_random_uuid()` (pgcrypto)
 
+Related specs:
+
+- `specs/architecture/backend.md`
+- `specs/architecture/frontend.md`
+- `specs/scheduler_algorithm.md`
+- `specs/i18n.md`
+
 ---
 
 ## Tables
@@ -365,7 +372,4 @@ migrate -path migrations -database $DATABASE_URL up
 
 ## Language Rules
 
-- Supported language codes use BCP 47 format, e.g. `en`, `ru`, `es`, `de`, `fr`, `ja`, `zh-CN`
-- `users.preferred_language` controls the default UI language and the default language for newly created decks
-- `decks.language_code` is the source of truth for all nested content in that deck
-- `info_objects` and `cards` do not store separate language overrides in this version
+Field ownership and behavior are defined in `specs/i18n.md`.

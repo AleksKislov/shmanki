@@ -6,7 +6,8 @@ Read in this order:
 2. Relevant architecture spec under `specs/architecture/`
 3. `specs/database.md` for schema-backed work
 4. `specs/scheduler_algorithm.md` for review scheduling and rating logic
-5. Relevant guideline file under `.ai/guidelines/`
+5. `specs/i18n.md` for UI/content language rules
+6. Relevant guideline file under `.ai/guidelines/`
 
 Use:
 

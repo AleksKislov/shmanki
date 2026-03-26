@@ -6,6 +6,7 @@
 - Backend architecture: `specs/architecture/backend.md`
 - FSRS algorithm: `specs/scheduler_algorithm.md`
 - Database schema: `specs/database.md`
+- Internationalization: `specs/i18n.md`
 
 ---
 
@@ -181,6 +182,7 @@ api.*         → authenticated deck/object/card/review calls
 ```
 
 The user profile response should include `preferredLanguage`, and deck payloads should include `languageCode`.
+Detailed localization rules live in `specs/i18n.md`.
 
 ---
 
@@ -221,49 +223,16 @@ export function clearAuth() {
 
 ```tsx
 // lib/i18n.ts
-export type LanguageCode = "en" | "ru" | "es" | "de" | "fr" | "ja" | "zh-CN";
-
-export function getLocale(): LanguageCode {
-  return (localStorage.getItem("preferredLanguage") as LanguageCode | null) ?? "en";
+export function getLocale(): string {
+  return localStorage.getItem("preferredLanguage") ?? "en";
 }
 
-export function setLocale(locale: LanguageCode) {
+export function setLocale(locale: string) {
   localStorage.setItem("preferredLanguage", locale);
 }
 ```
 
----
-
-## Internationalization
-
-The frontend supports multilingual UI driven by the user's preferred language.
-Study content language is defined by the deck.
-
-### Source of truth
-
-- UI locale: `user.preferredLanguage`
-- Deck content language: `deck.languageCode`
-- Info objects and cards inherit deck language
-
-### Translation resources
-
-- Keep dictionaries in `src/lib/locales/`
-- Use stable translation keys such as `nav.decks`, `auth.login`, `deck.language`
-- Fallback order: current locale -> `en` -> key itself
-
-### UX rules
-
-- Registration should let the user choose `preferredLanguage`
-- New deck forms default `languageCode` from `preferredLanguage`
-- Deck edit forms allow changing `languageCode`
-- Layouts and components must handle longer translations and non-Latin scripts gracefully
-- Do not rely on English-only copy length when designing buttons, forms, or navigation
-
-### Scope limits for this version
-
-- No RTL-specific layout rules yet
-- No language-specific token matching or morphology rules yet
-- No server-side localized error messages yet
+Internationalization architecture, ownership rules, and scope limits are defined in `specs/i18n.md`.
 
 ---
 
