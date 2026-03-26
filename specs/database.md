@@ -20,6 +20,9 @@ CREATE TABLE users (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email         VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,         -- bcrypt, cost=12
+    preferred_language VARCHAR(20) NOT NULL DEFAULT 'en',
+    -- User's chosen UI language and default language for new decks.
+    -- BCP 47 code, e.g. 'en', 'ru', 'es', 'de', 'fr', 'ja', 'zh-CN'.
     created_at    TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -37,6 +40,9 @@ CREATE TABLE decks (
     user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title       VARCHAR(255) NOT NULL,
     description TEXT NOT NULL DEFAULT '',
+    language_code VARCHAR(20) NOT NULL DEFAULT 'en',
+    -- Source of truth for all nested study content in this deck.
+    -- New decks default to users.preferred_language unless explicitly overridden.
     created_at  TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -50,6 +56,7 @@ CREATE INDEX idx_decks_user_id ON decks(user_id);
 
 A group of related cards. Stores the full reference content (text or code)
 that is displayed to the user alongside the cards.
+Info objects inherit their language from the parent deck.
 
 ```sql
 CREATE TABLE info_objects (
@@ -62,11 +69,11 @@ CREATE TABLE info_objects (
     -- Example: complete Go implementation of a LinkedList.
 
     discipline    VARCHAR(50) NOT NULL DEFAULT 'programming',
-    -- Broad category of info object, e.g. 'programming', 'foreign language', 'history'.
+    -- Broad category of info object, e.g. 'programming', 'language', 'history'.
 
     content_type VARCHAR(50) NOT NULL DEFAULT 'text',
     -- Values: 'text' | 'code_go' | 'code_python' | 'code_js' | 'code_ts' | 'code_rust'.
-    -- Can be 'chinese', 'english' etc for language learning disciplines etc
+    -- Language is stored on the parent deck, not in content_type.
 
     created_at   TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at   TIMESTAMP NOT NULL DEFAULT NOW()
@@ -83,6 +90,7 @@ A single flashcard belonging to an info object.
 Cards within an info object are grouped by `step`.
 Step 0 cards are always available. Step N cards unlock
 only when all step N-1 cards have stability >= 14 days.
+Cards inherit language from their parent deck.
 
 ```sql
 CREATE TABLE cards (
@@ -289,10 +297,12 @@ SELECT
     cs.reps,
     cs.lapses,
     io.content,
-    io.content_type
+    io.content_type,
+    d.language_code
 FROM card_states cs
 JOIN cards c        ON c.id = cs.card_id
 JOIN info_objects io ON io.id = c.info_object_id
+JOIN decks d        ON d.id = io.deck_id
 WHERE
     cs.user_id = $1
     AND (
@@ -350,3 +360,12 @@ Run with:
 ```bash
 migrate -path migrations -database $DATABASE_URL up
 ```
+
+---
+
+## Language Rules
+
+- Supported language codes use BCP 47 format, e.g. `en`, `ru`, `es`, `de`, `fr`, `ja`, `zh-CN`
+- `users.preferred_language` controls the default UI language and the default language for newly created decks
+- `decks.language_code` is the source of truth for all nested content in that deck
+- `info_objects` and `cards` do not store separate language overrides in this version

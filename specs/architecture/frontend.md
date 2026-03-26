@@ -66,6 +66,11 @@ frontend/
 │   │   ├── types.ts                 # TypeScript types (mirror of Go models)
 │   │   ├── api.ts                   # typed fetch wrapper for backend API
 │   │   ├── auth.ts                  # JWT helpers: save, read, clear
+│   │   ├── i18n.ts                  # current locale, dictionary lookup, fallback logic
+│   │   └── locales/
+│   │       ├── en.ts
+│   │       ├── ru.ts
+│   │       └── ...
 │   │   └── fsrs.ts                  # client-side FSRS helpers (mastery level, R display)
 │   │
 │   ├── global.css                   # CSS variables, resets, base typography
@@ -114,6 +119,12 @@ export default component$(() => {
   return <Slot />;
 });
 ```
+
+### Localization bootstrap
+
+- The app reads the current locale from the authenticated user profile
+- Before profile data is available, the frontend may fall back to `localStorage` or `en`
+- All route-level UI text must render through translation keys, not inline literals
 
 ---
 
@@ -169,6 +180,8 @@ routeAction$  → login/register forms and similar route actions
 api.*         → authenticated deck/object/card/review calls
 ```
 
+The user profile response should include `preferredLanguage`, and deck payloads should include `languageCode`.
+
 ---
 
 ## Auth Flow
@@ -205,6 +218,52 @@ export function clearAuth() {
   localStorage.removeItem("jwt");
 }
 ```
+
+```tsx
+// lib/i18n.ts
+export type LanguageCode = "en" | "ru" | "es" | "de" | "fr" | "ja" | "zh-CN";
+
+export function getLocale(): LanguageCode {
+  return (localStorage.getItem("preferredLanguage") as LanguageCode | null) ?? "en";
+}
+
+export function setLocale(locale: LanguageCode) {
+  localStorage.setItem("preferredLanguage", locale);
+}
+```
+
+---
+
+## Internationalization
+
+The frontend supports multilingual UI driven by the user's preferred language.
+Study content language is defined by the deck.
+
+### Source of truth
+
+- UI locale: `user.preferredLanguage`
+- Deck content language: `deck.languageCode`
+- Info objects and cards inherit deck language
+
+### Translation resources
+
+- Keep dictionaries in `src/lib/locales/`
+- Use stable translation keys such as `nav.decks`, `auth.login`, `deck.language`
+- Fallback order: current locale -> `en` -> key itself
+
+### UX rules
+
+- Registration should let the user choose `preferredLanguage`
+- New deck forms default `languageCode` from `preferredLanguage`
+- Deck edit forms allow changing `languageCode`
+- Layouts and components must handle longer translations and non-Latin scripts gracefully
+- Do not rely on English-only copy length when designing buttons, forms, or navigation
+
+### Scope limits for this version
+
+- No RTL-specific layout rules yet
+- No language-specific token matching or morphology rules yet
+- No server-side localized error messages yet
 
 ---
 
@@ -282,6 +341,19 @@ interface ReviewResult {
   state: CardState;
   rating: Rating;
   wasCorrect: boolean;
+}
+
+interface User {
+  id: string;
+  email: string;
+  preferredLanguage: LanguageCode;
+}
+
+interface Deck {
+  id: string;
+  title: string;
+  description: string;
+  languageCode: LanguageCode;
 }
 
 const session = useStore<ReviewSessionState>({
@@ -430,6 +502,8 @@ const submitAnswer = $(async (submission: ReviewSubmission) => {
 - **No business logic in components** — components render and emit events only
 - **No raw `fetch` in components** — always use `routeLoader$`, `routeAction$`, or `api.*`
 - **Review submissions include interaction metadata** — final answer, wrong attempts, distractor clicks, incorrect tokens, and attempt history
+- **No hardcoded user-facing text** — use translation dictionaries and locale helpers
+- **Decks are language-aware** — forms and views must display and preserve `languageCode`
 - **No `any` in TypeScript** — use types from `lib/types.ts`
 - **No hardcoded colors or sizes** — always use CSS variables from `global.css`
 - **No `window`/`document` outside `useVisibleTask$`**

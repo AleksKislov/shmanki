@@ -14,6 +14,7 @@
 The backend is a **modular monolith** REST API written in Go.
 It is structured as independent modules with clear boundaries,
 making it easy to extract into microservices later if needed.
+It also owns language metadata for users and decks so UI localization and generated study content stay consistent.
 
 ---
 
@@ -295,6 +296,47 @@ Response body:
 | ------ | ---------------- | ---------------------------------- |
 | POST   | /api/v1/generate | Generate cards for a topic via LLM |
 
+### Language-aware request/response fields
+
+- `POST /api/v1/auth/register` may accept `preferredLanguage`
+- Auth responses include `token` and `user.preferredLanguage`
+- `POST /api/v1/decks` and `PUT /api/v1/decks/:id` accept `languageCode`
+- Deck responses include `languageCode`
+- Generation uses the target deck's `languageCode` for prompt construction and output validation
+
+Example register request:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "secret123",
+  "preferredLanguage": "en"
+}
+```
+
+Example auth response:
+
+```json
+{
+  "token": "eyJ...",
+  "user": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "preferredLanguage": "en"
+  }
+}
+```
+
+Example create deck request:
+
+```json
+{
+  "title": "Spanish Basics",
+  "description": "Starter deck for common phrases",
+  "languageCode": "es"
+}
+```
+
 ---
 
 ## Error Response Format
@@ -343,7 +385,21 @@ ANTHROPIC_MODEL=claude-sonnet-4-20250514
 # FSRS
 FSRS_DESIRED_RETENTION=0.90
 FSRS_STEP_UNLOCK_DAYS=14
+
+# I18N
+DEFAULT_LANGUAGE=en
 ```
+
+---
+
+## Language Rules
+
+- Language codes use BCP 47 format, e.g. `en`, `ru`, `es`, `de`, `fr`, `ja`, `zh-CN`
+- `users.preferred_language` is the user's UI language and the default for new decks
+- `decks.language_code` is the source of truth for all nested study content
+- `info_objects` and `cards` inherit deck language; they do not store language overrides in this version
+- LLM generation, validation, and output formatting must use the deck language rather than assuming English
+- Error payloads remain non-localized in this version; UI localization happens on the client
 
 ---
 

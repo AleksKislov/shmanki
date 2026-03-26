@@ -2,8 +2,8 @@
 
 ## What This Project Is
 
-A spaced repetition learning platform for developers.
-Users study programming concepts through flashcards with automatic content generation.
+A spaced repetition learning platform with multilingual UI and language-aware study content.
+Users study programming concepts and other structured topics through flashcards with automatic content generation.
 
 Key differentiators vs Anki:
 
@@ -11,6 +11,7 @@ Key differentiators vs Anki:
 - Cards use token-selection answers (click tokens in order) instead of self-rating buttons
 - Automatic card generation from a topic via LLM
 - InfoObjects: cards are grouped under reference content (code/text) with line highlighting
+- User preferred language drives both UI localization and the default language for newly created decks
 
 ---
 
@@ -78,15 +79,19 @@ Current docs assume this target layout:
 
 ```
 User
+ ├── preferred_language: string  (BCP 47 code, e.g. en, ru, es, de, fr, zh-CN)
  └── Deck (collection of info objects)
+       ├── language_code: string   (source of truth for all nested study content)
        └── InfoObject (a concept/topic with full reference content)
               ├── content: string        (full code/text shown as reference)
               ├── content_type: string   (text | code_go | code_python | ...)
-             └── Card (a question about the info object)
-                   ├── step: int              (unlock order, 0 = always available)
-                   ├── correct_answers: JSONB ([[token, token, ...], ...])
-                   ├── distractors: JSONB     ([token, token, ...])
-                   └── highlight_lines: JSONB ([1, 5, 6, ...])
+              ├── language: inherited    (inherits from Deck.language_code)
+              └── Card (a question about the info object)
+                    ├── step: int              (unlock order, 0 = always available)
+                    ├── correct_answers: JSONB ([[token, token, ...], ...])
+                    ├── distractors: JSONB     ([token, token, ...])
+                    ├── language: inherited    (inherits from Deck.language_code)
+                    └── highlight_lines: JSONB ([1, 5, 6, ...])
 
 CardState (per Card per User — FSRS parameters)
  ├── stability: float       (S: days until R drops to 0.9)
@@ -135,6 +140,19 @@ Frontend tracks the full attempt history for the card, including:
 Backend checks whether the final sequence matches any entry in `correct_answers`
 and derives the FSRS rating from correctness plus the attempt metadata.
 
+The answer mechanic is language-agnostic. Token matching uses stored card content and
+does not apply language-specific grammar or morphology rules yet.
+
+---
+
+## Language Model
+
+- `users.preferred_language` is the user's chosen UI language and default deck language
+- `decks.language_code` is the source of truth for all nested content in that deck
+- `info_objects` and `cards` inherit language from their parent deck rather than storing overrides
+- Language codes use BCP 47 format, e.g. `en`, `ru`, `es`, `de`, `fr`, `ja`, `zh-CN`
+- LLM generation uses the deck language when producing titles, content, questions, and distractors
+
 ---
 
 ## Tech Stack
@@ -165,3 +183,6 @@ and derives the FSRS rating from correctness plus the attempt metadata.
 - [ ] Code block with line highlighting (frontend)
 - [ ] LLM generation endpoint
 - [ ] Stats endpoints
+- [ ] User language preference
+- [ ] UI localization infrastructure
+- [ ] Deck language defaults and editing

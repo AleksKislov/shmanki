@@ -75,6 +75,14 @@ type CardScheduler interface {
 - Always validate and sanitize input
 - Use middleware for auth, logging, recovery
 
+### Internationalization
+
+- Store canonical language codes using BCP 47 (`en`, `ru`, `es`, `de`, `fr`, `ja`, `zh-CN`)
+- Validate language codes in one place and reuse that validation across handlers/services
+- Persist `users.preferred_language` and default new deck language from it when request omits `languageCode`
+- Treat `decks.language_code` as the source of truth for all nested content in that deck
+- Do not assume English-only content in prompts, validation, logs, or examples
+
 ---
 
 ## Project Conventions
@@ -118,6 +126,22 @@ type ReviewRequest struct {
 }
 ```
 
+For deck and generation flows, carry language metadata explicitly in request/response DTOs.
+
+```go
+type CreateDeckRequest struct {
+    Title        string `json:"title"`
+    Description  string `json:"description"`
+    LanguageCode string `json:"languageCode,omitempty"`
+}
+
+type User struct {
+    ID                uuid.UUID `json:"id"`
+    Email             string    `json:"email"`
+    PreferredLanguage string    `json:"preferredLanguage"`
+}
+```
+
 ### Handler layer
 
 Handlers only: parse input → call service → write response. No business logic.
@@ -149,3 +173,4 @@ func (h *Handler) ReviewCard(w http.ResponseWriter, r *http.Request) {
 - Do not put SQL in handlers or domain types
 - Do not use `time.Sleep` in business logic
 - Do not commit secrets or `.env` files
+- Do not duplicate language fields across cards/info objects when deck language already defines the content language

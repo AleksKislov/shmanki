@@ -117,17 +117,20 @@ Keep types in sync with the backend Go models:
 ```typescript
 export type CardStatus = "locked" | "new" | "learning" | "review" | "relearning";
 export type Rating = 1 | 2 | 3 | 4;
+export type LanguageCode = "en" | "ru" | "es" | "de" | "fr" | "ja" | "zh-CN";
 export type ContentType = "text" | "code_go" | "code_python" | "code_js" | "code_ts" | "code_rust";
 
 export interface User {
   id: string;
   email: string;
+  preferredLanguage: LanguageCode;
 }
 
 export interface Deck {
   id: string;
   title: string;
   description: string;
+  languageCode: LanguageCode;
   createdAt: string;
 }
 
@@ -185,6 +188,8 @@ export interface ReviewResult {
   rating: Rating;
   wasCorrect: boolean;
 }
+
+export type Messages = Record<string, string>;
 ```
 
 ---
@@ -224,15 +229,15 @@ export const api = {
     register: (email: string, password: string) =>
       request<{ token: string }>("/api/v1/auth/register", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, preferredLanguage: "en" }),
       }),
   },
   decks: {
     list: () => request<Deck[]>("/api/v1/decks"),
-    create: (title: string, description: string) =>
+    create: (title: string, description: string, languageCode: LanguageCode) =>
       request<Deck>("/api/v1/decks", {
         method: "POST",
-        body: JSON.stringify({ title, description }),
+        body: JSON.stringify({ title, description, languageCode }),
       }),
   },
   review: {
@@ -244,6 +249,25 @@ export const api = {
       }),
   },
 };
+```
+
+```typescript
+// lib/i18n.ts
+import type { LanguageCode, Messages } from "./types";
+
+export const messages: Record<LanguageCode, Messages> = {
+  en: { "nav.decks": "Decks", "auth.login": "Log in" },
+  ru: { "nav.decks": "Колоды", "auth.login": "Войти" },
+  es: { "nav.decks": "Mazos", "auth.login": "Iniciar sesion" },
+  de: { "nav.decks": "Decks", "auth.login": "Anmelden" },
+  fr: { "nav.decks": "Paquets", "auth.login": "Connexion" },
+  ja: { "nav.decks": "デッキ", "auth.login": "ログイン" },
+  "zh-CN": { "nav.decks": "牌组", "auth.login": "登录" },
+};
+
+export function t(locale: LanguageCode, key: string): string {
+  return messages[locale]?.[key] ?? messages.en[key] ?? key;
+}
 ```
 
 ## Token Answer Component
@@ -436,6 +460,10 @@ export default component$(() => {
 - All components in `components/` are **presentational** — no direct API calls
 - Authenticated requests use the shared `api` client with `Authorization: Bearer <token>`
 - Store JWT in `localStorage` on web; mobile clients should store the same token in platform-local persistent storage
+- All user-facing strings must come from translation resources, not hardcoded component literals
+- Use BCP 47 language codes in types and API payloads
+- New decks default to the current user's preferred language, but the UI should allow changing the deck language explicitly
+- Components must tolerate longer translations and non-Latin scripts without layout breakage
 - Review submissions must send final answer plus attempt metadata for backend rating and analytics
 - Never use `any` in TypeScript
 - CSS: use CSS variables from `global.css` for colors and spacing — no hardcoded hex values in components
