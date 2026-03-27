@@ -24,8 +24,35 @@ endif
 # Connection string used by the migration container to reach Postgres on the host.
 MIGRATE_DATABASE_URL := postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@host.docker.internal:$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=disable
 
+# Folder that contains the Go backend module.
+BACKEND_DIR := backend
+
+# Name of the built backend binary.
+APP_BIN := $(BACKEND_DIR)/bin/api
+
 # Mark these names as command targets, not files.
-.PHONY: db-up db-down db-logs db-psql db-reset migrate-up migrate-down seed
+.PHONY: deps run build test lint db-up db-down db-logs db-psql db-reset migrate-up migrate-down seed
+
+# Download and lock backend Go dependencies inside `backend/go.sum`.
+deps:
+	cd $(BACKEND_DIR) && go mod tidy
+
+# Run the backend API server from the main package.
+run:
+	cd $(BACKEND_DIR) && go run ./cmd/api
+
+# Build the backend API binary into `bin/api`.
+build:
+	mkdir -p $(BACKEND_DIR)/bin
+	cd $(BACKEND_DIR) && go build -o bin/api ./cmd/api
+
+# Run all Go tests in the repository.
+test:
+	cd $(BACKEND_DIR) && go test ./...
+
+# Run `go test` as a minimal lint/verification step until golangci-lint is added.
+lint:
+	cd $(BACKEND_DIR) && go test ./...
 
 # Start the local Postgres container in the background.
 db-up:

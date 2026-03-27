@@ -1,0 +1,30 @@
+meta {
+  name: Update Card
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/v1/cards/{{cardId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/json
+  Accept: application/json
+}
+
+body:json {
+  {
+    "front": "{{cardFrontUpdated}}",
+    "step": 1,
+    "correctAnswers": [["worker()"]],
+    "distractors": ["main()", "run()", "job()"],
+    "highlightLines": [5]
+  }
+}

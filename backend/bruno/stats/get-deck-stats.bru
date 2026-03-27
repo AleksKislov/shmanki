@@ -1,0 +1,19 @@
+meta {
+  name: Get Deck Stats
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/stats/deck/{{deckId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Accept: application/json
+}

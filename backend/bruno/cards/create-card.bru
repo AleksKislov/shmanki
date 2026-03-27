@@ -1,0 +1,30 @@
+meta {
+  name: Create Card
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/objects/{{objectId}}/cards
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/json
+  Accept: application/json
+}
+
+body:json {
+  {
+    "front": "{{cardFront}}",
+    "step": 0,
+    "correctAnswers": [["go", "worker()"]],
+    "distractors": ["defer", "func", "chan"],
+    "highlightLines": [5]
+  }
+}

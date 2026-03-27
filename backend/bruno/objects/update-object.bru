@@ -1,0 +1,29 @@
+meta {
+  name: Update Object
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/objects/{{objectId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/json
+  Accept: application/json
+}
+
+body:json {
+  {
+    "title": "{{objectTitleUpdated}}",
+    "content": "updated object content",
+    "discipline": "programming",
+    "contentType": "code_go"
+  }
+}

@@ -1,0 +1,28 @@
+meta {
+  name: Update Deck
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/decks/{{deckId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/json
+  Accept: application/json
+}
+
+body:json {
+  {
+    "title": "{{deckTitleUpdated}}",
+    "description": "{{deckDescriptionUpdated}}",
+    "languageCode": "{{preferredLanguage}}"
+  }
+}

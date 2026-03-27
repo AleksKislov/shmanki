@@ -23,7 +23,7 @@ It also owns language metadata for users and decks so UI localization and genera
 
 | Layer            | Technology                              |
 | ---------------- | --------------------------------------- |
-| Language         | Go 1.22+                                |
+| Language         | Go 1.26+                                |
 | HTTP Router      | `go-chi/chi v5`                         |
 | Database         | PostgreSQL 16+ via `pgx/v5`             |
 | Migrations       | `golang-migrate/migrate`                |
@@ -40,56 +40,59 @@ It also owns language metadata for users and decks so UI localization and genera
 
 ```
 .
-├── cmd/
-│   └── api/
-│       └── main.go              # entry point: wire dependencies, start server
-│
-├── internal/
-│   ├── user/                    # user module
-│   │   ├── model.go             # User struct
-│   │   ├── repository.go        # UserRepository interface + pgx impl
-│   │   ├── service.go           # UserService (register, login)
-│   │   └── handler.go           # HTTP handlers
+├── backend/
+│   ├── cmd/
+│   │   └── api/
+│   │       └── main.go              # entry point: wire dependencies, start server
 │   │
-│   ├── deck/                    # deck module
-│   │   ├── model.go
-│   │   ├── repository.go
-│   │   ├── service.go
-│   │   └── handler.go
-│   │
-│   ├── card/                    # card + info_object module
-│   │   ├── model.go             # Card, InfoObject, CardState structs
-│   │   ├── repository.go        # CardRepository, InfoObjectRepository
-│   │   ├── service.go           # CardService (CRUD, step unlock logic)
-│   │   └── handler.go
-│   │
-│   ├── review/                  # review session module
-│   │   ├── model.go             # ReviewRequest, ReviewResult
-│   │   ├── repository.go        # ReviewLogRepository, CardStateRepository
-│   │   ├── service.go           # ReviewService (submit answer, schedule next)
-│   │   └── handler.go
-│   │
-│   ├── fsrs/                    # FSRS algorithm — pure functions, no I/O
-│   │   ├── fsrs.go              # core formulas: R, D, S, NextInterval
-│   │   ├── scheduler.go         # Scheduler struct wrapping all formulas
-│   │   └── fsrs_test.go         # unit tests for all formulas
-│   │
-│   ├── generate/                # LLM content generation module
-│   │   ├── model.go
-│   │   ├── service.go           # GenerateService (call LLM, parse response)
-│   │   └── handler.go
-│   │
-│   └── platform/                # shared infrastructure
-│       ├── db/
-│       │   └── postgres.go      # DB connection pool setup
-│       ├── middleware/
-│       │   ├── auth.go          # JWT validation middleware
-│       │   ├── logger.go        # request logging
-│       │   └── recovery.go      # panic recovery
-│       ├── response/
-│       │   └── json.go          # writeJSON, writeError helpers
-│       └── config/
-│           └── config.go        # Config struct loaded from env
+│   ├── internal/
+│   │   ├── user/                    # user module
+│   │   │   ├── model.go             # User struct
+│   │   │   ├── repository.go        # UserRepository interface + pgx impl
+│   │   │   ├── service.go           # UserService (register, login)
+│   │   │   └── handler.go           # HTTP handlers
+│   │   │
+│   │   ├── deck/                    # deck module
+│   │   │   ├── model.go
+│   │   │   ├── repository.go
+│   │   │   ├── service.go
+│   │   │   └── handler.go
+│   │   │
+│   │   ├── card/                    # card + info_object module
+│   │   │   ├── model.go             # Card, InfoObject, CardState structs
+│   │   │   ├── repository.go        # CardRepository, InfoObjectRepository
+│   │   │   ├── service.go           # CardService (CRUD, step unlock logic)
+│   │   │   └── handler.go
+│   │   │
+│   │   ├── review/                  # review session module
+│   │   │   ├── model.go             # ReviewRequest, ReviewResult
+│   │   │   ├── repository.go        # ReviewLogRepository, CardStateRepository
+│   │   │   ├── service.go           # ReviewService (submit answer, schedule next)
+│   │   │   └── handler.go
+│   │   │
+│   │   ├── fsrs/                    # FSRS algorithm — pure functions, no I/O
+│   │   │   ├── fsrs.go              # core formulas: R, D, S, NextInterval
+│   │   │   ├── scheduler.go         # Scheduler struct wrapping all formulas
+│   │   │   └── fsrs_test.go         # unit tests for all formulas
+│   │   │
+│   │   ├── generate/                # LLM content generation module
+│   │   │   ├── model.go
+│   │   │   ├── service.go           # GenerateService (call LLM, parse response)
+│   │   │   └── handler.go
+│   │   │
+│   │   └── platform/                # shared infrastructure
+│   │       ├── db/
+│   │       │   └── postgres.go      # DB connection pool setup
+│   │       ├── middleware/
+│   │       │   ├── auth.go          # JWT validation middleware
+│   │       │   ├── logger.go        # request logging
+│   │       │   └── recovery.go      # panic recovery
+│   │       ├── response/
+│   │       │   └── json.go          # writeJSON, writeError helpers
+│   │       └── config/
+│   │           └── config.go        # Config struct loaded from env
+│   ├── go.mod
+│   └── go.sum
 │
 ├── migrations/                  # SQL migration files
 │   ├── 000001_create_users.up.sql
@@ -110,8 +113,6 @@ It also owns language metadata for users and decks so UI localization and genera
 │       └── frontend.md
 │
 ├── .env.example
-├── go.mod
-├── go.sum
 └── Makefile
 ```
 
@@ -136,7 +137,7 @@ concrete types from another module's internal files.
 Example — ReviewService depends on card module through an interface:
 
 ```go
-// internal/review/service.go
+// backend/internal/review/service.go
 type CardStateReader interface {
     GetDueCards(ctx context.Context, userID uuid.UUID, limit int) ([]*CardState, error)
     GetByID(ctx context.Context, cardID, userID uuid.UUID) (*CardState, error)
@@ -386,12 +387,12 @@ make seed         # seed development data
 
 ### Unit tests
 
-- `internal/fsrs/` — 100% coverage, pure functions, no mocks needed
-- `internal/*/service.go` — mock repositories with interfaces
+- `backend/internal/fsrs/` — 100% coverage, pure functions, no mocks needed
+- `backend/internal/*/service.go` — mock repositories with interfaces
 
 ### Integration tests
 
-- `internal/*/repository.go` — test against real PostgreSQL (use Docker)
+- `backend/internal/*/repository.go` — test against real PostgreSQL (use Docker)
 - Use `testing.T` + `testcontainers-go` for isolated DB per test run
 
 ### API tests

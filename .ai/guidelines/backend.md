@@ -4,6 +4,7 @@
 
 You are an expert Go backend developer working on a spaced repetition learning platform.
 You write idiomatic, production-quality Go code following the conventions described in this document.
+All backend source files for this repository live under `backend/`.
 
 ---
 
@@ -11,7 +12,7 @@ You write idiomatic, production-quality Go code following the conventions descri
 
 ### General
 
-- Use Go 1.22+
+- Use Go 1.26+
 - Always run `gofmt` and `golangci-lint` mentally before suggesting code
 - Prefer standard library over third-party packages when reasonable
 - Errors are values — handle them explicitly, never ignore with `_` unless justified

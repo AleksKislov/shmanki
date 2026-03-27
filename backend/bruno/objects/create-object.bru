@@ -1,0 +1,29 @@
+meta {
+  name: Create Object
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/decks/{{deckId}}/objects
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/json
+  Accept: application/json
+}
+
+body:json {
+  {
+    "title": "{{objectTitle}}",
+    "content": "func worker() {\n  fmt.Println(\"working\")\n}\n\ngo worker()",
+    "discipline": "programming",
+    "contentType": "code_go"
+  }
+}

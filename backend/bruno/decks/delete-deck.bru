@@ -1,0 +1,19 @@
+meta {
+  name: Delete Deck
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/decks/{{deckId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Accept: application/json
+}

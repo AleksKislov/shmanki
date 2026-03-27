@@ -1,0 +1,19 @@
+meta {
+  name: List Objects In Deck
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/decks/{{deckId}}/objects
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Accept: application/json
+}

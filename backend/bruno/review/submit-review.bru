@@ -1,0 +1,42 @@
+meta {
+  name: Submit Review
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/review/submit
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/json
+  Accept: application/json
+}
+
+body:json {
+  {
+    "cardId": "{{cardId}}",
+    "answeredTokens": ["go", "worker()"],
+    "attempts": [
+      {
+        "tokens": ["defer"],
+        "hadDistractor": true,
+        "wasCorrect": false
+      },
+      {
+        "tokens": ["go", "worker()"],
+        "hadDistractor": false,
+        "wasCorrect": true
+      }
+    ],
+    "wrongAttemptsCount": 1,
+    "distractorClicksCount": 1,
+    "incorrectTokensClicked": ["defer"]
+  }
+}

@@ -1,0 +1,19 @@
+meta {
+  name: Get Object
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/objects/{{objectId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Accept: application/json
+}

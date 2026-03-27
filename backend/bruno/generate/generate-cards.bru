@@ -1,0 +1,27 @@
+meta {
+  name: Generate Cards
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/generate
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+headers {
+  Content-Type: application/json
+  Accept: application/json
+}
+
+body:json {
+  {
+    "deckId": "{{deckId}}",
+    "prompt": "Generate beginner cards for goroutines"
+  }
+}

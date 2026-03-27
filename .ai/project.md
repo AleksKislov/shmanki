@@ -28,17 +28,20 @@ Current docs assume this target layout:
 │       ├── backend.md
 │       └── frontend.md
 │
-├── cmd/
-│   └── api/
-│       └── main.go
-├── internal/
-│   ├── user/
-│   ├── deck/
-│   ├── card/
-│   ├── review/
-│   ├── fsrs/
-│   ├── generate/
-│   └── platform/
+├── backend/
+│   ├── cmd/
+│   │   └── api/
+│   │       └── main.go
+│   ├── internal/
+│   │   ├── user/
+│   │   ├── deck/
+│   │   ├── card/
+│   │   ├── review/
+│   │   ├── fsrs/
+│   │   ├── generate/
+│   │   └── platform/
+│   ├── go.mod
+│   └── go.sum
 ├── migrations/
 ├── frontend/
 │   └── src/
@@ -61,6 +64,8 @@ Current docs assume this target layout:
 | ---------------------------- | ---------------------------------- |
 | `.ai/guidelines/backend.md`  | Working on anything in `backend/`  |
 | `.ai/guidelines/frontend.md` | Working on anything in `frontend/` |
+
+Backend code lives under `backend/`. Frontend code lives under `frontend/`.
 
 ## Specs Index
 
@@ -156,7 +161,7 @@ See `specs/i18n.md` for language ownership, localization rules, and scope limits
 
 |                     | Technology                |
 | ------------------- | ------------------------- |
-| Backend language    | Go 1.22+                  |
+| Backend language    | Go 1.26+                  |
 | HTTP router         | chi v5                    |
 | Database            | PostgreSQL 16+ via pgx/v5 |
 | Auth                | JWT (golang-jwt/jwt v5)   |
