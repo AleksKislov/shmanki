@@ -1,6 +1,14 @@
 import type { Messages } from "../types";
 
 export const ru: Messages = {
+  "header.brand": "Shmanki",
+  "header.home": "Главная",
+  "header.decks": "Колоды",
+  "header.review": "Повторение",
+  "header.theme": "Тема",
+  "header.light": "Светлая",
+  "header.dark": "Темная",
+  "header.menu": "Меню",
   "home.badge": "Осознанное обучение для разработчиков",
   "home.title": "Соберите спокойный ритм обучения на каждый день",
   "home.subtitle": "Shmanki помогает превращать темы, фрагменты кода и объяснения в короткие повторения по интервальному методу, чтобы знания не выветривались после одного прочтения.",
