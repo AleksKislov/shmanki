@@ -202,10 +202,10 @@ userID := middleware.UserIDFromContext(r.Context())
 
 ### Auth
 
-| Method | Path                  | Description        |
-| ------ | --------------------- | ------------------ |
+| Method | Path                  | Description                      |
+| ------ | --------------------- | -------------------------------- |
 | POST   | /api/v1/auth/register | Register new user and return JWT |
-| POST   | /api/v1/auth/login    | Login and return JWT |
+| POST   | /api/v1/auth/login    | Login and return JWT             |
 
 ### Decks
 
@@ -237,8 +237,8 @@ userID := middleware.UserIDFromContext(r.Context())
 
 ### Review
 
-| Method | Path                   | Description                        |
-| ------ | ---------------------- | ---------------------------------- |
+| Method | Path                   | Description                                             |
+| ------ | ---------------------- | ------------------------------------------------------- |
 | GET    | /api/v1/review/session | Get unlocked new cards and due cards for review session |
 | POST   | /api/v1/review/submit  | Submit answer metadata and get rating + next FSRS state |
 
@@ -378,7 +378,6 @@ make test         # run all tests
 make lint         # run golangci-lint
 make migrate-up   # apply all migrations
 make migrate-down # rollback last migration
-make seed         # seed development data
 ```
 
 ---

@@ -31,7 +31,7 @@ BACKEND_DIR := backend
 APP_BIN := $(BACKEND_DIR)/bin/api
 
 # Mark these names as command targets, not files.
-.PHONY: deps run build test lint db-up db-down db-logs db-psql db-reset migrate-up migrate-down seed
+.PHONY: deps run build test lint db-up db-down db-logs db-psql db-reset migrate-up migrate-down
 
 # Download and lock backend Go dependencies inside `backend/go.sum`.
 deps:
@@ -82,7 +82,3 @@ migrate-up: db-up
 # Ensure the database is running before rolling back the most recent migration.
 migrate-down: db-up
 	docker run --rm -v "$(PWD)/migrations:/migrations" $(MIGRATE_IMAGE) -path=/migrations -database "$(MIGRATE_DATABASE_URL)" down 1
-
-# Ensure the database is running before loading local demo data.
-seed: db-up
-	docker exec -i "$$( $(COMPOSE) ps -q db )" psql -U "$(POSTGRES_USER)" -d "$(POSTGRES_DB)" -v ON_ERROR_STOP=1 < seeds/dev.sql
