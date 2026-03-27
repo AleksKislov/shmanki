@@ -22,7 +22,13 @@ type Config struct {
 }
 
 func Load() (Config, error) {
-	_ = godotenv.Load()
+	if _, err := os.Stat(".env"); err != nil {
+		return Config{}, fmt.Errorf("missing backend/.env: copy backend/.env.example to backend/.env: %w", err)
+	}
+
+	if err := godotenv.Load(".env"); err != nil {
+		return Config{}, fmt.Errorf("load backend/.env: %w", err)
+	}
 
 	cfg := Config{
 		Port:            getEnv("PORT", "8080"),

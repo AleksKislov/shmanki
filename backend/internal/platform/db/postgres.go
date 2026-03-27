@@ -14,6 +14,7 @@ func NewPostgresPool(ctx context.Context, databaseURL string) (*pgxpool.Pool, er
 		return nil, fmt.Errorf("parse database url: %w", err)
 	}
 
+	config.ConnConfig.ConnectTimeout = 5 * time.Second
 	config.MaxConns = 10
 	config.MinConns = 2
 	config.MaxConnLifetime = 30 * time.Minute
@@ -24,7 +25,10 @@ func NewPostgresPool(ctx context.Context, databaseURL string) (*pgxpool.Pool, er
 		return nil, fmt.Errorf("create postgres pool: %w", err)
 	}
 
-	if err := pool.Ping(ctx); err != nil {
+	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	if err := pool.Ping(pingCtx); err != nil {
 		pool.Close()
 		return nil, fmt.Errorf("ping postgres: %w", err)
 	}

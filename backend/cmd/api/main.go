@@ -32,7 +32,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("load config: %v", err)
 	}
+	log.Printf("loaded config from backend/.env")
 
+	log.Printf("connecting to database")
 	dbPool, err := platformdb.NewPostgresPool(ctx, cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("connect database: %v", err)
