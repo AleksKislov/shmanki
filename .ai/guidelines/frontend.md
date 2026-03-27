@@ -466,7 +466,7 @@ export default component$(() => {
 - Components must tolerate longer translations and non-Latin scripts without layout breakage
 - Review submissions must send final answer plus attempt metadata for backend rating and analytics
 - Never use `any` in TypeScript
-- CSS: use CSS variables from `global.css` for colors and spacing — no hardcoded hex values in components
+- CSS: use Tailwind CSS with daisyUI for styling. Support dark and light themes using daisyUI's built-in theme capabilities. Avoid hardcoding custom hex values unless necessary.
 - File names: `kebab-case` for files and folders
 - Component names: `PascalCase`
 - Prefer `useSignal` for primitives, `useStore` for objects with multiple fields

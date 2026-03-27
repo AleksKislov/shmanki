@@ -16,7 +16,7 @@
 | ------------------- | ---------------------------------- |
 | Framework           | Qwik + Qwik City (meta-framework)  |
 | Language            | TypeScript 5+ (strict mode)        |
-| Styling             | Per-component CSS files + global CSS variables |
+| Styling             | Tailwind CSS + daisyUI (Light & Dark themes)   |
 | Syntax highlighting | Shiki                              |
 | Build tool          | Vite                               |
 | Package manager     | npm                                |
@@ -355,55 +355,17 @@ lift it to their common parent route.
 
 ## CSS Architecture
 
-### Global variables (`global.css`)
+### Tailwind CSS & daisyUI
 
-All colors, spacing, and typography defined as CSS variables:
-
-```css
-:root {
-  /* Colors */
-  --color-bg: #0f1117;
-  --color-surface: #1a1d27;
-  --color-border: #2a2d3a;
-  --color-text: #e2e8f0;
-  --color-text-muted: #64748b;
-  --color-accent: #6366f1;
-  --color-success: #22c55e;
-  --color-error: #ef4444;
-  --color-highlight: rgba(255, 215, 0, 0.12); /* code line highlight */
-
-  /* Spacing */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-
-  /* Typography */
-  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", "Fira Code", monospace;
-  --font-size-sm: 0.875rem;
-  --font-size-base: 1rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.25rem;
-
-  /* Borders */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-}
-```
+The project uses **Tailwind CSS** as the primary styling solution, heavily utilizing **daisyUI** for pre-built, themeable components.
+- Configure daisyUI to support both `light` and `dark` themes.
+- Use Tailwind utility classes directly in the components (`className` or `class` depending on Qwik config).
+- Avoid writing custom CSS in `.css` files unless absolutely necessary.
 
 ### Component styles
 
-Each component has its own `.css` file using standard CSS classes.
-No CSS-in-JS, no Tailwind.
-
-```
-components/token-answer/token-answer.css   → .token-answer, .token, .token--selected
-components/code-block/code-block.css       → .code-block, [data-highlighted]
-```
+Most styling is inline via Tailwind classes. If complex or custom animations are needed, they can be placed in `global.css` or component-specific CSS files, but prefer standard utility classes and daisyUI semantic colors (e.g., `text-primary`, `bg-base-100`).
+- Use daisyUI components where applicable (buttons, cards, inputs, etc.) to maintain consistency.
 
 ---
 
@@ -474,7 +436,7 @@ const submitAnswer = $(async (submission: ReviewSubmission) => {
 - **No hardcoded user-facing text** — use translation dictionaries and locale helpers
 - **Decks are language-aware** — forms and views must display and preserve `languageCode`
 - **No `any` in TypeScript** — use types from `lib/types.ts`
-- **No hardcoded colors or sizes** — always use CSS variables from `global.css`
+- **No hardcoded colors or sizes** — always use Tailwind utility classes and daisyUI semantic colors
 - **No `window`/`document` outside `useVisibleTask$`**
 - File names: `kebab-case`
 - Component exports: named, `PascalCase`
