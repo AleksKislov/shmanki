@@ -63,149 +63,243 @@
 
 ## 2.3 Объектная модель системы
 
+### 2.3.0 Верхнеуровневая схема работы приложения
+
+Перед детальным описанием классов приводится верхнеуровневая схема, отражающая взаимодействие основных слоёв системы и ключевые потоки данных между ними.
+
+```plantuml
+@startuml architecture_overview
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+
+skinparam actor {
+  BackgroundColor #E8F5E9
+  BorderColor #2E7D32
+}
+skinparam package {
+  BackgroundColor #F3F6FB
+  BorderColor #5C7FA8
+  FontStyle bold
+}
+skinparam component {
+  BackgroundColor #DDEEFF
+  BorderColor #3366AA
+}
+skinparam database {
+  BackgroundColor #FFFACD
+  BorderColor #B8860B
+}
+skinparam note {
+  BackgroundColor #FFF9C4
+  BorderColor #F9A825
+}
+skinparam arrow {
+  Color #444444
+  FontSize 11
+}
+
+actor "Пользователь\n(браузер, Qwik SPA)" as User
+
+package "Go Backend (chi router)" {
+
+  package "HTTP Layer" {
+    component [Auth module\n/register\n/login\nJWT issuing] as Auth
+    component [Deck/Card module\nCRUD колод,\nкарточек,\nинфообъектов] as DeckCard
+    component [Review module\n/session\n/submit] as Review
+    component [Generate module\n/generate\nпромпт + languageCode] as Generate
+  }
+
+  package "Domain Logic" {
+    component [FSRS module\n<<pure, stateless>>\nSchedule()\nDeriveRating()\nCheckUnlockStep()] as FSRS
+  }
+
+}
+
+database "PostgreSQL 16" as DB {
+  component [users\ndecks\ninfo_objects\ncards] as Tables1
+  component [card_states\nreview_logs\ngeneration_logs] as Tables2
+}
+
+component [Anthropic Claude API\n<<external>>\nгенерация контента] as LLM
+
+note right of FSRS
+  Не имеет I/O.
+  Вызывается только
+  из Review module.
+end note
+
+User --> Auth      : HTTPS / JSON
+User --> DeckCard  : HTTPS / JSON
+User --> Review    : HTTPS / JSON
+User --> Generate  : HTTPS / JSON
+
+Review --> FSRS    : in-process call
+
+Auth     --> DB    : SQL (pgx)
+DeckCard --> DB    : SQL (pgx)
+Review   --> DB    : SQL (pgx)
+Generate --> DB    : SQL (pgx)
+
+Generate --> LLM   : HTTPS / JSON
+
+@enduml
+```
+
+_Рисунок 2.0 — Верхнеуровневая схема работы приложения. Клиентская SPA взаимодействует с бэкендом исключительно через REST API. Модуль FSRS является stateless-ядром без I/O, вызываемым только из Review module. Генерация контента делегируется внешнему LLM API с фиксацией всех обращений в БД._
+
 ### 2.3.1 Диаграмма классов
 
 Объектная модель системы включает следующие основные классы предметной области: `User`, `Deck`, `InfoObject`, `Card`, `CardState`, `ReviewLog`, `GenerationLog`. Помимо доменных классов, в систему входят служебные классы алгоритмического ядра: `Scheduler` и `FSRSWeights`, а также вспомогательные перечислимые типы `Rating` и `CardStatus`.
 
-```
-┌─────────────────────────────────────┐
-│              <<entity>>             │
-│                User                 │
-├─────────────────────────────────────┤
-│ - id: UUID                          │
-│ - email: string                     │
-│ - passwordHash: string              │
-│ - preferredLanguage: string         │
-│ - createdAt: timestamp              │
-│ - updatedAt: timestamp              │
-├─────────────────────────────────────┤
-│ + register(email, password): User   │
-│ + login(email, password): JWT       │
-│ + updateLanguage(code): void        │
-└──────────────────┬──────────────────┘
-                   │ 1
-                   │ owns
-                   │ 0..*
-┌──────────────────▼──────────────────┐
-│              <<entity>>             │
-│                Deck                 │
-├─────────────────────────────────────┤
-│ - id: UUID                          │
-│ - userId: UUID                      │
-│ - title: string                     │
-│ - description: string               │
-│ - languageCode: string              │
-│ - createdAt: timestamp              │
-│ - updatedAt: timestamp              │
-├─────────────────────────────────────┤
-│ + create(title, lang): Deck         │
-│ + update(title, desc, lang): void   │
-│ + delete(): void                    │
-└──────────────────┬──────────────────┘
-                   │ 1
-                   │ contains
-                   │ 0..*
-┌──────────────────▼──────────────────┐
-│              <<entity>>             │
-│            InfoObject               │
-├─────────────────────────────────────┤
-│ - id: UUID                          │
-│ - deckId: UUID                      │
-│ - title: string                     │
-│ - content: string                   │
-│ - discipline: string                │
-│ - contentType: string               │
-│ - createdAt: timestamp              │
-│ - updatedAt: timestamp              │
-├─────────────────────────────────────┤
-│ + create(title, content): InfoObject│
-│ + update(title, content): void      │
-│ + delete(): void                    │
-└──────────────────┬──────────────────┘
-                   │ 1
-                   │ groups
-                   │ 0..*
-┌──────────────────▼──────────────────┐
-│              <<entity>>             │
-│                Card                 │
-├─────────────────────────────────────┤
-│ - id: UUID                          │
-│ - infoObjectId: UUID                │
-│ - front: string                     │
-│ - step: int                         │
-│ - correctAnswers: [][]string        │
-│ - distractors: []string             │
-│ - highlightLines: []int             │
-│ - createdAt: timestamp              │
-│ - updatedAt: timestamp              │
-├─────────────────────────────────────┤
-│ + create(front, answers): Card      │
-│ + update(...): void                 │
-│ + delete(): void                    │
-└──────────────────┬──────────────────┘
-                   │ 1
-                   │ has state per user
-                   │ 0..*
-┌──────────────────▼──────────────────┐
-│              <<entity>>             │
-│             CardState               │
-├─────────────────────────────────────┤
-│ - id: UUID                          │
-│ - cardId: UUID                      │
-│ - userId: UUID                      │
-│ - stability: float                  │
-│ - difficulty: float                 │
-│ - retrievability: float             │
-│ - dueDate: timestamp                │
-│ - lastReview: timestamp             │
-│ - intervalDays: float               │
-│ - status: CardStatus                │
-│ - reps: int                         │
-│ - lapses: int                       │
-├─────────────────────────────────────┤
-│ + applyReview(rating): CardState    │
-│ + computeR(t): float                │
-└─────────────────────────────────────┘
+```plantuml
+@startuml class_diagram
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam classAttributeIconSize 0
+
+skinparam class {
+  BackgroundColor #DDEEFF
+  BorderColor #3366AA
+  HeaderBackgroundColor #AACCEE
+}
+skinparam enum {
+  BackgroundColor #FFF9C4
+  BorderColor #B8860B
+}
+skinparam arrow {
+  Color #444444
+  FontSize 11
+}
+
+hide empty members
+
+class User <<entity>> {
+  - id: UUID
+  - email: string
+  - passwordHash: string
+  - preferredLanguage: string
+  - createdAt: timestamp
+  - updatedAt: timestamp
+  --
+  + register(email, password): User
+  + login(email, password): JWT
+  + updateLanguage(code): void
+}
+
+class Deck <<entity>> {
+  - id: UUID
+  - userId: UUID
+  - title: string
+  - description: string
+  - languageCode: string
+  - createdAt: timestamp
+  - updatedAt: timestamp
+  --
+  + create(title, lang): Deck
+  + update(title, desc, lang): void
+  + delete(): void
+}
+
+class InfoObject <<entity>> {
+  - id: UUID
+  - deckId: UUID
+  - title: string
+  - content: string
+  - discipline: string
+  - contentType: string
+  - createdAt: timestamp
+  - updatedAt: timestamp
+  --
+  + create(title, content): InfoObject
+  + update(title, content): void
+  + delete(): void
+}
+
+class Card <<entity>> {
+  - id: UUID
+  - infoObjectId: UUID
+  - front: string
+  - step: int
+  - correctAnswers: [][]string
+  - distractors: []string
+  - highlightLines: []int
+  - createdAt: timestamp
+  - updatedAt: timestamp
+  --
+  + create(front, answers): Card
+  + update(...): void
+  + delete(): void
+}
+
+class CardState <<entity>> {
+  - id: UUID
+  - cardId: UUID
+  - userId: UUID
+  - stability: float
+  - difficulty: float
+  - retrievability: float
+  - dueDate: timestamp
+  - lastReview: timestamp
+  - intervalDays: float
+  - status: CardStatus
+  - reps: int
+  - lapses: int
+  --
+  + applyReview(rating): CardState
+  + computeR(t): float
+}
+
+class Scheduler <<service>> {
+  - weights: FSRSWeights
+  --
+  + Schedule(state, rating, now): CardState
+  + Retrievability(t, s): float
+  + InitialDifficulty(rating): float
+  + InitialStability(rating): float
+  + UpdateDifficulty(d, rating): float
+  + StabilityAfterRecall(s, d, r, rating): float
+  + StabilityAfterForgetting(s, d, r): float
+  + NextInterval(s): float
+  + ShouldUnlockStep(states, step): bool
+  + MasteryLevel(s): string
+}
+
+enum Rating {
+  Again = 1
+  Hard  = 2
+  Good  = 3
+  Easy  = 4
+}
+
+enum CardStatus {
+  locked
+  new
+  learning
+  review
+  relearning
+}
+
+User       "1" o-- "0..*" Deck       : owns >
+Deck       "1" o-- "0..*" InfoObject : contains >
+InfoObject "1" o-- "0..*" Card       : groups >
+Card       "1" o-- "0..*" CardState  : has state per user >
+
+CardState  -->             CardStatus : uses
+Scheduler  ..>             CardState  : produces
+Scheduler  ..>             Rating     : consumes
+
+note bottom of Scheduler
+  Pure stateless service.
+  No database I/O.
+  Called only from ReviewService.
+end note
+
+@enduml
 ```
 
-_Рисунок 2.1 — Диаграмма классов предметной области (основные сущности). Стрелки агрегации отображают иерархию владения: User → Deck → InfoObject → Card → CardState._
-
-Отдельно выделяется класс алгоритмического ядра:
-
-```
-┌──────────────────────────────────────────┐
-│            <<service>>                   │
-│             Scheduler                    │
-├──────────────────────────────────────────┤
-│ - weights: FSRSWeights [19]float64        │
-├──────────────────────────────────────────┤
-│ + Schedule(state, rating, now): CardState│
-│ + Retrievability(t, s): float            │
-│ + InitialDifficulty(rating): float       │
-│ + InitialStability(rating): float        │
-│ + UpdateDifficulty(d, rating): float     │
-│ + StabilityAfterRecall(s,d,r,rating):flt │
-│ + StabilityAfterForgetting(s,d,r): float │
-│ + NextInterval(s): float                 │
-│ + ShouldUnlockStep(states, step): bool   │
-│ + MasteryLevel(s): string                │
-└──────────────────────────────────────────┘
-```
-
-_Рисунок 2.2 — Класс Scheduler (алгоритмическое ядро FSRS). Реализован как набор чистых функций без побочных эффектов и зависимостей от базы данных, что обеспечивает полное изолированное тестирование._
-
-Перечислимые типы, используемые в системе:
-
-```
-<<enumeration>>          <<enumeration>>
-    Rating                 CardStatus
-─────────────          ─────────────────
-Again = 1              locked
-Hard  = 2              new
-Good  = 3              learning
-Easy  = 4              review
-                       relearning
-```
+_Рисунок 2.1 — Диаграмма классов предметной области. Агрегации (o--) отражают иерархию владения: User → Deck → InfoObject → Card → CardState. Класс Scheduler является чистым сервисом без состояния и I/O._
 
 ### 2.3.2 Пояснение к объектной модели
 
@@ -219,94 +313,137 @@ Easy  = 4              review
 
 База данных реализована на СУБД PostgreSQL 16. Все идентификаторы используют тип UUID, генерируемый встроенной функцией `gen_random_uuid()`. Миграции управляются инструментом `golang-migrate/migrate`. Схема включает шесть основных таблиц: `users`, `decks`, `info_objects`, `cards`, `card_states`, `review_logs`, а также вспомогательную таблицу `generation_logs`.
 
-```
-┌─────────────────────────┐
-│         users           │
-├─────────────────────────┤
-│ PK  id            UUID  │◄──────────────────────────────┐
-│     email         TEXT  │                               │
-│     password_hash TEXT  │                               │
-│     pref_language TEXT  │                               │
-│     created_at    TMSP  │                               │
-│     updated_at    TMSP  │                               │
-└────────────┬────────────┘                               │
-             │ 1                                          │
-             │                                            │
-             │ N                                          │ N
-┌────────────▼────────────┐         ┌────────────────────┴──────┐
-│         decks           │         │       card_states          │
-├─────────────────────────┤         ├────────────────────────────┤
-│ PK  id            UUID  │         │ PK  id             UUID    │
-│ FK  user_id       UUID  │         │ FK  card_id        UUID    │
-│     title         TEXT  │         │ FK  user_id        UUID    │
-│     description   TEXT  │         │     stability      FLOAT   │
-│     language_code TEXT  │         │     difficulty     FLOAT   │
-│     created_at    TMSP  │         │     retrievability FLOAT   │
-│     updated_at    TMSP  │         │     due_date       TMSP    │
-└────────────┬────────────┘         │     last_review    TMSP    │
-             │ 1                    │     interval_days  FLOAT   │
-             │                      │     status         TEXT    │
-             │ N                    │     reps           INT     │
-┌────────────▼────────────┐         │     lapses         INT     │
-│      info_objects       │         └──────────────┬─────────────┘
-├─────────────────────────┤                        │ N
-│ PK  id            UUID  │         ┌──────────────▼─────────────┐
-│ FK  deck_id       UUID  │         │         cards              │
-│     title         TEXT  │         ├────────────────────────────┤
-│     content       TEXT  │         │ PK  id             UUID    │
-│     discipline    TEXT  │◄────────┤ FK  info_object_id UUID    │
-│     content_type  TEXT  │ 1    N  │     front          TEXT    │
-│     created_at    TMSP  │         │     step           INT     │
-│     updated_at    TMSP  │         │     correct_answers JSONB  │
-└─────────────────────────┘         │     distractors    JSONB   │
-                                    │     highlight_lines JSONB  │
-                                    │     created_at     TMSP    │
-                                    │     updated_at     TMSP    │
-                                    └────────────────────────────┘
+```plantuml
+@startuml db_schema
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+
+skinparam entity {
+  BackgroundColor #FFFACD
+  BorderColor #B8860B
+  HeaderBackgroundColor #FFE87C
+}
+skinparam arrow {
+  Color #555555
+  FontSize 11
+}
+
+hide empty members
+
+entity "users" as users {
+  * id : UUID <<PK>>
+  --
+  * email : TEXT
+  * password_hash : TEXT
+    pref_language : TEXT
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
+entity "decks" as decks {
+  * id : UUID <<PK>>
+  --
+  * user_id : UUID <<FK>>
+  * title : TEXT
+    description : TEXT
+    language_code : TEXT
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
+entity "info_objects" as info_objects {
+  * id : UUID <<PK>>
+  --
+  * deck_id : UUID <<FK>>
+  * title : TEXT
+  * content : TEXT
+    discipline : TEXT
+    content_type : TEXT
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
+entity "cards" as cards {
+  * id : UUID <<PK>>
+  --
+  * info_object_id : UUID <<FK>>
+  * front : TEXT
+  * step : INT
+    correct_answers : JSONB
+    distractors : JSONB
+    highlight_lines : JSONB
+  * created_at : TIMESTAMP
+  * updated_at : TIMESTAMP
+}
+
+entity "card_states" as card_states {
+  * id : UUID <<PK>>
+  --
+  * card_id : UUID <<FK>>
+  * user_id : UUID <<FK>>
+  * stability : FLOAT
+  * difficulty : FLOAT
+  * retrievability : FLOAT
+  * due_date : TIMESTAMP
+    last_review : TIMESTAMP
+  * interval_days : FLOAT
+  * status : TEXT
+  * reps : INT
+  * lapses : INT
+  --
+  <<UNIQUE (card_id, user_id)>>
+}
+
+entity "review_logs" as review_logs {
+  * id : UUID <<PK>>
+  --
+  * card_id : UUID <<FK>>
+  * user_id : UUID <<FK>>
+    stability_before : FLOAT
+    difficulty_before : FLOAT
+    retrievability_bfr : FLOAT
+    interval_before : FLOAT
+    status_before : TEXT
+    stability_after : FLOAT
+    difficulty_after : FLOAT
+    interval_after : FLOAT
+    status_after : TEXT
+  * rating : SMALLINT
+    answered_tokens : JSONB
+  * was_correct : BOOL
+    wrong_attempts_cnt : INT
+    distractor_clicks : INT
+    incorrect_tokens : JSONB
+    attempts : JSONB
+  * reviewed_at : TIMESTAMP
+}
+
+entity "generation_logs" as generation_logs {
+  * id : UUID <<PK>>
+  --
+  * deck_id : UUID <<FK>>
+  * user_id : UUID <<FK>>
+  * prompt : TEXT
+    model : TEXT
+    cards_count : INT
+  * created_at : TIMESTAMP
+}
+
+users          ||--o{ decks           : "user_id"
+decks          ||--o{ info_objects    : "deck_id"
+info_objects   ||--o{ cards           : "info_object_id"
+cards          ||--o{ card_states     : "card_id"
+users          ||--o{ card_states     : "user_id"
+cards          ||--o{ review_logs     : "card_id"
+users          ||--o{ review_logs     : "user_id"
+decks          ||--o{ generation_logs : "deck_id"
+users          ||--o{ generation_logs : "user_id"
+
+@enduml
 ```
 
-_Рисунок 2.3 — ER-диаграмма основных таблиц базы данных. PK — первичный ключ, FK — внешний ключ, TMSP — тип TIMESTAMP. Таблица card_states связана как с cards, так и с users, реализуя пару (карточка, пользователь) с уникальным ограничением UNIQUE (card_id, user_id)._
-
-```
-┌────────────────────────────────┐
-│          review_logs           │
-├────────────────────────────────┤
-│ PK  id                  UUID   │
-│ FK  card_id             UUID   │
-│ FK  user_id             UUID   │
-│     stability_before    FLOAT  │
-│     difficulty_before   FLOAT  │
-│     retrievability_bfr  FLOAT  │
-│     interval_before     FLOAT  │
-│     status_before       TEXT   │
-│     stability_after     FLOAT  │
-│     difficulty_after    FLOAT  │
-│     interval_after      FLOAT  │
-│     status_after        TEXT   │
-│     rating              SMALL  │
-│     answered_tokens     JSONB  │
-│     was_correct         BOOL   │
-│     wrong_attempts_cnt  INT    │
-│     distractor_clicks   INT    │
-│     incorrect_tokens    JSONB  │
-│     attempts            JSONB  │
-│     reviewed_at         TMSP   │
-└────────────────────────────────┘
-
-┌────────────────────────────────┐
-│        generation_logs         │
-├────────────────────────────────┤
-│ PK  id           UUID          │
-│ FK  deck_id      UUID          │
-│ FK  user_id      UUID          │
-│     prompt       TEXT          │
-│     model        TEXT          │
-│     cards_count  INT           │
-│     created_at   TMSP          │
-└────────────────────────────────┘
-```
-
-_Рисунок 2.4 — Таблицы review_logs и generation_logs. Таблица review_logs является неизменяемым журналом всех событий повторения; в ней фиксируется полное состояние карточки до и после повторения, что позволяет в будущем выполнять дообучение весовых коэффициентов FSRS на данных конкретного пользователя. Таблица generation_logs фиксирует все обращения к LLM для аудита и повторного использования промптов._
+_Рисунок 2.3 — ER-диаграмма схемы базы данных. `*` — обязательное поле. PK — первичный ключ, FK — внешний ключ. Таблица `card_states` связана как с `cards`, так и с `users`, реализуя пару (карточка, пользователь) с уникальным ограничением UNIQUE (card_id, user_id). Таблица `review_logs` — неизменяемый журнал всех событий повторения. Таблица `generation_logs` фиксирует все обращения к LLM._
 
 ### 2.4.1 Пояснение к схеме данных
 
