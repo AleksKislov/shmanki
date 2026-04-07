@@ -473,59 +473,126 @@ _Рисунок 2.3 — ER-диаграмма схемы базы данных. 
 Серверная часть реализована как модульный монолит на языке Go. Модульный монолит — это архитектурный стиль, при котором приложение развёртывается как единый процесс, однако внутренние границы между модулями проведены достаточно явно, чтобы при необходимости выделить отдельные модули в самостоятельные сервисы без существенного рефакторинга [26]. Взаимодействие между модулями осуществляется исключительно через Go-интерфейсы, что предотвращает нежелательные связи между реализациями.
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                         HTTP Layer                               │
-│                  chi Router (go-chi/chi v5)                      │
-│   ┌──────────────┐  ┌──────────────┐  ┌────────────────────┐   │
-│   │   Recovery   │  │    Logger    │  │  Auth (JWT verify) │   │
-│   │  middleware  │  │  middleware  │  │     middleware     │   │
-│   └──────────────┘  └──────────────┘  └────────────────────┘   │
-└──────────────────────────────┬───────────────────────────────────┘
-                               │
-          ┌────────────────────┼────────────────────┐
-          │                    │                    │
-┌─────────▼──────┐  ┌──────────▼──────┐  ┌─────────▼──────────┐
-│  user module   │  │  deck module    │  │   card module      │
-│ ─────────────  │  │ ─────────────   │  │ ─────────────────  │
-│ model.go       │  │ model.go        │  │ model.go           │
-│ repository.go  │  │ repository.go   │  │ repository.go      │
-│ service.go     │  │ service.go      │  │ service.go         │
-│ handler.go     │  │ handler.go      │  │ handler.go         │
-│                │  │                 │  │                    │
-│ owns: users    │  │ owns: decks     │  │ owns: cards,       │
-└────────────────┘  └─────────────────┘  │       info_objects │
-                                         └────────────────────┘
-          ┌────────────────────┬────────────────────┐
-          │                    │                    │
-┌─────────▼──────┐  ┌──────────▼──────┐  ┌─────────▼──────────┐
-│ review module  │  │  fsrs module    │  │  generate module   │
-│ ─────────────  │  │ ─────────────   │  │ ─────────────────  │
-│ model.go       │  │ fsrs.go         │  │ model.go           │
-│ repository.go  │  │ scheduler.go    │  │ service.go         │
-│ service.go     │  │ fsrs_test.go    │  │ handler.go         │
-│ handler.go     │  │                 │  │                    │
-│                │  │ pure logic,     │  │ owns:              │
-│ owns: states,  │  │ no I/O          │  │ generation_logs    │
-│       logs     │  └─────────────────┘  └────────────────────┘
-└────────────────┘
-          │
-          │ calls via interfaces
-          ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                      platform module                             │
-│  ┌────────────┐  ┌──────────────┐  ┌───────────┐  ┌──────────┐ │
-│  │  db/       │  │  middleware/ │  │ response/ │  │ config/  │ │
-│  │ postgres.go│  │  auth.go     │  │  json.go  │  │config.go │ │
-│  │            │  │  logger.go   │  │           │  │          │ │
-│  │            │  │  recovery.go │  │           │  │          │ │
-│  └────────────┘  └──────────────┘  └───────────┘  └──────────┘ │
-└──────────────────────────────────────────────────────────────────┘
-          │                                    │
-          ▼                                    ▼
-┌─────────────────────┐             ┌──────────────────────┐
-│  PostgreSQL 16+     │             │  Anthropic Claude API │
-│  (pgx/v5 driver)   │             │  (HTTP client)        │
-└─────────────────────┘             └──────────────────────┘
+@startuml backend_modules
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+
+skinparam package {
+  BackgroundColor #F7F9FC
+  BorderColor #6B7A90
+}
+skinparam component {
+  BackgroundColor #DDEEFF
+  BorderColor #3366AA
+}
+skinparam database {
+  BackgroundColor #FFF4CC
+  BorderColor #B8860B
+}
+skinparam interface {
+  BackgroundColor #E8F5E9
+  BorderColor #2E7D32
+}
+skinparam cloud {
+  BackgroundColor #F3E5F5
+  BorderColor #7B1FA2
+}
+
+package "HTTP Layer" as HTTP {
+  component "Router" as Router
+  component "Recovery Middleware" as RecoveryMw
+  component "Logger Middleware" as LoggerMw
+  component "Auth Middleware" as AuthMw
+}
+
+package "User Module" as UM {
+  component "User Handler" as UserHandler
+  component "User Service" as UserService
+  component "User Repository" as UserRepo
+}
+
+package "Deck Module" as DM {
+  component "Deck Handler" as DeckHandler
+  component "Deck Service" as DeckService
+  component "Deck Repository" as DeckRepo
+}
+
+package "Card Module" as CM {
+  component "Card Handler" as CardHandler
+  component "Card Service" as CardService
+  component "Card Repository" as CardRepo
+}
+
+package "Review Module" as RM {
+  component "Review Handler" as ReviewHandler
+  component "Review Service" as ReviewService
+  component "Review Repository" as ReviewRepo
+}
+
+package "FSRS Module" as FM {
+  component "Scheduler" as Scheduler
+}
+
+package "Generate Module" as GM {
+  component "Generate Handler" as GenerateHandler
+  component "Generate Service" as GenerateService
+}
+
+package "Infra" {
+  component "Config" as Config
+  component "Postgres Pool" as PostgresPool
+}
+
+database "PostgreSQL" as Postgres
+cloud "LLM API" as LLM
+
+Router --> UserHandler
+Router --> DeckHandler
+Router --> CardHandler
+Router --> ReviewHandler
+Router --> GenerateHandler
+
+UserHandler --> UserService
+UserService --> UserRepo
+
+DeckHandler --> DeckService
+DeckService --> DeckRepo
+DeckService --> UserRepo : запрос предпочитаемого языка
+
+CardHandler --> CardService
+CardService --> CardRepo
+
+ReviewHandler --> ReviewService
+ReviewService --> ReviewRepo
+ReviewService --> Scheduler
+
+GenerateHandler --> GenerateService
+GenerateService --> LLM
+
+UserRepo --> PostgresPool
+DeckRepo --> PostgresPool
+CardRepo --> PostgresPool
+ReviewRepo --> PostgresPool
+PostgresPool --> Postgres
+
+Router -[hidden]down-> UM
+Router -[hidden]down-> CM
+Router -[hidden]down-> DM
+Router -[hidden]down-> GM
+Router -[hidden]down-> RM
+
+AuthMw -[hidden]down-> UM
+AuthMw -[hidden]down-> CM
+AuthMw -[hidden]down-> DM
+AuthMw -[hidden]down-> GM
+AuthMw -[hidden]down-> RM
+
+@enduml
 ```
 
 _Рисунок 2.5 — Диаграмма компонентов серверной части (UML Component Diagram). Каждый доменный модуль имеет одинаковую внутреннюю структуру из четырёх файлов: model, repository, service, handler. Модуль fsrs не имеет зависимостей на уровне I/O и вызывается только из review.ReviewService._
@@ -544,30 +611,35 @@ _Рисунок 2.5 — Диаграмма компонентов серверн
 
 ### 2.6.1 Сценарий регистрации и аутентификации
 
-```
-Пользователь    Браузер          Backend API       PostgreSQL
-     │              │                 │                 │
-     │  заполняет   │                 │                 │
-     │  форму       │                 │                 │
-     │─────────────>│                 │                 │
-     │              │ POST /api/v1/   │                 │
-     │              │ auth/register   │                 │
-     │              │{email, pass,    │                 │
-     │              │ preferredLang}  │                 │
-     │              │────────────────>│                 │
-     │              │                 │ bcrypt(pass,12) │
-     │              │                 │ INSERT users    │
-     │              │                 │────────────────>│
-     │              │                 │<────────────────│
-     │              │                 │ генерация JWT   │
-     │              │                 │ (sub=userID,    │
-     │              │                 │  exp=7 дней)    │
-     │              │ {token, user}   │                 │
-     │              │<────────────────│                 │
-     │              │ localStorage    │                 │
-     │              │ .setItem("jwt") │                 │
-     │              │ redirect /decks │                 │
-     │<─────────────│                 │                 │
+```plantuml
+@startuml seq_register
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Пользователь" as User
+participant "Браузер" as Browser
+participant "Backend API" as API
+database "PostgreSQL" as DB
+
+User -> Browser : Заполняет форму регистрации
+Browser -> API : POST /api/v1/auth/register\n{email, password, preferredLanguage}
+activate API
+API -> API : bcrypt(password, 12)
+API -> DB : INSERT INTO users
+activate DB
+DB --> API : user_id, profile
+deactivate DB
+API -> API : Генерация JWT\nsub=userID, exp=7 дней
+API --> Browser : {token, user}
+deactivate API
+Browser -> Browser : localStorage.setItem("jwt")
+Browser -> Browser : redirect /decks
+Browser --> User : Отображение списка колод
+
+@enduml
 ```
 
 _Рисунок 2.6 — Диаграмма последовательности: регистрация пользователя. Пароль хешируется на стороне сервера алгоритмом bcrypt с коэффициентом стоимости 12; JWT хранится в localStorage браузера._
@@ -576,115 +648,116 @@ _Рисунок 2.6 — Диаграмма последовательности:
 
 Сессия повторений является ключевым пользовательским сценарием в системе. Диаграмма охватывает полный цикл: от загрузки карточек до отправки ответа и обновления состояния FSRS с последующей проверкой условий разблокировки следующего шага.
 
-```
-Пользователь    Браузер        Backend API     PostgreSQL    Scheduler
-     │              │               │               │              │
-     │ /review      │               │               │              │
-     │─────────────>│               │               │              │
-     │              │ GET /api/v1/  │               │              │
-     │              │ review/session│               │              │
-     │              │──────────────>│               │              │
-     │              │               │ SELECT        │              │
-     │              │               │ due + new     │              │
-     │              │               │ cards (LIMIT) │              │
-     │              │               │──────────────>│              │
-     │              │               │<──────────────│              │
-     │              │ ReviewCard[]  │               │              │
-     │              │<──────────────│               │              │
-     │              │ отображает    │               │              │
-     │              │ первую карточку               │              │
-     │<─────────────│               │               │              │
-     │              │               │               │              │
-     │ выбирает     │               │               │              │
-     │ токены       │               │               │              │
-     │─────────────>│               │               │              │
-     │              │ проверка      │               │              │
-     │              │ на клиенте    │               │              │
-     │              │               │               │              │
-     │ последнее    │               │               │              │
-     │ подтверждение│               │               │              │
-     │─────────────>│               │               │              │
-     │              │ POST /api/v1/ │               │              │
-     │              │ review/submit │               │              │
-     │              │ {cardId,      │               │              │
-     │              │  answered-    │               │              │
-     │              │  Tokens,      │               │              │
-     │              │  attempts,    │               │              │
-     │              │  metadata}    │               │              │
-     │              │──────────────>│               │              │
-     │              │               │ GET           │              │
-     │              │               │ card_state    │              │
-     │              │               │──────────────>│              │
-     │              │               │<──────────────│              │
-     │              │               │ DeriveRating  │              │
-     │              │               │ (metadata) ──────────────────>│
-     │              │               │ Schedule(     │              │
-     │              │               │ state, rating)│              │
-     │              │               │<──────────────────────────────│
-     │              │               │ UPDATE        │              │
-     │              │               │ card_states   │              │
-     │              │               │──────────────>│              │
-     │              │               │ INSERT        │              │
-     │              │               │ review_logs   │              │
-     │              │               │──────────────>│              │
-     │              │               │ CheckStep-    │              │
-     │              │               │ Unlock        │              │
-     │              │               │──────────────>│              │
-     │              │               │<──────────────│              │
-     │              │               │ (при выполне- │              │
-     │              │               │ нии условия)  │              │
-     │              │               │ UPDATE locked │              │
-     │              │               │ → new         │              │
-     │              │               │──────────────>│              │
-     │              │ ReviewResult  │               │              │
-     │              │<──────────────│               │              │
-     │ следующая    │               │               │              │
-     │ карточка     │               │               │              │
-     │<─────────────│               │               │              │
+```plantuml
+@startuml seq_review
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Пользователь" as User
+participant "Браузер" as Browser
+participant "Backend API" as API
+database "PostgreSQL" as DB
+participant "Scheduler" as Scheduler
+
+User -> Browser : Открывает /review
+Browser -> API : GET /api/v1/review/session
+activate API
+API -> DB : SELECT due + new cards\nLIMIT n
+activate DB
+DB --> API : ReviewCard[]
+deactivate DB
+API --> Browser : ReviewCard[]
+deactivate API
+Browser --> User : Показывает первую карточку
+
+User -> Browser : Выбирает токены ответа
+Browser -> Browser : Локальная проверка\nпорядка и полноты
+User -> Browser : Подтверждает ответ
+Browser -> API : POST /api/v1/review/submit\n{cardId, answeredTokens, attempts, metadata}
+activate API
+API -> DB : SELECT card_state FOR UPDATE
+activate DB
+DB --> API : currentState
+deactivate DB
+API -> API : DeriveRating(metadata)
+API -> Scheduler : Schedule(state, rating, now)
+activate Scheduler
+Scheduler --> API : updatedState
+deactivate Scheduler
+API -> DB : UPDATE card_states
+activate DB
+DB --> API : ok
+deactivate DB
+API -> DB : INSERT INTO review_logs
+activate DB
+DB --> API : ok
+deactivate DB
+API -> DB : Check step unlock condition
+activate DB
+alt Условие разблокировки выполнено
+  DB --> API : unlock = true
+  API -> DB : UPDATE locked -> new\nfor next step
+  DB --> API : ok
+else Условие не выполнено
+  DB --> API : unlock = false
+end
+deactivate DB
+API --> Browser : ReviewResult
+deactivate API
+Browser --> User : Показывает следующую карточку
+
+@enduml
 ```
 
 _Рисунок 2.7 — Диаграмма последовательности: сессия повторений. Рейтинг ответа (Again/Hard/Good/Easy) выводится автоматически из метаданных взаимодействия; явного выбора пользователем не требуется. После каждого обновления card_states проверяются условия разблокировки следующего шага._
 
 ### 2.6.3 Сценарий автоматической генерации учебного контента
 
-```
-Пользователь    Браузер        Backend API     Anthropic LLM   PostgreSQL
-     │              │               │               │               │
-     │ вводит тему  │               │               │               │
-     │ или текст    │               │               │               │
-     │─────────────>│               │               │               │
-     │              │ POST /api/v1/ │               │               │
-     │              │ generate      │               │               │
-     │              │ {deckId,      │               │               │
-     │              │  topic,       │               │               │
-     │              │  lang}        │               │               │
-     │              │──────────────>│               │               │
-     │              │               │ GET deck      │               │
-     │              │               │ languageCode  │               │
-     │              │               │──────────────────────────────>│
-     │              │               │<──────────────────────────────│
-     │              │               │ строит промпт │               │
-     │              │               │ с lang + topic│               │
-     │              │               │──────────────>│               │
-     │              │               │ генерирует    │               │
-     │              │               │ InfoObjects + │               │
-     │              │               │ Cards (JSON)  │               │
-     │              │               │<──────────────│               │
-     │              │               │ валидация,    │               │
-     │              │               │ парсинг JSON  │               │
-     │              │               │ INSERT        │               │
-     │              │               │ info_objects  │               │
-     │              │               │──────────────────────────────>│
-     │              │               │ INSERT cards  │               │
-     │              │               │──────────────────────────────>│
-     │              │               │ INSERT        │               │
-     │              │               │ generation_log│               │
-     │              │               │──────────────────────────────>│
-     │              │ {objects,     │               │               │
-     │              │  cards_count} │               │               │
-     │              │<──────────────│               │               │
-     │ результат    │               │               │               │
-     │<─────────────│               │               │               │
+Данный сценарий охватывает процесс автоматической генерации карточек на основе темы или исходного текста, предоставленного пользователем. Важным аспектом является включение языкового кода колоды в промпт для LLM, что обеспечивает генерацию контента на нужном языке.
+
+```plantuml
+@startuml seq_generate
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Пользователь" as User
+participant "Браузер" as Browser
+participant "Backend API" as API
+participant "LLM" as LLM
+database "PostgreSQL" as DB
+
+User -> Browser : Вводит тему или исходный текст
+Browser -> API : POST /api/v1/generate\n{deckId, topic, lang}
+activate API
+API -> DB : SELECT deck.languageCode
+activate DB
+DB --> API : languageCode
+deactivate DB
+API -> API : Построение промпта\n(topic + languageCode)
+API -> LLM : Generate content(prompt)
+activate LLM
+LLM --> API : InfoObjects + Cards (JSON)
+deactivate LLM
+API -> API : Валидация и парсинг JSON
+API -> DB : INSERT INTO info_objects
+activate DB
+DB --> API : object ids
+API -> DB : INSERT INTO cards
+DB --> API : card ids
+API -> DB : INSERT INTO generation_logs
+DB --> API : ok
+deactivate DB
+API --> Browser : {objects, cards_count}
+deactivate API
+Browser --> User : Отображение результата генерации
+
+@enduml
 ```
 
 _Рисунок 2.8 — Диаграмма последовательности: автоматическая генерация учебного контента. Промпт явно включает языковой код колоды, что обеспечивает соответствие сгенерированного контента целевому языку обучения. Все запросы к LLM фиксируются в generation_logs._
@@ -695,49 +768,44 @@ _Рисунок 2.8 — Диаграмма последовательности:
 
 Каждая карточка в системе в разрезе конкретного пользователя находится в одном из пяти состояний: `locked`, `new`, `learning`, `review`, `relearning`. Переходы между состояниями определяются результатами повторений и механизмом пошагового разблокирования.
 
-```
-                    ┌────────────────────────────────────┐
-                    │  Карточка создана в InfoObject     │
-                    └─────────────────┬──────────────────┘
-                                      │
-              ┌───────────────────────┴──────────────────────┐
-           step > 0                                        step = 0
-              │                                               │
-┌─────────────▼────────────────┐            ┌────────────────▼──────────────┐
-│           LOCKED             │            │              NEW              │
-│  Шаг N > 0; все карточки     │            │  Доступна для первого          │
-│  шага N-1 ещё не достигли    │            │  повторения                    │
-│  S ≥ 14 дней                 │            └────────────────┬──────────────┘
-└─────────────┬────────────────┘                             │
-              │ [все карточки шага N-1                       │ первое повторение
-              │  достигли S ≥ 14 дней]                       │
-              └───────────────────────────────────────────────┘
-                                      │
-                    ┌─────────────────▼──────────────────┐
-                    │            LEARNING                │
-                    │  S < 21 дня                        │
-                    │  Карточка в процессе заучивания    │
-                    └───────────┬──────────┬─────────────┘
-                                │          │
-              [rating ≠ Again   │          │  [rating = Again]
-               И S ≥ 21 дней]  │          │
-                    ┌───────────▼────────┐ │
-                    │       REVIEW       │ │
-                    │  S ≥ 21 дней       │ │
-                    │  Устойчивое        │ │ (возврат)
-                    │  долгосрочное      │ │
-                    │  запоминание       │ │
-                    └───────────┬────────┘ │
-                                │          │
-                   [rating =    │          │
-                    Again;      │          │
-                    lapses++]   │          │
-                    ┌───────────▼────────┐ │
-                    │     RELEARNING     │ │
-                    │  Ошибка после      ├─┘
-                    │  REVIEW —          │  [rating ≠ Again]
-                    │  переучивание      │  → LEARNING
-                    └────────────────────┘
+```plantuml
+@startuml card_state_machine
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+skinparam state {
+  BackgroundColor #DDEEFF
+  BorderColor #3366AA
+  FontStyle bold
+}
+skinparam arrow {
+  Color #444444
+  FontSize 11
+}
+
+hide empty description
+
+[*] --> LOCKED : step > 0
+[*] --> NEW : step = 0
+
+state LOCKED : Шаг N > 0\nВсе карточки шага N-1\nещё не достигли S >= 14 дней
+state NEW : Доступна для первого\nповторения
+state LEARNING : S < 21 дня\nКарточка в процессе\nзаучивания
+state REVIEW : S >= 21 дней\nУстойчивое долгосрочное\nзапоминание
+state RELEARNING : Ошибка после REVIEW\nПереучивание
+
+LOCKED --> NEW : Все карточки шага N-1\nдостигли S >= 14 дней
+NEW --> LEARNING : Первое повторение
+LEARNING --> REVIEW : rating != Again\nи S >= 21 дней
+LEARNING --> LEARNING : rating = Again
+REVIEW --> RELEARNING : rating = Again\nlapses++
+RELEARNING --> LEARNING : rating != Again
+RELEARNING --> RELEARNING : rating = Again
+
+LOCKED -[hidden]right->
+@enduml
 ```
 
 _Рисунок 2.9 — Диаграмма состояний карточки (UML State Machine Diagram). Переход из LOCKED в NEW инициируется системой автоматически после достижения всеми карточками предыдущего шага порога стабильности S ≥ 14 дней. Граница между LEARNING и REVIEW установлена на значении S = 21 день._
@@ -748,7 +816,7 @@ _Рисунок 2.9 — Диаграмма состояний карточки (
 
 Статус `relearning` отличается от `learning` тем, что переход в него из `review` сопровождается инкрементом счётчика `lapses`. Данный счётчик отражает число «срывов» памяти после достижения долгосрочного запоминания и используется в статистических отчётах для выявления материала с аномально высокой скоростью забывания. В будущих итерациях разработки данные `lapses` могут быть задействованы для коррекции весовых коэффициентов в персонализированном режиме оптимизации FSRS [31].
 
-Механизм пошагового разблокирования (`locked → new`) реализует на уровне машины состояний обход рёбер инфо-графа (см. подраздел 2.8.0): переход ребра $e_{ij}$ из «заблокированного» в «активное» состояние происходит в тот момент, когда все вершины-предшественники $v_i$ достигают порогового значения стабильности $S \geq 14$ дней. Это соответствует обоснованной в разделе 1 идее о том, что освоение сложных граней учебного объекта должно начинаться только после достаточного закрепления базовых: физическое ограничение доступа к карточкам следующего шага исключает преждевременную когнитивную нагрузку, обусловленную обращением к незакреплённым предварительным знаниям [13].
+Механизм пошагового разблокирования (`locked → new`) реализует на уровне машины состояний обход рёбер инфо-графа (см. подраздел 2.8.0): переход ребра $e_{ij}$ из «заблокированного» в «активное» состояние происходит в тот момент, когда все вершины-предшественники $v_i$ достигают порогового значения стабильности $S \geq 14$ дней. Это соответствует обоснованной в разделе 1 идее о том, что освоение сложных граней учебного объекта должно начинаться только после достаточного закрепления базовых: физическое ограничение доступа к карточкам следующего шага исключает преждевременную когнитивную нагрузку, обусловленную обращением к незакреплённым предварительным знаниям [13]. При освоенных на достаточном уровне базовых гранях обучающийся получает определенного рода фундамент или схему того, что ему еще предстоит освоить, что облегчает интеграцию новых знаний и способствует формированию более устойчивых долговременных знаний [12], что также подчеркивалось в разделе 1.
 
 ---
 
@@ -756,7 +824,7 @@ _Рисунок 2.9 — Диаграмма состояний карточки (
 
 В данном подразделе приводится полное описание алгоритмов планировщика повторений, реализованного в системе. Алгоритм представляет собой адаптацию FSRS (Free Spaced Repetition Scheduler) с двумя собственными модификациями: во-первых, автоматическим выводом рейтинга из метаданных взаимодействия вместо явной самооценки пользователя; во-вторых, введением модели **гетерогенного информационного объекта**, углубляющей связь между сложностью D и структурой изучаемой сущности [31, 32].
 
-### 2.8.0 Модель гетерогенного информационного объекта
+### 2.8.1 Модель гетерогенного информационного объекта
 
 Алгоритмы SM и FSRS эволюционировали в направлении всё более полного учёта свойств информационного объекта: если алгоритм SM-2 оперировал единственным параметром EF, то FSRS уже явно вычисляет сложность D и обновляет её после каждого повторения. Тем не менее в обоих случаях объект изучения трактуется как **гомогенная** единица информации, полностью описываемая парой «вопрос — ответ», то есть ориентированным графом с двумя вершинами.
 
@@ -779,6 +847,89 @@ _Рисунок 2.9 — Диаграмма состояний карточки (
 - умения прочитать слово при его предъявлении в тексте;
 - умения воспроизвести написание каждого иероглифа.
 
+```plantuml
+@startuml chinese_word_info_graph
+!theme plain
+left to right direction
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+skinparam rectangle {
+  BackgroundColor #DDEEFF
+  BorderColor #3366AA
+  RoundCorner 12
+}
+skinparam note {
+  BackgroundColor #FFF9C4
+  BorderColor #F9A825
+}
+skinparam arrow {
+  Color #444444
+  FontSize 11
+}
+
+rectangle "Полное освоение\nслова 沙漠" as Mastery
+
+rectangle "Перевод:\n沙漠 -> пустыня" as Translation
+rectangle "Пиньинь и произношение:\nshā mò" as Pronunciation
+rectangle "Узнавание слова\nв тексте" as Recognition
+
+rectangle "Знание отдельных\nиероглифов" as CharKnowledge
+rectangle "Написание 沙\nпо памяти" as WriteSha
+rectangle "Написание 漠\nпо памяти" as WriteMo
+
+rectangle "Значение 沙:\n«песок»" as MeaningSha
+rectangle "Состав 沙" as StructSha
+rectangle "Значение 漠:\n«пустошь»" as MeaningMo
+rectangle "Состав 漠" as StructMo
+
+rectangle "氵" as Water1
+rectangle "少" as Shao
+rectangle "小" as Xiao
+rectangle "丿" as Pie
+
+rectangle "氵" as Water2
+rectangle "莫" as Mo
+rectangle "艹" as Cao
+rectangle "日" as Sun
+rectangle "大" as Big
+
+Translation --> Mastery
+Pronunciation --> Mastery
+Recognition --> Mastery
+CharKnowledge --> Mastery
+WriteSha --> Mastery
+WriteMo --> Mastery
+
+MeaningSha --> CharKnowledge
+StructSha --> CharKnowledge
+MeaningMo --> CharKnowledge
+StructMo --> CharKnowledge
+
+StructSha --> WriteSha
+StructMo --> WriteMo
+
+Water1 --> StructSha
+Shao --> StructSha
+Xiao --> Shao
+Pie --> Shao
+
+Water2 --> StructMo
+Mo --> StructMo
+Cao --> Mo
+Sun --> Mo
+Big --> Mo
+
+Pronunciation --> Recognition
+CharKnowledge --> Recognition
+
+
+@enduml
+```
+
+Рисунок - Диаграмма инфо-графа для китайского слова 沙漠. Вершины соответствуют различным аспектам знания, необходимым для полного освоения слова. Рёбра отражают зависимости между этими аспектами.
+
 В языках с фонетическим письмом (французский, турецкий) задача сводится к запоминанию гомогенной пары «иностранное слово — перевод», то есть инфо-граф вырождается в две вершины. Для языков с идеографическим письмом граф существенно сложнее.
 
 Оба приведённых примера демонстрируют ключевое свойство гетерогенного информационного объекта: **его усвоение определяется качеством усвоения всех составляющих его граней**. Нельзя утверждать, что обучающийся знает связный список, если он умеет лишь воспроизвести определение, но не способен реализовать операцию вставки. Аналогично нельзя утверждать, что обучающийся знает слово «пустыня» на китайском, если он знает его звучание, но не может записать иероглифы.
@@ -792,18 +943,14 @@ _Рисунок 2.9 — Диаграмма состояний карточки (
 Таким образом, разрабатываемый алгоритм является развитием FSRS в направлении **более глубокой связи между параметрами алгоритма и структурой информационного объекта**: если FSRS учитывает сложность объекта как скалярную величину, новый алгоритм рассматривает сложность как вектор, компоненты которого соответствуют отдельным вершинам инфо-графа, а условия перехода между вершинами определяются структурой рёбер этого графа.
 
 ```plantuml
-@startuml info_graph
+@startuml info_graph_linked_list_compact
 !theme plain
 skinparam defaultFontName Arial
-skinparam defaultFontSize 11
+skinparam defaultFontSize 16
 
 skinparam node {
   BackgroundColor #DDEEFF
   BorderColor #3366AA
-}
-skinparam note {
-  BackgroundColor #FFF9C4
-  BorderColor #F9A825
 }
 skinparam arrow {
   Color #444444
@@ -812,201 +959,149 @@ skinparam arrow {
 
 title Инфо-граф: структура данных «Связный список»
 
-node "Шаг 0\nОпределение и\nназначение структуры\n[D ≈ 2.5, S → ...]" as N0
-node "Шаг 1a\nНазвания операций\nи сигнатуры\n[D ≈ 3.5]" as N1a
-node "Шаг 1b\nСемантика операций\n(псевдокод)\n[D ≈ 4.5]" as N1b
-node "Шаг 2\nРеализация операций\nна целевом языке\n[D ≈ 6.5]" as N2
+node "Шаг 0\nОпределение и назначение\n[D ≈ 2.0]" as N0
+node "Шаг 1\nУзел, head, tail,\nструктура списка\n[D ≈ 2.8]" as N1
 
-N0  --> N1a : S₀ ≥ 14 дней
-N0  --> N1b : S₀ ≥ 14 дней
-N1a --> N2  : S₁ₐ ≥ 14 дней
-N1b --> N2  : S₁ᵦ ≥ 14 дней
+node "Шаг 2a\nОперации чтения:\nобход, поиск, length\n[D ≈ 3.2]" as N2a
+node "Шаг 2b\nПростые вставки:\nprepend, append\n[D ≈ 3.6]" as N2b
 
-note bottom of N0
-  Вершины одного шага
-  усваиваются параллельно.
-  Переход к следующему шагу —
-  после достижения S ≥ 14 дней
-  всеми вершинами текущего шага.
-end note
+node "Шаг 3a\nУдаление элементов\n[D ≈ 4.4]" as N3a
+node "Шаг 3b\nВставка в середину\n[D ≈ 4.7]" as N3b
+
+node "Шаг 5\nРеализация на\nцелевом языке\n[D ≈ 6.3]" as N5
+node "И так далее\n(усложнение задач,\nвариации структуры,\nпрактические применения)" as Nnext
+
+N0 --> N1  : S ≥ 14 дней
+
+N1 --> N2a : S ≥ 14 дней
+N1 --> N2b : S ≥ 14 дней
+
+N2a --> N3a : S ≥ 14 дней
+N2b --> N3a : S ≥ 14 дней
+N2a --> N3b : S ≥ 14 дней
+N2b --> N3b : S ≥ 14 дней
+
+N3a --> N5 : S ≥ 14 дней
+N3b --> N5 : S ≥ 14 дней
+
+N5 --> Nnext : S ≥ 14 дней
 
 @enduml
 ```
 
 _Рисунок 2.14 — Инфо-граф информационного объекта «Связный список». Вершины соответствуют карточкам системы; рёбра — зависимостям «должно быть усвоено прежде». Значения D отражают различие в сложности граней одного объекта. Вершины шагов 1a и 1b могут усваиваться параллельно; переход к шагу 2 возможен лишь после достижения порога стабильности обеими вершинами шага 1._
 
-### 2.8.1 Алгоритм вывода рейтинга из метаданных ответа
+### 2.8.2 Алгоритм вывода рейтинга из метаданных ответа
 
 В отличие от эталонной реализации FSRS, в которой пользователь явно выбирает оценку (Again/Hard/Good/Easy) после каждого повторения, в данной системе рейтинг выводится автоматически из метаданных взаимодействия пользователя с карточкой. Это исключает субъективность самооценки и обеспечивает воспроизводимость результатов.
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                 НАЧАЛО: DeriveRating                     │
-│  Входные данные:                                         │
-│    wasCorrect           : bool                           │
-│    wrongAttemptsCount   : int                            │
-│    distractorClicksCount: int                            │
-└─────────────────────────────┬────────────────────────────┘
-                              │
-                    ┌─────────▼─────────┐
-                    │  wasCorrect       │
-                    │  == false?        │
-                    └────┬────────┬─────┘
-                        ДА       НЕТ
-                         │        │
-              ┌──────────▼──┐  ┌──▼──────────────────────────┐
-              │ Return      │  │ wrongAttemptsCount > 0?      │
-              │ Again (1)   │  └──┬────────────────────┬──────┘
-              └─────────────┘    ДА                   НЕТ
-                                  │                    │
-                     ┌────────────▼──┐   ┌─────────────▼──────────────┐
-                     │ Return        │   │ distractorClicksCount > 0? │
-                     │ Hard (2)      │   └──────────┬─────────────┬───┘
-                     └───────────────┘             ДА            НЕТ
-                                                    │             │
-                                       ┌────────────▼──┐  ┌───────▼──────┐
-                                       │ Return        │  │ Return       │
-                                       │ Good (3)      │  │ Easy (4)     │
-                                       └───────────────┘  └──────────────┘
+```plantuml
+@startuml activity_derive_rating
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+start
+:Входные данные:\nwasCorrect: bool\nwrongAttemptsCount: int\ndistractorClicksCount: int;
+
+if (wasCorrect == false?) then (да)
+  :Return Again (1);
+  stop
+else (нет)
+  if (wrongAttemptsCount > 0?) then (да)
+    :Return Hard (2);
+    stop
+  else (нет)
+    if (distractorClicksCount > 0?) then (да)
+      :Return Good (3);
+      stop
+    else (нет)
+      :Return Easy (4);
+      stop
+    endif
+  endif
+endif
+
+@enduml
 ```
 
 _Рисунок 2.10 — Блок-схема алгоритма вывода рейтинга FSRS из метаданных ответа. Четыре ветви соответствуют стандартным оценкам FSRS: Again (1) — неправильный финальный ответ; Hard (2) — правильный ответ с предшествующими ошибочными попытками; Good (3) — правильный ответ без ошибочных попыток, но с нажатием дистракторов; Easy (4) — правильный ответ с первой попытки без нажатия дистракторов._
 
-### 2.8.2 Алгоритм полного цикла планирования повторения
+### 2.8.3 Алгоритм полного цикла планирования повторения
 
 Метод `Schedule` является центральным алгоритмом системы. Он принимает текущее состояние карточки, выведенный рейтинг и метку времени; возвращает обновлённое состояние с новыми значениями стабильности S, сложности D, извлекаемости R и датой следующего повторения.
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                  НАЧАЛО: Schedule                       │
-│  Входные данные:                                        │
-│    state : CardState                                    │
-│    rating: Rating (1..4)                                │
-│    now   : time.Time                                    │
-└──────────────────────────┬──────────────────────────────┘
-                           │
-             ┌─────────────▼──────────────┐
-             │ Вычислить t (дней с        │
-             │ последнего повторения):    │
-             │ t = (now − lastReview) / 24│
-             └─────────────┬──────────────┘
-                           │
-             ┌─────────────▼──────────────┐
-             │ Вычислить R(t, S):         │
-             │ R = (1+Factor×t/S)^Decay   │
-             │ Factor = 19/81 ≈ 0.2346    │
-             │ Decay  = −0.5              │
-             └─────────────┬──────────────┘
-                           │
-                  ┌────────▼────────┐
-                  │ rating == 1     │
-                  │ (Again)?        │
-                  └──┬───────────┬──┘
-                    ДА          НЕТ
-                     │           │
-        ┌────────────▼─┐  ┌──────▼──────────────────────┐
-        │ newS =       │  │ newS =                      │
-        │ Stability-   │  │ StabilityAfterRecall        │
-        │ After-       │  │ (S, D, R, rating, W)       │
-        │ Forgetting   │  │                             │
-        │ (S, D, R, W) │  │ newD =                      │
-        │              │  │ UpdateDifficulty            │
-        │ newD =       │  │ (D, rating, W)              │
-        │ UpdateDiff   │  │                             │
-        │ (D, Again, W)│  │ reps++                      │
-        │              │  │                             │
-        │ если status  │  │ if newS >= 21:              │
-        │ == review:   │  │   status = review           │
-        │ lapses++     │  │ else:                       │
-        │              │  │   status = learning         │
-        │ status =     │  └──────────────┬──────────────┘
-        │ relearning   │                 │
-        └──────┬───────┘                 │
-               └──────────────┬──────────┘
-                              │
-             ┌────────────────▼─────────────────┐
-             │ intervalDays =                   │
-             │   max(NextInterval(newS), 1)      │
-             │                                  │
-             │ NextInterval(s) =                 │
-             │   round(s / Factor ×             │
-             │   (DR^(1/Decay) − 1))            │
-             │   DR = DesiredRetention = 0.9     │
-             │                                  │
-             │ dueDate = now + intervalDays × 24h│
-             │                                  │
-             │ newR = R(0, newS) ≈ 1.0          │
-             └────────────────┬─────────────────┘
-                              │
-             ┌────────────────▼─────────────────┐
-             │ Вернуть обновлённый CardState:   │
-             │   stability    = newS            │
-             │   difficulty   = newD            │
-             │   retrievability = newR          │
-             │   intervalDays = intervalDays    │
-             │   dueDate      = dueDate         │
-             │   status       = status          │
-             │   reps         = reps            │
-             │   lapses       = lapses          │
-             └────────────────┬─────────────────┘
-                              │
-                         ┌────▼────┐
-                         │  КОНЕЦ  │
-                         └─────────┘
+```plantuml
+@startuml activity_schedule
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+start
+:Входные данные:\nstate: CardState\nrating: Rating\nnow: time.Time;
+:Вычислить t = (now - lastReview) / 24h;
+:Вычислить R(t, S) = (1 + Factor * t / S)^Decay;\nFactor = 19/81; Decay = -0.5;
+
+if (rating == Again?) then (да)
+  :newS = StabilityAfterForgetting(S, D, R, W);
+  :newD = UpdateDifficulty(D, Again, W);
+  if (status == review?) then (да)
+    :lapses++;
+  endif
+  :status = relearning;
+else (нет)
+  :newS = StabilityAfterRecall(S, D, R, rating, W);
+  :newD = UpdateDifficulty(D, rating, W);
+  :reps++;
+  if (newS >= 21?) then (да)
+    :status = review;
+  else (нет)
+    :status = learning;
+  endif
+endif
+
+:intervalDays = max(NextInterval(newS), 1);
+:dueDate = now + intervalDays * 24h;
+:newR = R(0, newS) ~= 1.0;
+:Вернуть обновлённый CardState:\nstability = newS\ndifficulty = newD\nretrievability = newR\nintervalDays = intervalDays\ndueDate = dueDate\nstatus = status\nreps = reps\nlapses = lapses;
+stop
+
+@enduml
 ```
 
 _Рисунок 2.11 — Блок-схема основного алгоритма планировщика FSRS (метод Schedule). Разветвление по рейтингу определяет применение одной из двух функций обновления стабильности: StabilityAfterRecall для правильных ответов или StabilityAfterForgetting для ошибочных._
 
-### 2.8.3 Алгоритм пошагового разблокирования карточек
+### 2.8.4 Алгоритм пошагового разблокирования карточек
 
 После каждого успешного обновления `card_states` выполняется проверка условий разблокировки следующего шага карточек информационного объекта.
 
-```
-┌──────────────────────────────────────────────────────────┐
-│         НАЧАЛО: CheckAndUnlockNextStep                   │
-│  Входные данные:                                         │
-│    userID        : UUID                                  │
-│    infoObjectID  : UUID                                  │
-│    completedStep : int                                   │
-└───────────────────────────┬──────────────────────────────┘
-                            │
-     ┌──────────────────────▼──────────────────────────┐
-     │ SELECT COUNT(*) FROM cards c                    │
-     │ JOIN card_states cs ON cs.card_id = c.id        │
-     │ WHERE c.info_object_id = infoObjectID           │
-     │   AND c.step           = completedStep          │
-     │   AND cs.user_id       = userID                 │
-     │   AND cs.stability     < 14                     │
-     └──────────────────────┬──────────────────────────┘
-                            │
-                   ┌────────▼──────────┐
-                   │  count == 0?      │
-                   │  (все карточки    │
-                   │   шага достигли   │
-                   │   S ≥ 14 дней?)   │
-                   └──┬────────────┬───┘
-                     ДА           НЕТ
-                      │            │
-         ┌────────────▼──┐  ┌──────▼──────────┐
-         │ UPDATE        │  │ Завершить,      │
-         │ card_states   │  │ ничего не делать│
-         │ SET status =  │  └─────────────────┘
-         │ 'new'         │
-         │ WHERE step =  │
-         │ completedStep │
-         │ + 1 AND       │
-         │ status =      │
-         │ 'locked'      │
-         └───────┬───────┘
-                 │
-         ┌───────▼───────┐
-         │     КОНЕЦ     │
-         └───────────────┘
+```plantuml
+@startuml activity_unlock_step
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam shadowing false
+
+start
+:Входные данные:\nuserID: UUID\ninfoObjectID: UUID\ncompletedStep: int;
+:SELECT COUNT(*)\nFROM cards c\nJOIN card_states cs ON cs.card_id = c.id\nWHERE c.info_object_id = infoObjectID\nAND c.step = completedStep\nAND cs.user_id = userID\nAND cs.stability < 14;
+
+if (count == 0?) then (да)
+  :UPDATE card_states\nSET status = 'new'\nWHERE step = completedStep + 1\nAND status = 'locked';
+  stop
+else (нет)
+  :Завершить, ничего не делать;
+  stop
+endif
+
+@enduml
 ```
 
 _Рисунок 2.12 — Блок-схема алгоритма пошагового разблокирования. Операции SELECT и UPDATE выполняются в рамках одной транзакции вместе с обновлением card_states по итогам повторения, что гарантирует целостность данных._
 
-### 2.8.4 Оценка алгоритмической сложности
+### 2.8.5 Оценка алгоритмической сложности
 
 Функции алгоритмического ядра FSRS (`Retrievability`, `InitialDifficulty`, `InitialStability`, `UpdateDifficulty`, `StabilityAfterRecall`, `StabilityAfterForgetting`, `NextInterval`) работают за **O(1)** по времени и O(1) по памяти: все операции — арифметические вычисления над фиксированным числом переменных.
 
@@ -1024,62 +1119,65 @@ _Рисунок 2.12 — Блок-схема алгоритма пошагово
 
 Клиентская часть реализована на фреймворке Qwik с метафреймворком Qwik City. Qwik использует модель «резюмируемости» (resumability), при которой состояние приложения сериализуется при серверном рендеринге и восстанавливается на клиенте без повторного выполнения JavaScript-кода инициализации — это существенно сокращает время до первого взаимодействия пользователя с интерфейсом [27].
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                  Qwik City Router                        │
-│  (файловая маршрутизация, routes/ → URL)                 │
-├──────────────────────────────────────────────────────────┤
-│                                                          │
-│  routes/layout.tsx          ← Auth guard (JWT check)     │
-│  │                                                       │
-│  ├── routes/auth/login/     ← /auth/login                │
-│  ├── routes/auth/register/  ← /auth/register             │
-│  │                                                       │
-│  ├── routes/decks/          ← /decks (список колод)      │
-│  │   └── routes/decks/[id]/ ← /decks/:id (детали)       │
-│  │                                                       │
-│  ├── routes/objects/[id]/   ← /objects/:id               │
-│  │                                                       │
-│  └── routes/review/         ← /review (сессия)           │
-│                                                          │
-└──────────────────────────────────────────────────────────┘
-          │
-          │ использует компоненты
-          ▼
-┌──────────────────────────────────────────────────────────┐
-│                    components/                           │
-│                                                          │
-│  ┌─────────────┐  ┌──────────────┐  ┌────────────────┐  │
-│  │ card-review │  │ token-answer │  │  code-block    │  │
-│  │             │  │              │  │  (Shiki + line │  │
-│  │ orchestrates│  │ token click  │  │   highlight)   │  │
-│  │ review UI   │  │ mechanic     │  │                │  │
-│  └─────────────┘  └──────────────┘  └────────────────┘  │
-│                                                          │
-│  ┌─────────────┐  ┌──────────────┐  ┌────────────────┐  │
-│  │mastery-badge│  │ progress-bar │  │      nav       │  │
-│  │ new/learning│  │  stability   │  │  top navbar    │  │
-│  │ /mastered…  │  │  indicator   │  │                │  │
-│  └─────────────┘  └──────────────┘  └────────────────┘  │
-└──────────────────────────────────────────────────────────┘
-          │
-          │ использует утилиты
-          ▼
-┌──────────────────────────────────────────────────────────┐
-│                       lib/                               │
-│                                                          │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────┐  │
-│  │ types.ts │  │  api.ts  │  │  auth.ts │  │ i18n.ts│  │
-│  │ (domain  │  │ (typed   │  │ (JWT     │  │ (locale│  │
-│  │  types)  │  │  fetch)  │  │ helpers) │  │ lookup)│  │
-│  └──────────┘  └──────────┘  └──────────┘  └────────┘  │
-│                                                          │
-│  ┌────────────────┐  ┌────────────────────────────────┐  │
-│  │    fsrs.ts     │  │        locales/                │  │
-│  │ (MasteryLevel, │  │  en.ts / ru.ts / ...           │  │
-│  │  R display)    │  │  (словари строк интерфейса)    │  │
-│  └────────────────┘  └────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────┘
+```plantuml
+@startuml frontend_components
+!theme plain
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+
+skinparam package {
+  BackgroundColor #F3F6FB
+  BorderColor #5C7FA8
+  FontStyle bold
+}
+skinparam component {
+  BackgroundColor #DDEEFF
+  BorderColor #3366AA
+}
+skinparam artifact {
+  BackgroundColor #FFFACD
+  BorderColor #B8860B
+}
+skinparam arrow {
+  Color #444444
+  FontSize 11
+}
+
+package "Qwik City Router" as Router {
+  component "routes/layout.tsx\nAuth guard (JWT check)" as Layout
+  component "routes/auth/login/\n/auth/login" as RouteLogin
+  component "routes/auth/register/\n/auth/register" as RouteRegister
+  component "routes/decks/\n/decks" as RouteDecks
+  component "routes/decks/[id]/\n/decks/:id" as RouteDeckDetail
+  component "routes/objects/[id]/\n/objects/:id" as RouteObject
+  component "routes/review/\n/review" as RouteReview
+}
+
+package "components/" as Components {
+  component "card-review\norchestrates review UI" as CardReview
+  component "token-answer\ntoken click mechanic" as TokenAnswer
+  component "code-block\nShiki + line highlight" as CodeBlock
+  component "mastery-badge\nnew / learning / mastered" as MasteryBadge
+  component "progress-bar\nstability indicator" as ProgressBar
+  component "nav\ntop navbar" as Nav
+}
+
+package "lib/" as Lib {
+  artifact "types.ts\ndomain types" as Types
+  artifact "api.ts\ntyped fetch" as Api
+  artifact "auth.ts\nJWT helpers" as Auth
+  artifact "i18n.ts\nlocale lookup" as I18n
+  artifact "fsrs.ts\nMasteryLevel, R display" as FrontFsrs
+  artifact "locales/\nen.ts / ru.ts / ..." as Locales
+}
+
+Router --> Components : uses
+Components --> Lib : uses
+
+@enduml
 ```
 
 _Рисунок 2.13 — Диаграмма компонентов клиентской части. Файловая маршрутизация Qwik City обеспечивает прямое соответствие между структурой каталогов и URL-пространством приложения. Компонент token-answer реализует ключевой пользовательский механизм; компонент code-block использует библиотеку Shiki для синтаксической подсветки кода с выделением конкретных строк по полю highlight_lines текущей карточки._
