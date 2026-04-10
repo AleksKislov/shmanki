@@ -103,7 +103,7 @@ func (s *Scheduler) HierarchicalPenalty() float64 {
 }
 
 func (s *Scheduler) SupportReferenceDays() float64 {
-	return s.config.SupportReferenceStabilityDays
+	return s.config.ReviewStabilityThresholdDays
 }
 
 func (s *Scheduler) ReviewStabilityThresholdDays() float64 {

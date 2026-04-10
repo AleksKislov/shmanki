@@ -25,7 +25,6 @@ type Config struct {
     DesiredRetention               float64
     StepUnlockStabilityDays        float64
     ReviewStabilityThresholdDays   float64
-    SupportReferenceStabilityDays  float64
     HierarchicalDifficultyPenalty  float64
 }
 
@@ -33,7 +32,6 @@ var DefaultConfig = Config{
     DesiredRetention:              0.90,
     StepUnlockStabilityDays:       14.0,
     ReviewStabilityThresholdDays:  21.0,
-    SupportReferenceStabilityDays: 21.0,
     HierarchicalDifficultyPenalty: 2.0,
 }
 ```
@@ -240,7 +238,7 @@ This matches:
 
 ```
 M_p = min(S_p / S_ref, 1)
-S_ref = SupportReferenceStabilityDays = 21 days
+S_ref = ReviewStabilityThresholdDays = 21 days
 ```
 
 ### Hierarchical Support Coefficient
@@ -267,7 +265,7 @@ func HierarchicalSupport(stabilities []float64, referenceDays float64) float64 {
 ```
 
 If a card has no prerequisites, `H_c = 1`.
-The current implementation uses `DefaultConfig.SupportReferenceStabilityDays` as the named constant for `S_ref`.
+The current implementation reuses `DefaultConfig.ReviewStabilityThresholdDays` as the named constant for `S_ref`.
 
 ### Effective Difficulty
 

@@ -37,7 +37,7 @@ func TestScheduleInitialReview(t *testing.T) {
 }
 
 func TestHierarchicalSupportAverageMastery(t *testing.T) {
-	support := HierarchicalSupport([]float64{DefaultConfig.SupportReferenceStabilityDays, DefaultConfig.SupportReferenceStabilityDays / 2, 0}, DefaultConfig.SupportReferenceStabilityDays)
+	support := HierarchicalSupport([]float64{DefaultConfig.ReviewStabilityThresholdDays, DefaultConfig.ReviewStabilityThresholdDays / 2, 0}, DefaultConfig.ReviewStabilityThresholdDays)
 	if support != 0.5 {
 		t.Fatalf("expected support 0.5, got %f", support)
 	}

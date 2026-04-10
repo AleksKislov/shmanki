@@ -81,7 +81,7 @@ func StabilityAfterForgetting(stability float64, difficulty float64, retrievabil
 
 func MeasureMastery(stability float64, referenceDays float64) float64 {
 	if referenceDays <= 0 {
-		referenceDays = DefaultConfig.SupportReferenceStabilityDays
+		referenceDays = DefaultConfig.ReviewStabilityThresholdDays
 	}
 	if stability <= 0 {
 		return 0
