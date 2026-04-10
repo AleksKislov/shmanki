@@ -306,6 +306,21 @@ interface ReviewSubmission {
   incorrectTokensClicked: string[];
 }
 
+interface CardState {
+  cardId: string;
+  stability: number;
+  difficulty: number;
+  effectiveDifficulty: number;
+  hierarchicalSupport: number;
+  retrievability: number;
+  dueDate: string | null;
+  status: CardStatus;
+  reps: number;
+  lapses: number;
+  intervalDays: number;
+  lastReview?: string | null;
+}
+
 interface ReviewResult {
   state: CardState;
   rating: Rating;

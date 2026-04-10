@@ -222,6 +222,41 @@ WHERE card_id = $1 AND user_id = $2
 	return nil
 }
 
+func (r *Repository) GetPreviousStepStabilities(ctx context.Context, tx pgx.Tx, userID uuid.UUID, infoObjectID uuid.UUID, step int) ([]float64, error) {
+	if step <= 0 {
+		return nil, nil
+	}
+
+	const query = `
+SELECT cs.stability
+FROM cards c
+JOIN card_states cs ON cs.card_id = c.id AND cs.user_id = $1
+WHERE c.info_object_id = $2 AND c.step = $3
+ORDER BY c.created_at ASC
+`
+
+	rows, err := tx.Query(ctx, query, userID, infoObjectID, step-1)
+	if err != nil {
+		return nil, fmt.Errorf("get previous step stabilities: %w", err)
+	}
+	defer rows.Close()
+
+	stabilities := make([]float64, 0)
+	for rows.Next() {
+		var stability float64
+		if err := rows.Scan(&stability); err != nil {
+			return nil, fmt.Errorf("scan previous step stability: %w", err)
+		}
+		stabilities = append(stabilities, stability)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate previous step stabilities: %w", err)
+	}
+
+	return stabilities, nil
+}
+
 func (r *Repository) InsertReviewLog(ctx context.Context, tx pgx.Tx, params reviewLogParams) error {
 	answeredTokens, err := json.Marshal(params.AnsweredTokens)
 	if err != nil {
@@ -355,11 +390,13 @@ WHERE cs.user_id = $1 AND d.user_id = $1 AND d.id = $2
 		return nil, fmt.Errorf("get deck stats totals: %w", err)
 	}
 
+	const reviewThresholdDays = 21
+
 	const levelsQuery = `
 SELECT
     CASE
         WHEN cs.stability < 7 THEN 'new'
-        WHEN cs.stability < 21 THEN 'learning'
+        WHEN cs.stability < $3 THEN 'learning'
         WHEN cs.stability < 90 THEN 'learned'
         WHEN cs.stability < 365 THEN 'mastered'
         ELSE 'expert'
@@ -373,7 +410,7 @@ WHERE cs.user_id = $1 AND d.user_id = $1 AND d.id = $2
 GROUP BY level
 `
 
-	rows, err := r.db.Query(ctx, levelsQuery, userID, deckID)
+	rows, err := r.db.Query(ctx, levelsQuery, userID, deckID, reviewThresholdDays)
 	if err != nil {
 		return nil, fmt.Errorf("get deck stats levels: %w", err)
 	}
@@ -464,6 +501,8 @@ func scanReviewCard(rows pgx.Rows) (ReviewCard, error) {
 		return ReviewCard{}, fmt.Errorf("scan review card: %w", err)
 	}
 	item.State.CardID = item.CardID
+	item.State.EffectiveDifficulty = item.State.Difficulty
+	item.State.HierarchicalSupport = 1
 	if err := json.Unmarshal(rawAnswers, &item.CorrectAnswers); err != nil {
 		return ReviewCard{}, fmt.Errorf("decode review card answers: %w", err)
 	}

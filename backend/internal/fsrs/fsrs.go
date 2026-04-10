@@ -5,6 +5,8 @@ import "math"
 const (
 	Decay           = -0.5
 	Factor          = 19.0 / 81.0
+	MinDifficulty   = 1.0
+	MaxDifficulty   = 10.0
 	MinStability    = 0.1
 	MinIntervalDays = 1.0
 )
@@ -45,7 +47,7 @@ func Retrievability(daysSinceReview float64, stability float64) float64 {
 
 func InitialDifficulty(rating Rating, weights [19]float64) float64 {
 	difficulty := weights[4] - weights[5]*(float64(rating)-3)
-	return clamp(difficulty, 1, 10)
+	return clamp(difficulty, MinDifficulty, MaxDifficulty)
 }
 
 func InitialStability(rating Rating, weights [19]float64) float64 {
@@ -55,7 +57,7 @@ func InitialStability(rating Rating, weights [19]float64) float64 {
 func UpdateDifficulty(difficulty float64, rating Rating, weights [19]float64) float64 {
 	baseline := InitialDifficulty(RatingGood, weights)
 	updated := weights[6]*baseline + (1-weights[6])*(difficulty-weights[5]*(float64(rating)-3))
-	return clamp(updated, 1, 10)
+	return clamp(updated, MinDifficulty, MaxDifficulty)
 }
 
 func StabilityAfterRecall(stability float64, difficulty float64, retrievability float64, rating Rating, weights [19]float64) float64 {
@@ -77,8 +79,42 @@ func StabilityAfterForgetting(stability float64, difficulty float64, retrievabil
 	return math.Max(next, MinStability)
 }
 
-func NextInterval(stability float64, desiredRetention float64) float64 {
-	interval := math.Round(stability / Factor * (math.Pow(desiredRetention, 1/Decay) - 1))
+func MeasureMastery(stability float64, referenceDays float64) float64 {
+	if referenceDays <= 0 {
+		referenceDays = DefaultConfig.SupportReferenceStabilityDays
+	}
+	if stability <= 0 {
+		return 0
+	}
+
+	return math.Min(stability/referenceDays, 1)
+}
+
+func HierarchicalSupport(stabilities []float64, referenceDays float64) float64 {
+	if len(stabilities) == 0 {
+		return 1
+	}
+
+	total := 0.0
+	for _, stability := range stabilities {
+		total += MeasureMastery(stability, referenceDays)
+	}
+
+	return clamp(total/float64(len(stabilities)), 0, 1)
+}
+
+func EffectiveDifficulty(baseDifficulty float64, hierarchicalSupport float64, penalty float64) float64 {
+	if penalty < 0 {
+		penalty = 0
+	}
+
+	return clamp(baseDifficulty+penalty*(1-clamp(hierarchicalSupport, 0, 1)), MinDifficulty, MaxDifficulty)
+}
+
+func NextInterval(stability float64, effectiveDifficulty float64, desiredRetention float64) float64 {
+	baseInterval := stability / Factor * (math.Pow(desiredRetention, 1/Decay) - 1)
+	difficultyFactor := (11 - clamp(effectiveDifficulty, MinDifficulty, MaxDifficulty)) / 10
+	interval := math.Round(baseInterval * difficultyFactor)
 	return math.Max(interval, MinIntervalDays)
 }
 
@@ -86,7 +122,7 @@ func MasteryLevel(stability float64) string {
 	switch {
 	case stability < 7:
 		return "new"
-	case stability < 21:
+	case stability < DefaultConfig.ReviewStabilityThresholdDays:
 		return "learning"
 	case stability < 90:
 		return "learned"

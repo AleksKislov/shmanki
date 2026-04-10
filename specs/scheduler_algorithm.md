@@ -19,13 +19,23 @@ The three core memory parameters per card per user:
 const (
     Decay  = -0.5
     Factor = 19.0 / 81.0 // ≈ 0.2346
-
-    // Stability threshold to unlock next step in an InfoObject
-    StepUnlockStabilityDays = 14.0
-
-    // Default desired retention
-    DesiredRetention = 0.9
 )
+
+type Config struct {
+    DesiredRetention               float64
+    StepUnlockStabilityDays        float64
+    ReviewStabilityThresholdDays   float64
+    SupportReferenceStabilityDays  float64
+    HierarchicalDifficultyPenalty  float64
+}
+
+var DefaultConfig = Config{
+    DesiredRetention:              0.90,
+    StepUnlockStabilityDays:       14.0,
+    ReviewStabilityThresholdDays:  21.0,
+    SupportReferenceStabilityDays: 21.0,
+    HierarchicalDifficultyPenalty: 2.0,
+}
 ```
 
 ---
@@ -94,8 +104,8 @@ type CardStatus string
 const (
     StatusLocked    CardStatus = "locked"     // step prerequisites not met
     StatusNew       CardStatus = "new"        // never reviewed
-    StatusLearning  CardStatus = "learning"   // S < 21 days
-    StatusReview    CardStatus = "review"     // S >= 21 days
+    StatusLearning  CardStatus = "learning"   // S < ReviewStabilityThresholdDays
+    StatusReview    CardStatus = "review"     // S >= ReviewStabilityThresholdDays
     StatusRelearning CardStatus = "relearning" // lapsed, being relearned
 )
 ```
@@ -210,17 +220,91 @@ func StabilityAfterForgetting(s, d, r float64, w [19]float64) float64 {
 
 ---
 
-## Next Interval Calculation
+## Hierarchical Support And Effective Difficulty
 
-The next interval is the number of days until R drops to DesiredRetention:
+For cards with prerequisites, the scheduler computes a support coefficient from the previous step.
+In the current step-based info-graph model, `Pred(c)` is approximated as all cards from step `N-1`.
+
+### Prerequisite Mastery
+
+```go
+func MeasureMastery(stability float64, referenceDays float64) float64 {
+    if stability <= 0 {
+        return 0
+    }
+    return math.Min(stability/referenceDays, 1)
+}
+```
+
+This matches:
 
 ```
-interval = S / Factor × (DesiredRetention^(1/Decay) - 1)
+M_p = min(S_p / S_ref, 1)
+S_ref = SupportReferenceStabilityDays = 21 days
+```
+
+### Hierarchical Support Coefficient
+
+Equal weights are used for all predecessor cards from the previous step:
+
+```
+H_c = average(M_p for p in Pred(c))
 ```
 
 ```go
-func NextInterval(s float64) float64 {
-    return math.Round(s / Factor * (math.Pow(DesiredRetention, 1/Decay) - 1))
+func HierarchicalSupport(stabilities []float64, referenceDays float64) float64 {
+    if len(stabilities) == 0 {
+        return 1
+    }
+
+    total := 0.0
+    for _, stability := range stabilities {
+        total += MeasureMastery(stability, referenceDays)
+    }
+
+    return clamp(total/float64(len(stabilities)), 0, 1)
+}
+```
+
+If a card has no prerequisites, `H_c = 1`.
+The current implementation uses `DefaultConfig.SupportReferenceStabilityDays` as the named constant for `S_ref`.
+
+### Effective Difficulty
+
+The stored `difficulty` field remains the card's base FSRS difficulty `D_base`.
+The scheduler derives effective difficulty only for the current scheduling decision:
+
+```
+D_eff = clamp(D_base + λ × (1 - H_c), 1.0, 10.0)
+λ = HierarchicalDifficultyPenalty = 2.0
+```
+
+```go
+func EffectiveDifficulty(baseDifficulty float64, hierarchicalSupport float64, penalty float64) float64 {
+    return clamp(baseDifficulty+penalty*(1-clamp(hierarchicalSupport, 0, 1)), 1.0, 10.0)
+}
+```
+
+`D_eff` is returned to the client for transparency/debugging, but it is not persisted in `card_states`.
+
+---
+
+## Next Interval Calculation
+
+The scheduler first computes the standard FSRS interval from stability and desired retention,
+then scales it by effective difficulty so weaker prerequisite support produces shorter intervals.
+
+```
+baseInterval = S / Factor × (DesiredRetention^(1/Decay) - 1)
+difficultyFactor = (11 - D_eff) / 10
+interval = round(baseInterval × difficultyFactor)
+```
+
+```go
+func NextInterval(s float64, effectiveDifficulty float64, desiredRetention float64) float64 {
+    baseInterval := s / Factor * (math.Pow(desiredRetention, 1/Decay) - 1)
+    difficultyFactor := (11 - clamp(effectiveDifficulty, 1.0, 10.0)) / 10
+    return math.Max(math.Round(baseInterval*difficultyFactor), 1)
 }
 ```
 
@@ -231,7 +315,7 @@ Minimum interval is 1 day.
 ## Full Review Cycle
 
 ```go
-func (sc *Scheduler) Schedule(state CardState, rating Rating, now time.Time) CardState {
+func (sc *Scheduler) Schedule(state CardState, rating Rating, now time.Time, hierarchicalSupport float64) CardState {
     w := sc.weights
     t := now.Sub(state.LastReview).Hours() / 24 // days since last review
 
@@ -257,10 +341,14 @@ func (sc *Scheduler) Schedule(state CardState, rating Rating, now time.Time) Car
         }
     }
 
+    effectiveDifficulty := EffectiveDifficulty(newD, hierarchicalSupport, DefaultConfig.HierarchicalDifficultyPenalty)
+
     state.Stability     = newS
     state.Difficulty    = newD
+    state.EffectiveDifficulty = effectiveDifficulty
+    state.HierarchicalSupport = hierarchicalSupport
     state.Retrievability = Retrievability(0, newS) // R right after review = ~1.0
-    state.IntervalDays  = math.Max(NextInterval(newS), 1)
+    state.IntervalDays  = NextInterval(newS, effectiveDifficulty, DefaultConfig.DesiredRetention)
     state.LastReview    = now
     state.DueDate       = now.Add(time.Duration(state.IntervalDays * 24) * time.Hour)
 
@@ -287,6 +375,9 @@ func ShouldUnlockStep(states []CardState, step int) bool {
 ```
 
 This is checked after every review submission.
+
+Before calling `Schedule`, the review service loads the previous step's `stability` values,
+computes `H_c`, and passes it into the pure scheduler.
 
 ---
 

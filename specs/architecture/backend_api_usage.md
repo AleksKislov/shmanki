@@ -377,6 +377,8 @@ Response:
       "cardId": "uuid",
       "stability": 0,
       "difficulty": 5,
+      "effectiveDifficulty": 5,
+      "hierarchicalSupport": 1,
       "retrievability": 0,
       "dueDate": "2026-03-27T12:00:00Z",
       "status": "new",
@@ -387,6 +389,9 @@ Response:
   }
 ]
 ```
+
+`difficulty` in the payload is stored base difficulty. `effectiveDifficulty` and `hierarchicalSupport`
+are derived by the backend for the current scheduling context.
 
 #### `POST /api/v1/review/submit`
 
@@ -420,13 +425,15 @@ Response:
 
 ```json
 {
-  "state": {
-    "cardId": "uuid",
-    "stability": 12.4,
-    "difficulty": 5.8,
-    "retrievability": 1,
-    "dueDate": "2026-03-28T12:00:00Z",
-    "status": "learning",
+    "state": {
+      "cardId": "uuid",
+      "stability": 12.4,
+      "difficulty": 5.8,
+      "effectiveDifficulty": 6.4,
+      "hierarchicalSupport": 0.7,
+      "retrievability": 1,
+      "dueDate": "2026-03-28T12:00:00Z",
+      "status": "learning",
     "reps": 1,
     "lapses": 0,
     "intervalDays": 1,

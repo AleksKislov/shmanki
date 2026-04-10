@@ -42,7 +42,7 @@ func main() {
 	defer dbPool.Close()
 
 	tokenManager := token.NewManager(cfg.JWTSecret, cfg.JWTTTLHours)
-	scheduler := fsrs.NewScheduler(fsrs.DefaultWeights, cfg.FSRSDesiredRetention, cfg.FSRSStepUnlockDays)
+	scheduler := fsrs.NewScheduler(fsrs.DefaultWeights, fsrs.DefaultConfig)
 
 	userRepo := user.NewRepository(dbPool)
 	userService := user.NewService(userRepo, tokenManager, cfg.DefaultLanguage)

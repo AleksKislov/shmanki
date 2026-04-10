@@ -9,16 +9,14 @@ import (
 )
 
 type Config struct {
-	Port                 string
-	Env                  string
-	DatabaseURL          string
-	JWTSecret            string
-	JWTTTLHours          int
-	AnthropicAPIKey      string
-	AnthropicModel       string
-	FSRSDesiredRetention float64
-	FSRSStepUnlockDays   float64
-	DefaultLanguage      string
+	Port            string
+	Env             string
+	DatabaseURL     string
+	JWTSecret       string
+	JWTTTLHours     int
+	AnthropicAPIKey string
+	AnthropicModel  string
+	DefaultLanguage string
 }
 
 func Load() (Config, error) {
@@ -45,18 +43,6 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("parse JWT_TTL_HOURS: %w", err)
 	}
 	cfg.JWTTTLHours = jwtTTLHours
-
-	desiredRetention, err := strconv.ParseFloat(getEnv("FSRS_DESIRED_RETENTION", "0.90"), 64)
-	if err != nil {
-		return Config{}, fmt.Errorf("parse FSRS_DESIRED_RETENTION: %w", err)
-	}
-	cfg.FSRSDesiredRetention = desiredRetention
-
-	stepUnlockDays, err := strconv.ParseFloat(getEnv("FSRS_STEP_UNLOCK_DAYS", "14"), 64)
-	if err != nil {
-		return Config{}, fmt.Errorf("parse FSRS_STEP_UNLOCK_DAYS: %w", err)
-	}
-	cfg.FSRSStepUnlockDays = stepUnlockDays
 
 	return cfg, nil
 }

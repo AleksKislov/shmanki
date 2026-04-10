@@ -166,6 +166,7 @@ Handler
     ▼
 Service (business logic)
     ├── orchestrate repositories
+    ├── compute hierarchical support from previous-step card states
     ├── call fsrs.Scheduler if needed
     ├── run DB transaction if multi-step write
     │
@@ -274,6 +275,8 @@ Response body:
     "cardId": "uuid",
     "stability": 12.4,
     "difficulty": 5.8,
+    "effectiveDifficulty": 6.4,
+    "hierarchicalSupport": 0.7,
     "retrievability": 1,
     "dueDate": "2026-03-24T12:00:00Z",
     "status": "learning",
@@ -284,6 +287,9 @@ Response body:
   "wasCorrect": true
 }
 ```
+
+`difficulty` remains the persisted base difficulty (`D_base`).
+`effectiveDifficulty` and `hierarchicalSupport` are derived per scheduling run and returned by the service layer.
 
 ### Stats
 
@@ -353,13 +359,11 @@ JWT_TTL_HOURS=168       # 7 days
 ANTHROPIC_API_KEY=sk-ant-...
 ANTHROPIC_MODEL=claude-sonnet-4-20250514
 
-# FSRS
-FSRS_DESIRED_RETENTION=0.90
-FSRS_STEP_UNLOCK_DAYS=14
-
 # I18N
 DEFAULT_LANGUAGE=en
 ```
+
+FSRS algorithm constants are defined in `backend/internal/fsrs/config.go`, not in environment variables.
 
 ---
 

@@ -38,16 +38,18 @@ type ReviewCard struct {
 }
 
 type CardStateView struct {
-	CardID         uuid.UUID  `json:"cardId"`
-	Stability      float64    `json:"stability"`
-	Difficulty     float64    `json:"difficulty"`
-	Retrievability float64    `json:"retrievability"`
-	DueDate        *time.Time `json:"dueDate"`
-	Status         string     `json:"status"`
-	Reps           int        `json:"reps"`
-	Lapses         int        `json:"lapses"`
-	IntervalDays   float64    `json:"intervalDays"`
-	LastReview     *time.Time `json:"lastReview,omitempty"`
+	CardID              uuid.UUID  `json:"cardId"`
+	Stability           float64    `json:"stability"`
+	Difficulty          float64    `json:"difficulty"`
+	EffectiveDifficulty float64    `json:"effectiveDifficulty"`
+	HierarchicalSupport float64    `json:"hierarchicalSupport"`
+	Retrievability      float64    `json:"retrievability"`
+	DueDate             *time.Time `json:"dueDate"`
+	Status              string     `json:"status"`
+	Reps                int        `json:"reps"`
+	Lapses              int        `json:"lapses"`
+	IntervalDays        float64    `json:"intervalDays"`
+	LastReview          *time.Time `json:"lastReview,omitempty"`
 }
 
 type ReviewResult struct {

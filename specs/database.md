@@ -157,7 +157,9 @@ CREATE TABLE card_states (
     -- 0 means card has never been reviewed.
 
     difficulty      FLOAT NOT NULL DEFAULT 5,
-    -- D: card difficulty for this user, range 1.0–10.0.
+    -- D_base: persisted base FSRS difficulty for this user, range 1.0–10.0.
+    -- Effective difficulty D_eff is derived at scheduling time from D_base and H_c,
+    -- so no separate column is required in the base schema.
 
     retrievability  FLOAT NOT NULL DEFAULT 0,
     -- R: recall probability at last_review moment (stored for quick stats queries).
@@ -177,8 +179,8 @@ CREATE TABLE card_states (
     status          VARCHAR(20) NOT NULL DEFAULT 'new',
     -- 'locked'      step prerequisites not yet met
     -- 'new'         available, never reviewed
-    -- 'learning'    S < 21 days
-    -- 'review'      S >= 21 days
+    -- 'learning'    S < ReviewStabilityThresholdDays (currently 21 days)
+    -- 'review'      S >= ReviewStabilityThresholdDays
     -- 'relearning'  answered Again after being in review
 
     -- Counters
@@ -213,6 +215,7 @@ CREATE TABLE review_logs (
     -- State before this review
     stability_before      FLOAT NOT NULL,
     difficulty_before     FLOAT NOT NULL,
+    -- Base difficulty before review.
     retrievability_before FLOAT NOT NULL,
     interval_before       FLOAT NOT NULL,
     status_before         VARCHAR(20) NOT NULL,
@@ -220,6 +223,7 @@ CREATE TABLE review_logs (
     -- State after this review
     stability_after       FLOAT NOT NULL,
     difficulty_after      FLOAT NOT NULL,
+    -- Base difficulty after review.
     interval_after        FLOAT NOT NULL,
     status_after          VARCHAR(20) NOT NULL,
 
@@ -320,6 +324,9 @@ ORDER BY cs.due_date ASC
 LIMIT $2;
 ```
 
+The response layer may additionally expose derived fields such as `effectiveDifficulty`
+and `hierarchicalSupport`, but those are calculated in the review service and are not read directly from SQL.
+
 ### Check if step N should be unlocked for a user
 
 ```sql
@@ -367,6 +374,23 @@ Run with:
 ```bash
 migrate -path migrations -database $DATABASE_URL up
 ```
+
+## Schema Decision For Hierarchical Support
+
+No schema change is required for the current algorithm revision.
+
+- `card_states.difficulty` already stores the persisted base difficulty `D_base`.
+- `H_c` is derived from predecessor cards' current `stability` values.
+- `D_eff` is a transient scheduling value derived from `D_base` and `H_c`.
+- Because both values are reproducible from current state, storing them in `card_states` would duplicate data and risk drift.
+
+Schema changes would only be justified if the product later needs one of these:
+
+- SQL-only analytics over historical `H_c` / `D_eff`
+- offline debugging without recomputing from historical predecessor states
+- model training that requires exact persisted derived features per review event
+
+If that becomes necessary, prefer adding optional columns to `review_logs` rather than mutating `card_states` semantics.
 
 ---
 

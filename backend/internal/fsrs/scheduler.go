@@ -3,50 +3,45 @@ package fsrs
 import "time"
 
 type CardState struct {
-	Stability      float64
-	Difficulty     float64
-	Retrievability float64
-	DueDate        *time.Time
-	LastReview     *time.Time
-	IntervalDays   float64
-	Status         CardStatus
-	Reps           int
-	Lapses         int
+	Stability           float64
+	Difficulty          float64
+	EffectiveDifficulty float64
+	HierarchicalSupport float64
+	Retrievability      float64
+	DueDate             *time.Time
+	LastReview          *time.Time
+	IntervalDays        float64
+	Status              CardStatus
+	Reps                int
+	Lapses              int
 }
 
 type Scheduler struct {
-	weights          [19]float64
-	desiredRetention float64
-	stepUnlockDays   float64
+	weights [19]float64
+	config  Config
 }
 
-func NewScheduler(weights [19]float64, desiredRetention float64, stepUnlockDays float64) *Scheduler {
-	if desiredRetention <= 0 || desiredRetention >= 1 {
-		desiredRetention = 0.9
-	}
-	if stepUnlockDays <= 0 {
-		stepUnlockDays = 14
-	}
-
+func NewScheduler(weights [19]float64, cfg Config) *Scheduler {
 	return &Scheduler{
-		weights:          weights,
-		desiredRetention: desiredRetention,
-		stepUnlockDays:   stepUnlockDays,
+		weights: weights,
+		config:  cfg.withDefaults(),
 	}
 }
 
-func (s *Scheduler) Schedule(state CardState, rating Rating, now time.Time) CardState {
+func (s *Scheduler) Schedule(state CardState, rating Rating, now time.Time, hierarchicalSupport float64) CardState {
+	state.HierarchicalSupport = clamp(hierarchicalSupport, 0, 1)
 	if state.Stability <= 0 || state.LastReview == nil || state.Status == StatusNew || state.Status == StatusLocked {
 		state.Stability = InitialStability(rating, s.weights)
 		state.Difficulty = InitialDifficulty(rating, s.weights)
+		state.EffectiveDifficulty = EffectiveDifficulty(state.Difficulty, state.HierarchicalSupport, s.config.HierarchicalDifficultyPenalty)
 		state.Retrievability = 1
-		state.IntervalDays = NextInterval(state.Stability, s.desiredRetention)
+		state.IntervalDays = NextInterval(state.Stability, state.EffectiveDifficulty, s.config.DesiredRetention)
 		state.LastReview = ptrTime(now)
 		dueDate := now.Add(time.Duration(state.IntervalDays*24) * time.Hour)
 		state.DueDate = &dueDate
 		if rating == RatingAgain {
 			state.Status = StatusRelearning
-		} else if state.Stability >= 21 {
+		} else if state.Stability >= s.config.ReviewStabilityThresholdDays {
 			state.Status = StatusReview
 			state.Reps++
 		} else {
@@ -71,7 +66,7 @@ func (s *Scheduler) Schedule(state CardState, rating Rating, now time.Time) Card
 		nextStability = StabilityAfterRecall(state.Stability, state.Difficulty, retrievability, rating, s.weights)
 		state.Difficulty = UpdateDifficulty(state.Difficulty, rating, s.weights)
 		state.Reps++
-		if nextStability >= 21 {
+		if nextStability >= s.config.ReviewStabilityThresholdDays {
 			state.Status = StatusReview
 		} else {
 			state.Status = StatusLearning
@@ -79,8 +74,9 @@ func (s *Scheduler) Schedule(state CardState, rating Rating, now time.Time) Card
 	}
 
 	state.Stability = nextStability
+	state.EffectiveDifficulty = EffectiveDifficulty(state.Difficulty, state.HierarchicalSupport, s.config.HierarchicalDifficultyPenalty)
 	state.Retrievability = Retrievability(0, nextStability)
-	state.IntervalDays = NextInterval(nextStability, s.desiredRetention)
+	state.IntervalDays = NextInterval(nextStability, state.EffectiveDifficulty, s.config.DesiredRetention)
 	state.LastReview = ptrTime(now)
 	dueDate := now.Add(time.Duration(state.IntervalDays*24) * time.Hour)
 	state.DueDate = &dueDate
@@ -90,7 +86,7 @@ func (s *Scheduler) Schedule(state CardState, rating Rating, now time.Time) Card
 
 func (s *Scheduler) ShouldUnlockStep(stabilities []float64) bool {
 	for _, stability := range stabilities {
-		if stability < s.stepUnlockDays {
+		if stability < s.config.StepUnlockStabilityDays {
 			return false
 		}
 	}
@@ -99,7 +95,19 @@ func (s *Scheduler) ShouldUnlockStep(stabilities []float64) bool {
 }
 
 func (s *Scheduler) StepUnlockDays() float64 {
-	return s.stepUnlockDays
+	return s.config.StepUnlockStabilityDays
+}
+
+func (s *Scheduler) HierarchicalPenalty() float64 {
+	return s.config.HierarchicalDifficultyPenalty
+}
+
+func (s *Scheduler) SupportReferenceDays() float64 {
+	return s.config.SupportReferenceStabilityDays
+}
+
+func (s *Scheduler) ReviewStabilityThresholdDays() float64 {
+	return s.config.ReviewStabilityThresholdDays
 }
 
 func ptrTime(value time.Time) *time.Time {

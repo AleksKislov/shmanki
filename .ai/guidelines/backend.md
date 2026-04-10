@@ -52,7 +52,7 @@ user, _ := repo.GetByID(ctx, id)
 // GOOD: define interface in the service that uses it
 
 type CardScheduler interface {
-    Schedule(ctx context.Context, state CardState, rating Rating) (CardState, error)
+    Schedule(state CardState, rating Rating, now time.Time, hierarchicalSupport float64) CardState
 }
 ```
 
@@ -115,6 +115,14 @@ type ReviewService struct {
 For review submissions, the handler request DTO should carry the full attempt metadata,
 not just the final answer tokens. Persist the metadata to `review_logs` and derive the
 final FSRS rating in the service layer.
+
+For scheduling, keep `card_states.difficulty` as persisted base difficulty (`D_base`).
+Compute hierarchical support `H_c` in the review service from the previous step's card states,
+pass `H_c` into the pure FSRS scheduler, and derive `effectiveDifficulty` (`D_eff`) there.
+Do not persist `H_c` or `D_eff` in `card_states` unless a later requirement explicitly needs historical snapshots.
+
+Keep FSRS algorithm thresholds and penalties in `backend/internal/fsrs/config.go` as named config fields.
+Do not scatter raw values like `0.90`, `14`, `21`, or `2.0` through scheduling code.
 
 ```go
 type ReviewRequest struct {

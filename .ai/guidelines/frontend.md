@@ -156,6 +156,8 @@ export interface CardState {
   cardId: string;
   stability: number;
   difficulty: number;
+  effectiveDifficulty: number;
+  hierarchicalSupport: number;
   retrievability: number;
   dueDate: string;
   status: CardStatus;

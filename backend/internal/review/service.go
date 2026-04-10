@@ -22,6 +22,7 @@ type store interface {
 	GetSessionCards(ctx context.Context, userID uuid.UUID, limit int) ([]ReviewCard, error)
 	Begin(ctx context.Context) (pgx.Tx, error)
 	GetStateForUpdate(ctx context.Context, tx pgx.Tx, userID uuid.UUID, cardID uuid.UUID) (*stateRecord, error)
+	GetPreviousStepStabilities(ctx context.Context, tx pgx.Tx, userID uuid.UUID, infoObjectID uuid.UUID, step int) ([]float64, error)
 	UpdateCardState(ctx context.Context, tx pgx.Tx, userID uuid.UUID, state stateRecord) error
 	InsertReviewLog(ctx context.Context, tx pgx.Tx, params reviewLogParams) error
 	ShouldUnlockStep(ctx context.Context, tx pgx.Tx, userID uuid.UUID, infoObjectID uuid.UUID, nextStep int, threshold float64) (bool, error)
@@ -69,9 +70,15 @@ func (s *Service) SubmitReview(ctx context.Context, userID uuid.UUID, req Review
 
 	wasCorrect := answersMatch(currentState.CorrectAnswers, req.AnsweredTokens)
 	rating := deriveRating(wasCorrect, req.WrongAttemptsCount, req.DistractorClicksCount)
+	now := nowUTC()
+
+	hierarchicalSupport, err := s.hierarchicalSupport(ctx, tx, userID, currentState.InfoObjectID, currentState.Step)
+	if err != nil {
+		return nil, err
+	}
 
 	before := toSchedulerState(*currentState)
-	after := s.scheduler.Schedule(before, rating, nowUTC())
+	after := s.scheduler.Schedule(before, rating, now, hierarchicalSupport)
 
 	updatedState := *currentState
 	updatedState.Stability = after.Stability
@@ -128,16 +135,18 @@ func (s *Service) SubmitReview(ctx context.Context, userID uuid.UUID, req Review
 
 	return &ReviewResult{
 		State: CardStateView{
-			CardID:         req.CardID,
-			Stability:      updatedState.Stability,
-			Difficulty:     updatedState.Difficulty,
-			Retrievability: updatedState.Retrievability,
-			DueDate:        updatedState.DueDate,
-			Status:         string(updatedState.Status),
-			Reps:           updatedState.Reps,
-			Lapses:         updatedState.Lapses,
-			IntervalDays:   updatedState.IntervalDays,
-			LastReview:     updatedState.LastReview,
+			CardID:              req.CardID,
+			Stability:           updatedState.Stability,
+			Difficulty:          updatedState.Difficulty,
+			Retrievability:      updatedState.Retrievability,
+			DueDate:             updatedState.DueDate,
+			Status:              string(updatedState.Status),
+			Reps:                updatedState.Reps,
+			Lapses:              updatedState.Lapses,
+			IntervalDays:        updatedState.IntervalDays,
+			LastReview:          updatedState.LastReview,
+			EffectiveDifficulty: after.EffectiveDifficulty,
+			HierarchicalSupport: after.HierarchicalSupport,
 		},
 		Rating:     rating,
 		WasCorrect: wasCorrect,
@@ -186,4 +195,17 @@ func toSchedulerState(state stateRecord) fsrs.CardState {
 		Reps:           state.Reps,
 		Lapses:         state.Lapses,
 	}
+}
+
+func (s *Service) hierarchicalSupport(ctx context.Context, tx pgx.Tx, userID uuid.UUID, infoObjectID uuid.UUID, step int) (float64, error) {
+	if step <= 0 {
+		return 1, nil
+	}
+
+	stabilities, err := s.store.GetPreviousStepStabilities(ctx, tx, userID, infoObjectID, step)
+	if err != nil {
+		return 0, err
+	}
+
+	return fsrs.HierarchicalSupport(stabilities, s.scheduler.SupportReferenceDays()), nil
 }
