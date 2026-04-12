@@ -60,7 +60,9 @@ func main() {
 	reviewService := review.NewService(reviewRepo, scheduler)
 	reviewHandler := review.NewHandler(reviewService)
 
-	generateService := generate.NewService(cfg.AnthropicAPIKey, cfg.AnthropicModel)
+	generateRepo := generate.NewRepository(dbPool)
+	generateClient := generate.NewClient(cfg.LLMAPIURL, cfg.LLMAPIKey, cfg.LLMModel, cfg.LLMProvider)
+	generateService := generate.NewService(generateRepo, generateClient, cfg.DefaultLanguage)
 	generateHandler := generate.NewHandler(generateService)
 
 	router := chi.NewRouter()
@@ -111,7 +113,10 @@ func main() {
 				r.Get("/card/{id}", reviewHandler.GetCardStats)
 			})
 
-			r.Post("/generate", generateHandler.Generate)
+			r.Route("/generate", func(r chi.Router) {
+				r.Post("/suggest", generateHandler.Suggest)
+				r.Post("/save", generateHandler.Save)
+			})
 		})
 	})
 

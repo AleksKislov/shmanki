@@ -136,6 +136,10 @@ type ReviewRequest struct {
 ```
 
 For deck and generation flows, carry language metadata explicitly in request/response DTOs.
+Generation integrations should be provider-agnostic: configure generic `LLM_API_URL`, `LLM_API_KEY`,
+`LLM_MODEL`, and optional `LLM_PROVIDER` fields instead of vendor-specific names.
+Treat generated info objects/cards as drafts first: the API should support suggesting content,
+user review on the client, and a separate save step that persists approved content to the normal study tables.
 
 ```go
 type CreateDeckRequest struct {

@@ -494,25 +494,108 @@ Response:
 
 ### Generation
 
-#### `POST /api/v1/generate`
+#### `POST /api/v1/generate/suggest`
 
-Current status: wired, but not implemented yet. Without real generation support, this endpoint returns a not-implemented style error.
+Ask the configured LLM provider to suggest draft info objects and cards.
 
 Request:
 
 ```json
 {
   "deckId": "uuid",
-  "prompt": "Generate beginner cards for goroutines"
+  "prompt": "Generate beginner study material about goroutines",
+  "discipline": "programming",
+  "contentType": "code_go"
 }
 ```
 
-Current response:
+Response:
 
 ```json
 {
-  "error": "generation endpoint is not configured yet",
-  "code": "INTERNAL_ERROR"
+  "generationId": "uuid",
+  "model": "gpt-4.1-mini",
+  "infoObjects": [
+    {
+      "title": "Launching a goroutine",
+      "content": "func worker() {\n    fmt.Println(\"working\")\n}\n\ngo worker()",
+      "discipline": "programming",
+      "contentType": "code_go",
+      "cards": [
+        {
+          "front": "Which expression starts the goroutine?",
+          "step": 0,
+          "correctAnswers": [["go", "worker()"]],
+          "distractors": ["defer", "func", "chan"],
+          "highlightLines": [5]
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### `POST /api/v1/generate/save`
+
+Persist user-reviewed generated content into the normal `info_objects` and `cards` tables.
+
+Request:
+
+```json
+{
+  "deckId": "uuid",
+  "prompt": "Generate beginner study material about goroutines",
+  "model": "gpt-4.1-mini",
+  "generationId": "uuid",
+  "infoObjects": [
+    {
+      "title": "Launching a goroutine",
+      "content": "func worker() {\n    fmt.Println(\"working\")\n}\n\ngo worker()",
+      "discipline": "programming",
+      "contentType": "code_go",
+      "cards": [
+        {
+          "front": "Which expression starts the goroutine?",
+          "step": 0,
+          "correctAnswers": [["go", "worker()"]],
+          "distractors": ["defer", "func", "chan"],
+          "highlightLines": [5]
+        }
+      ]
+    }
+  ]
+}
+```
+
+Response:
+
+```json
+{
+  "infoObjects": [
+    {
+      "id": "uuid",
+      "deckId": "uuid",
+      "title": "Launching a goroutine",
+      "content": "func worker() {\n    fmt.Println(\"working\")\n}\n\ngo worker()",
+      "discipline": "programming",
+      "contentType": "code_go",
+      "createdAt": "2026-03-27T12:00:00Z",
+      "updatedAt": "2026-03-27T12:00:00Z",
+      "cards": [
+        {
+          "id": "uuid",
+          "infoObjectId": "uuid",
+          "front": "Which expression starts the goroutine?",
+          "step": 0,
+          "correctAnswers": [["go", "worker()"]],
+          "distractors": ["defer", "func", "chan"],
+          "highlightLines": [5],
+          "createdAt": "2026-03-27T12:00:00Z",
+          "updatedAt": "2026-03-27T12:00:00Z"
+        }
+      ]
+    }
+  ]
 }
 ```
 

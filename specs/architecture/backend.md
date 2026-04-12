@@ -31,7 +31,7 @@ It also owns language metadata for users and decks so UI localization and genera
 | Password hashing | `bcrypt` (stdlib `golang.org/x/crypto`) |
 | Config           | `godotenv` + `os.Getenv`                |
 | UUID             | `google/uuid`                           |
-| LLM integration  | Anthropic API via HTTP client           |
+| LLM integration  | Provider-agnostic chat-completions HTTP client |
 | Testing          | stdlib `testing` + `testify`            |
 
 ---
@@ -300,9 +300,10 @@ Response body:
 
 ### Generation
 
-| Method | Path             | Description                        |
-| ------ | ---------------- | ---------------------------------- |
-| POST   | /api/v1/generate | Generate cards for a topic via LLM |
+| Method | Path                     | Description                                         |
+| ------ | ------------------------ | --------------------------------------------------- |
+| POST   | /api/v1/generate/suggest | Ask configured LLM provider to suggest study drafts |
+| POST   | /api/v1/generate/save    | Save user-approved generated info objects and cards |
 
 ### Language-aware request/response fields
 
@@ -356,8 +357,10 @@ JWT_SECRET=your-secret-key-min-32-chars
 JWT_TTL_HOURS=168       # 7 days
 
 # LLM
-ANTHROPIC_API_KEY=sk-ant-...
-ANTHROPIC_MODEL=claude-sonnet-4-20250514
+LLM_API_URL=https://api.openai.com/v1/chat/completions
+LLM_API_KEY=your-key
+LLM_MODEL=gpt-4.1-mini
+LLM_PROVIDER=openai-compatible
 
 # I18N
 DEFAULT_LANGUAGE=en

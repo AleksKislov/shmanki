@@ -14,8 +14,10 @@ type Config struct {
 	DatabaseURL     string
 	JWTSecret       string
 	JWTTTLHours     int
-	AnthropicAPIKey string
-	AnthropicModel  string
+	LLMAPIURL       string
+	LLMAPIKey       string
+	LLMModel        string
+	LLMProvider     string
 	DefaultLanguage string
 }
 
@@ -33,8 +35,10 @@ func Load() (Config, error) {
 		Env:             getEnv("ENV", "development"),
 		DatabaseURL:     getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/shmanki?sslmode=disable"),
 		JWTSecret:       getEnv("JWT_SECRET", "change-me-change-me-change-me-change-me"),
-		AnthropicAPIKey: os.Getenv("ANTHROPIC_API_KEY"),
-		AnthropicModel:  getEnv("ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
+		LLMAPIURL:       getEnv("LLM_API_URL", "https://api.openai.com/v1/chat/completions"),
+		LLMAPIKey:       os.Getenv("LLM_API_KEY"),
+		LLMModel:        getEnv("LLM_MODEL", "gpt-4.1-mini"),
+		LLMProvider:     getEnv("LLM_PROVIDER", "openai-compatible"),
 		DefaultLanguage: getEnv("DEFAULT_LANGUAGE", "en"),
 	}
 
