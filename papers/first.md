@@ -36,7 +36,7 @@ _Рисунок 1.1 — Кривая забывания при различны�
 
 Связь между извлекаемостью и стабильностью описывается формулой кривой забывания. В исходной формулировке Возняка данная зависимость записывается в экспоненциальной форме [7]:
 
-R(t) = e^(−k · t / S), &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(1.1)
+R(t) = e^{-kt/S}, (1.1)
 
 где t — количество дней, прошедших с момента последнего повторения, S — текущее значение стабильности, k — константа, определяемая из условия R(S) = 0,9.
 
@@ -84,15 +84,15 @@ _Рисунок 1.3 — Схема системы Лейтнера. Пять я�
 
 Межповторительные интервалы вычисляются по следующим формулам [8]:
 
-I(1) = 1 день,
-I(2) = 6 дней,
-I(n) = I(n − 1) × EF, при n > 2, &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(1.2)
+I(1) = 1 \text{ день},
+I(2) = 6 \text{ дней},
+I(n) = I(n - 1) \cdot EF, \text{ при } n > 2, (1.2)
 
 где I(n) — интервал перед n-м повторением, EF — текущее значение коэффициента легкости данной карточки.
 
 Обновление коэффициента легкости после каждого ответа производится по формуле:
 
-EF' = EF + (0,1 − (5 − q) × (0,08 + (5 − q) × 0,02)), &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(1.3)
+EF' = EF + \left(0.1 - (5 - q)\left(0.08 + (5 - q) \cdot 0.02\right)\right), (1.3)
 
 где q — оценка пользователя (от 0 до 5). При этом вводится ограничение EF ≥ 1,3, предотвращающее чрезмерное сокращение интервалов.
 
@@ -116,7 +116,7 @@ EF' = EF + (0,1 − (5 − q) × (0,08 + (5 − q) × 0,02)), &nbsp;&nbsp;&nbsp;
 
 Кривая забывания в SM-17 описывается формулой:
 
-R(t) = e^(−k · t / S), &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(1.4)
+R(t) = e^{-kt/S}, (1.4)
 
 где R(t) — извлекаемость в момент времени t (в днях) после последнего повторения, S — текущее значение стабильности, k — константа, не зависящая от стабильности и подобранная из условия R(S) = 0,9.
 
@@ -138,33 +138,33 @@ Free Spaced Repetition Scheduler (FSRS) представляет собой от
 
 Кривая забывания в FSRS описывается степенной функцией:
 
-R(t) = (1 + FACTOR × t / S)^DECAY, &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(1.5)
+R(t) = \left(1 + \frac{FACTOR \cdot t}{S}\right)^{DECAY}, (1.5)
 
 где FACTOR = 19/81 ≈ 0,2346 и DECAY = −0,5 — константы, подобранные из условия R(S) = 0,9 [5]. Выбор степенной, а не экспоненциальной формы кривой забывания обусловлен более точным соответствием эмпирическим данным о динамике забывания на больших временных интервалах.
 
 Корректность подбора констант можно проверить подстановкой t = S:
 
-R(S) = (1 + 0,2346 × S / S)^(−0,5) = (1,2346)^(−0,5) = 1 / √1,2346 ≈ 0,9. &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(1.6)
+R(S) = \left(1 + \frac{0.2346 \cdot S}{S}\right)^{-0.5} = (1.2346)^{-0.5} = \frac{1}{\sqrt{1.2346}} \approx 0.9. (1.6)
 
 Инициализация сложности D при первом ответе на карточку производится по формуле [5]:
 
-D₀ = w₄ − w₅ × (q − 3), &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(1.7)
+D_0 = w_4 - w_5 \cdot (q - 3), (1.7)
 
 где w₄ и w₅ — обученные весовые коэффициенты (примерные значения по умолчанию: w₄ ≈ 4,0, w₅ ≈ 0,72), q — оценка пользователя (от 1 до 4, где 1 — Again, 2 — Hard, 3 — Good, 4 — Easy). Таким образом, при первом ответе Good начальная сложность устанавливается равной приблизительно 4,0, при ответе Again — приблизительно 5,44, а при ответе Easy — приблизительно 3,28.
 
 Обновление сложности после каждого последующего повторения выполняется по формуле:
 
-D' = w₇ × D₀(3) + (1 − w₇) × (D − w₆ × (q − 3)), &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(1.8)
+D' = w_7 \cdot D_0(3) + (1 - w_7) \cdot (D - w_6 \cdot (q - 3)), (1.8)
 
 где w₆ — коэффициент влияния оценки на сложность (≈ 0,1), w₇ — коэффициент притяжения к среднему значению (≈ 0,1), D₀(3) — начальное значение сложности для оценки Good [5]. Наличие слагаемого w₇ × D₀(3) реализует механизм возврата к среднему (mean reversion), предотвращающий уход параметра D в экстремальные значения вследствие случайных единичных ответов.
 
 Пересчет стабильности после успешного ответа производится по формуле:
 
-S' = S × e^(w₁₇ × (11 − D) × S^w₁₈ × (e^(1 − R) − 1) + 1), &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(1.9)
+S' = S \cdot e^{w*{17} \cdot (11 - D) \cdot S^{w*{18}} \cdot (e^{1 - R} - 1) + 1}, (1.9)
 
 а после неверного ответа — по формуле:
 
-S' = w₁₁ × D^(−w₁₂) × ((S + 1)^w₁₃ − 1) × e^(w₁₄ × (1 − R)), &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(1.10)
+S' = w*{11} \cdot D^{-w*{12}} \cdot \left((S + 1)^{w*{13}} - 1\right) \cdot e^{w*{14} \cdot (1 - R)}, (1.10)
 
 где w₁₁, w₁₂, w₁₃, w₁₄, w₁₇, w₁₈ — весовые коэффициенты, полученные методами машинного обучения на основе данных миллионов повторений пользователей Anki [5].
 
