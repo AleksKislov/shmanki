@@ -1162,7 +1162,7 @@ _Рисунок 2.11 — Блок-схема основного алгоритм
 
 ### 2.8.4 Алгоритм пошагового разблокирования карточек
 
-После каждого успешного обновления `card_states` выполняется проверка условий разблокировки следующего шага карточек информационного объекта.
+Обработка ответа пользователя представляет собой единую транзакцию, объединяющую три последовательных действия: обновление параметров FSRS в `card_states`, запись события в `review_logs` и проверку условия разблокирования следующего шага. Объединение этих действий в одну транзакцию необходимо по следующей причине: проверка условия разблокирования опирается на обновлённые значения стабильности, поэтому `SELECT` должен видеть результат `UPDATE card_states`, выполненного в той же транзакции. Если какое-либо из трёх действий завершается ошибкой, транзакция откатывается целиком, исключая частично зафиксированное состояние — например, ситуацию, когда `card_states` уже обновлены и `review_logs` записаны, а разблокирование следующего шага не выполнено.
 
 ```plantuml
 @startuml activity_unlock_step
@@ -1172,21 +1172,29 @@ skinparam defaultFontSize 12
 skinparam shadowing false
 
 start
-:Входные данные:\nuserID: UUID\ninfoObjectID: UUID\ncompletedStep: int;
-:SELECT COUNT(*)\nFROM cards c\nJOIN card_states cs ON cs.card_id = c.id\nWHERE c.info_object_id = infoObjectID\nAND c.step = completedStep\nAND cs.user_id = userID\nAND cs.stability < 14;
+:Входные данные:\nuserID: UUID\ncardID: UUID\ninfoObjectID: UUID\ncompletedStep: int\nrating: Rating\nnow: time.Time;
 
-if (count == 0?) then (да)
-  :UPDATE card_states\nSET status = 'new'\nWHERE step = completedStep + 1\nAND status = 'locked';
+:BEGIN TRANSACTION;
+
+:UPDATE card_states\nSET stability, difficulty, retrievability,\ninterval_days, due_date, status, reps, lapses\nWHERE card_id = cardID AND user_id = userID;
+
+:INSERT INTO review_logs\n(card_id, user_id, stability_before/after,\ndifficulty_before/after, rating, was_correct, ...);
+
+:SELECT COUNT(*)\nFROM cards c JOIN card_states cs ON cs.card_id = c.id\nWHERE c.info_object_id = infoObjectID\nAND c.step = completedStep\nAND cs.user_id = userID\nAND cs.stability < 14;
+
+if (count == 0?\nВсе карточки шага N достигли S ≥ 14) then (да)
+  :UPDATE card_states\nSET status = 'new'\nWHERE card_id IN (\n  SELECT id FROM cards\n  WHERE info_object_id = infoObjectID\n  AND step = completedStep + 1\n)\nAND user_id = userID\nAND status = 'locked';
+  :COMMIT;
   stop
 else (нет)
-  :Завершить, ничего не делать;
+  :COMMIT;
   stop
 endif
 
 @enduml
 ```
 
-_Рисунок 2.12 — Блок-схема алгоритма пошагового разблокирования. Операции SELECT и UPDATE выполняются в рамках одной транзакции вместе с обновлением card_states по итогам повторения, что гарантирует целостность данных._
+_Рисунок 2.12 — Блок-схема полного транзакционного сценария обработки ответа, включающего разблокирование следующего шага. Все три операции — обновление `card_states`, запись `review_logs` и условный `UPDATE` статуса карточек следующего шага — выполняются в рамках единой транзакции. Это обеспечивает два свойства: во-первых, `SELECT` при проверке условия разблокирования видит уже обновлённое значение стабильности текущей карточки; во-вторых, при ошибке на любом шаге все изменения откатываются, исключая несогласованное состояние базы данных._
 
 ### 2.8.5 Оценка алгоритмической сложности
 
