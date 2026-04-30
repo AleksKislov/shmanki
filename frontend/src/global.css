@@ -14,3 +14,19 @@ body {
 body {
   margin: 0;
 }
+
+/* Shiki code block */
+.code-block pre {
+  padding: 1rem;
+  overflow-x: auto;
+  border-radius: 0;
+}
+
+.code-block [data-highlighted] {
+  background-color: rgba(255, 215, 0, 0.12);
+  border-left: 3px solid #ffd700;
+  display: block;
+  width: 100%;
+  padding-left: 0.75rem;
+  margin-left: -0.75rem;
+}

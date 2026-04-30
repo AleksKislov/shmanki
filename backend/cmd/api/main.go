@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 
 	"shmanki/internal/card"
 	"shmanki/internal/deck"
@@ -66,6 +67,13 @@ func main() {
 	generateHandler := generate.NewHandler(generateService)
 
 	router := chi.NewRouter()
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		AllowCredentials: false,
+		MaxAge:           300,
+	}))
 	router.Use(platformmiddleware.Recovery)
 	router.Use(platformmiddleware.Logger)
 
