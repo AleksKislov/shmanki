@@ -1,6 +1,7 @@
 import type {
   AuthResponse,
   Card,
+  CardType,
   Deck,
   DeckDetail,
   DeckStats,
@@ -92,6 +93,7 @@ export const api = {
     create: (
       objectId: string,
       front: string,
+      cardType: CardType,
       step: number,
       correctAnswers: string[][],
       distractors: string[],
@@ -99,11 +101,12 @@ export const api = {
     ) =>
       request<Card>(`/api/v1/objects/${objectId}/cards`, {
         method: "POST",
-        body: JSON.stringify({ front, step, correctAnswers, distractors, highlightLines }),
+        body: JSON.stringify({ front, cardType, step, correctAnswers, distractors, highlightLines }),
       }),
     update: (
       id: string,
       front: string,
+      cardType: CardType,
       step: number,
       correctAnswers: string[][],
       distractors: string[],
@@ -111,7 +114,7 @@ export const api = {
     ) =>
       request<Card>(`/api/v1/cards/${id}`, {
         method: "PUT",
-        body: JSON.stringify({ front, step, correctAnswers, distractors, highlightLines }),
+        body: JSON.stringify({ front, cardType, step, correctAnswers, distractors, highlightLines }),
       }),
     delete: (id: string) => request<{ status: string }>(`/api/v1/cards/${id}`, { method: "DELETE" }),
   },

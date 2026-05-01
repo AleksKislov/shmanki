@@ -108,22 +108,23 @@ func (r *Repository) CreateCard(ctx context.Context, tx pgx.Tx, userID uuid.UUID
 	}
 
 	const insertCardQuery = `
-INSERT INTO cards (info_object_id, front, step, correct_answers, distractors, highlight_lines)
-SELECT io.id, $3, $4, $5, $6, $7
+INSERT INTO cards (info_object_id, front, card_type, step, correct_answers, distractors, highlight_lines)
+SELECT io.id, $3, $4, $5, $6, $7, $8
 FROM info_objects io
 JOIN decks d ON d.id = io.deck_id
 WHERE io.id = $1 AND d.user_id = $2
-RETURNING id, info_object_id, front, step, correct_answers, distractors, highlight_lines, created_at, updated_at
+RETURNING id, info_object_id, front, card_type, step, correct_answers, distractors, highlight_lines, created_at, updated_at
 `
 
 	var item SavedCard
 	var rawAnswers []byte
 	var rawDistractors []byte
 	var rawHighlights []byte
-	if err := tx.QueryRow(ctx, insertCardQuery, infoObjectID, userID, card.Front, card.Step, answersJSON, distractorsJSON, highlightJSON).Scan(
+	if err := tx.QueryRow(ctx, insertCardQuery, infoObjectID, userID, card.Front, card.CardType, card.Step, answersJSON, distractorsJSON, highlightJSON).Scan(
 		&item.ID,
 		&item.InfoObjectID,
 		&item.Front,
+		&item.CardType,
 		&item.Step,
 		&rawAnswers,
 		&rawDistractors,

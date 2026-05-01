@@ -21,6 +21,7 @@ type Card struct {
 	ID             uuid.UUID  `json:"id"`
 	InfoObjectID   uuid.UUID  `json:"infoObjectId"`
 	Front          string     `json:"front"`
+	CardType       CardType   `json:"cardType"`
 	Step           int        `json:"step"`
 	CorrectAnswers [][]string `json:"correctAnswers"`
 	Distractors    []string   `json:"distractors"`
@@ -50,6 +51,7 @@ type UpdateInfoObjectRequest struct {
 
 type CreateCardRequest struct {
 	Front          string     `json:"front"`
+	CardType       CardType   `json:"cardType"`
 	Step           int        `json:"step"`
 	CorrectAnswers [][]string `json:"correctAnswers"`
 	Distractors    []string   `json:"distractors"`
@@ -58,6 +60,7 @@ type CreateCardRequest struct {
 
 type UpdateCardRequest struct {
 	Front          string     `json:"front"`
+	CardType       CardType   `json:"cardType"`
 	Step           int        `json:"step"`
 	CorrectAnswers [][]string `json:"correctAnswers"`
 	Distractors    []string   `json:"distractors"`

@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation, type DocumentHead } from "@builder.io/q
 import { CodeBlock } from "~/components/code-block";
 import { api } from "~/lib/api";
 import { getLocale } from "~/lib/auth";
+import { getCardTypeLabel, isBlockInteraction } from "~/lib/card-types";
 import { t, getLocaleLabel, LANGUAGE_OPTIONS } from "~/lib/i18n";
 import type { DeckDetail, DeckStats, GeneratedCard, InfoObject, LanguageCode } from "~/lib/types";
 
@@ -384,6 +385,15 @@ export default component$(() => {
                 <p class="text-sm font-semibold mb-2">
                   {generateForm.result.infoObjects.length} objects generated
                 </p>
+                <div class="mb-4 rounded-box border border-base-300 bg-base-100/70 p-3 text-sm text-base-content/70">
+                  <p class="font-semibold mb-2">{t(locale.value, "deck.generate.preview.progression")}</p>
+                  <div class="flex flex-col gap-1">
+                    <p>{t(locale.value, "deck.generate.progression.step0")}</p>
+                    <p>{t(locale.value, "deck.generate.progression.step1")}</p>
+                    <p>{t(locale.value, "deck.generate.progression.step2")}</p>
+                    <p>{t(locale.value, "deck.generate.progression.step3")}</p>
+                  </div>
+                </div>
                 {generateForm.result.infoObjects.map((obj, i) => (
                   <div key={i} class="mb-4 rounded-box border border-base-300 bg-base-100 p-4 last:mb-0">
                     <div class="flex flex-wrap items-start justify-between gap-2">
@@ -606,12 +616,40 @@ const GeneratedCardPreview = component$<GeneratedCardPreviewProps>(({ card, loca
     <div class="rounded-box border border-base-300 bg-base-200/60 p-3">
       <div class="flex items-start justify-between gap-3">
         <p class="font-medium leading-snug">{card.front}</p>
-        <span class="badge badge-ghost badge-sm shrink-0">
-          {t(locale, "object.card.step")} {card.step}
-        </span>
+        <div class="flex flex-wrap gap-2 justify-end">
+          <span class="badge badge-outline badge-sm shrink-0">
+            {getCardTypeLabel(locale, card.cardType)}
+          </span>
+          <span class="badge badge-ghost badge-sm shrink-0">
+            {t(locale, "object.card.step")} {card.step}
+          </span>
+        </div>
       </div>
 
+      {isBlockInteraction(card.cardType) && (
+        <div class="mt-3 flex flex-col gap-2">
+          <PreviewField
+            label={t(locale, "deck.generate.preview.cardType")}
+            value={getCardTypeLabel(locale, card.cardType)}
+          />
+          <div class="flex flex-col gap-2">
+            {(card.correctAnswers[0] ?? []).map((unit, index) => (
+              <pre
+                key={index}
+                class="rounded-box border border-base-300 bg-base-100/80 p-2 text-xs whitespace-pre-wrap break-words"
+              >
+                {unit}
+              </pre>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div class="mt-3 grid gap-3 sm:grid-cols-3">
+        <PreviewField
+          label={t(locale, "deck.generate.preview.cardType")}
+          value={getCardTypeLabel(locale, card.cardType)}
+        />
         <PreviewField
           label={t(locale, "deck.generate.preview.correctAnswers")}
           value={formatAnswerGroups(card.correctAnswers)}

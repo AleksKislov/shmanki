@@ -11,8 +11,7 @@ interface Props {
 
 export const TokenAnswer = component$<Props>(
   ({ correctAnswers, distractors, cardId, locale, onSubmit$ }) => {
-    // Shuffle once — use a stable sort seed per render
-    const allTokens = [...correctAnswers[0], ...distractors].sort(() => Math.random() - 0.5);
+    const allTokens = [...(correctAnswers[0] ?? []), ...distractors].sort(() => Math.random() - 0.5);
 
     const clicked = useSignal<string[]>([]);
     const failed = useSignal(false);

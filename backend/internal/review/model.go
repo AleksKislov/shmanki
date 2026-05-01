@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
+	cardpkg "shmanki/internal/card"
 	"shmanki/internal/fsrs"
 )
 
@@ -26,6 +27,7 @@ type ReviewRequest struct {
 type ReviewCard struct {
 	CardID         uuid.UUID     `json:"cardId"`
 	Front          string        `json:"front"`
+	CardType       cardpkg.CardType `json:"cardType"`
 	CorrectAnswers [][]string    `json:"correctAnswers"`
 	Distractors    []string      `json:"distractors"`
 	HighlightLines []int         `json:"highlightLines"`

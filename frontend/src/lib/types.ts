@@ -3,6 +3,14 @@ export type Rating = 1 | 2 | 3 | 4;
 export type LanguageCode = "en" | "ru" | "es" | "de" | "fr" | "ja" | "zh-CN";
 export type ContentType = "text" | "code_go" | "code_python" | "code_js" | "code_ts" | "code_rust";
 export type MasteryLevel = "new" | "learning" | "learned" | "mastered" | "expert";
+export type CardType =
+  | "concept"
+  | "signature"
+  | "trace"
+  | "line_order"
+  | "block_order"
+  | "choose_snippet"
+  | "fix_bug";
 
 export type Messages = Record<string, string>;
 
@@ -52,6 +60,7 @@ export interface Card {
   id: string;
   infoObjectId: string;
   front: string;
+  cardType: CardType;
   step: number;
   correctAnswers: string[][];
   distractors: string[];
@@ -82,6 +91,7 @@ export interface CardState {
 export interface ReviewCard {
   cardId: string;
   front: string;
+  cardType: CardType;
   correctAnswers: string[][];
   distractors: string[];
   highlightLines: number[];
@@ -137,6 +147,7 @@ export interface GenerateSuggestRequest {
 
 export interface GeneratedCard {
   front: string;
+  cardType: CardType;
   step: number;
   correctAnswers: string[][];
   distractors: string[];

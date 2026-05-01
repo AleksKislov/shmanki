@@ -93,6 +93,7 @@ User
               ├── content_type: string   (text | code_go | code_python | ...)
               ├── language: inherited    (inherits from Deck.language_code)
               └── Card (a question about the info object)
+                    ├── card_type: string       (concept | signature | trace | line_order | block_order | choose_snippet | fix_bug)
                     ├── step: int              (unlock order, 0 = always available)
                     ├── correct_answers: JSONB ([[token, token, ...], ...])
                     ├── distractors: JSONB     ([token, token, ...])
@@ -133,8 +134,8 @@ Step unlock: all cards at step N need S >= 14 days → step N+1 unlocks
 
 ## Answer Mechanic
 
-The user sees a shuffled pool of `correct_answers[0]` tokens + `distractors`.
-They click tokens one by one — order matters.
+The user sees a shuffled pool of `correct_answers[0]` answer units plus `distractors`.
+They build the answer in order. For simple cards the units are tokens or short phrases. For reconstruction cards the units can be full code lines or larger code blocks.
 Frontend tracks the full attempt history for the card, including:
 
 - final `answered_tokens`
@@ -146,8 +147,21 @@ Frontend tracks the full attempt history for the card, including:
 Backend checks whether the final sequence matches any entry in `correct_answers`
 and derives the FSRS rating from correctness plus the attempt metadata.
 
-The answer mechanic is language-agnostic. Token matching uses stored card content and
+The answer mechanic is language-agnostic. Matching uses stored card content and
 does not apply language-specific grammar or morphology rules yet.
+
+---
+
+## Code Learning Progression
+
+For code-heavy info objects, generation and review should follow this progression:
+
+1. Step 0: `concept` and `signature` cards for purpose, methods, parameter types, and return types.
+2. Step 1: `trace` cards for control flow, invariants, and the role of important lines.
+3. Step 2: `line_order` cards for reconstructing one method line-by-line.
+4. Step 3+: `block_order`, `choose_snippet`, and `fix_bug` cards for larger reconstruction and discrimination tasks.
+
+This progression is preferred over pure fact-recall when the source material is an algorithm, data structure, or non-trivial code implementation.
 
 ---
 

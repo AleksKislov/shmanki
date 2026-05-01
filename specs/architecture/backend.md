@@ -236,6 +236,23 @@ userID := middleware.UserIDFromContext(r.Context())
 | PUT    | /api/v1/cards/:id               | Update card                |
 | DELETE | /api/v1/cards/:id               | Delete card                |
 
+Cards support typed interactions through `cardType`:
+
+- `concept`: purpose and high-level meaning
+- `signature`: method names, parameters, and return types
+- `trace`: execution flow, invariants, and the role of key lines
+- `line_order`: reconstruct a method from ordered lines
+- `block_order`: reconstruct larger code blocks
+- `choose_snippet`: pick the correct implementation among close alternatives
+- `fix_bug`: identify or reconstruct the correct buggy fragment replacement
+
+Recommended code-learning progression:
+
+1. Step 0: `concept` and `signature`
+2. Step 1: `trace`
+3. Step 2: `line_order`
+4. Step 3+: `block_order`, `choose_snippet`, `fix_bug`
+
 ### Review
 
 | Method | Path                   | Description                                             |
@@ -290,6 +307,8 @@ Response body:
 
 `difficulty` remains the persisted base difficulty (`D_base`).
 `effectiveDifficulty` and `hierarchicalSupport` are derived per scheduling run and returned by the service layer.
+
+For typed reconstruction cards, `answeredTokens` still carries the final ordered answer units. Those units may be short tokens, full code lines, or larger code blocks depending on `cardType`.
 
 ### Stats
 

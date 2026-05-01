@@ -247,13 +247,15 @@ This is the most complex UI flow in the app.
 2. Store cards in useStore({ queue: ReviewCard[], current: 0 })
         ↓
 3. Show CardReview component for queue[current]:
-   ├── CodeBlock: full info object content with highlight_lines for this card's step
-   ├── Card front: the question text
-   └── TokenAnswer: shuffled pool of correct tokens + distractors
-        ↓
-4. User clicks tokens in order
-        ↓
-5. TokenAnswer checks sequence client-side and records interaction metadata
+    ├── CodeBlock: full info object content with highlight_lines for this card's step
+    ├── Card front: the question text
+    └── Typed answer component selected by cardType
+        ├── TokenAnswer for concept / signature / trace
+        └── BlockOrderAnswer for line_order / block_order / choose_snippet / fix_bug
+         ↓
+4. User arranges answer units in order
+         ↓
+5. The selected answer component checks sequence client-side and records interaction metadata
    ├── final answered tokens
    ├── wrong attempts count
    ├── distractor clicks count
@@ -277,9 +279,8 @@ routes/review/index.tsx
         ├── CodeBlock                ← info object content + highlighted lines
         │     (highlight_lines from current card)
         ├── <h2> card.front </h2>    ← the question
-        ├── TokenAnswer              ← token click mechanic
-        │     ├── token pool (correct + distractors, shuffled)
-        │     └── answer-so-far display
+        ├── TokenAnswer              ← concept/signature/trace cards
+        ├── BlockOrderAnswer         ← line/block ordering and snippet cards
         └── SessionProgress          ← X of N cards done
 ```
 
@@ -304,6 +305,28 @@ interface ReviewSubmission {
   wrongAttemptsCount: number;
   distractorClicksCount: number;
   incorrectTokensClicked: string[];
+}
+
+interface ReviewCard {
+  cardId: string;
+  front: string;
+  cardType:
+    | "concept"
+    | "signature"
+    | "trace"
+    | "line_order"
+    | "block_order"
+    | "choose_snippet"
+    | "fix_bug";
+  correctAnswers: string[][];
+  distractors: string[];
+  highlightLines: number[];
+  step: number;
+  content: string;
+  contentType: ContentType;
+  languageCode: LanguageCode;
+  infoObjectId: string;
+  state: CardState;
 }
 
 interface CardState {

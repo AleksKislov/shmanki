@@ -84,6 +84,7 @@ func (r *Repository) GetSessionCards(ctx context.Context, userID uuid.UUID, limi
 SELECT
     c.id,
     c.front,
+    c.card_type,
     c.correct_answers,
     c.distractors,
     c.highlight_lines,
@@ -480,6 +481,7 @@ func scanReviewCard(rows pgx.Rows) (ReviewCard, error) {
 	if err := rows.Scan(
 		&item.CardID,
 		&item.Front,
+		&item.CardType,
 		&rawAnswers,
 		&rawDistractors,
 		&rawHighlight,

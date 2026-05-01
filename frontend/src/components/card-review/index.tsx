@@ -1,9 +1,12 @@
 import { $, component$ } from "@builder.io/qwik";
 import type { ReviewCard, ReviewResult, ReviewSubmission } from "~/lib/types";
 import { CodeBlock } from "~/components/code-block";
+import { BlockOrderAnswer } from "~/components/block-order-answer";
 import { TokenAnswer } from "~/components/token-answer";
 import { MasteryBadge } from "~/components/mastery-badge";
 import { ProgressBar } from "~/components/progress-bar";
+import { isBlockInteraction } from "~/lib/card-types";
+import { t } from "~/lib/i18n";
 
 interface Props {
   card: ReviewCard;
@@ -19,6 +22,8 @@ export const CardReview = component$<Props>(({ card, index, total, locale, onAns
     const result = await api.review.submit(submission);
     onAnswer$(result);
   });
+
+  const useBlockInteraction = isBlockInteraction(card.cardType);
 
   return (
     <div class="flex flex-col gap-5">
@@ -47,16 +52,38 @@ export const CardReview = component$<Props>(({ card, index, total, locale, onAns
       </div>
 
       {/* Question */}
-      <h2 class="text-xl font-semibold">{card.front}</h2>
+      <div class="flex flex-col gap-2">
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <span class="badge badge-outline">{t(locale, `cardType.${card.cardType}`)}</span>
+          <span class="badge badge-ghost">
+            {t(locale, "object.card.step")} {card.step}
+          </span>
+        </div>
+        <h2 class="text-xl font-semibold">{card.front}</h2>
+        <p class="text-sm text-base-content/60">
+          {useBlockInteraction
+            ? t(locale, "review.answer.instructions.blocks")
+            : t(locale, "review.answer.instructions.tokens")}
+        </p>
+      </div>
 
-      {/* Token answer */}
-      <TokenAnswer
-        correctAnswers={card.correctAnswers}
-        distractors={card.distractors}
-        cardId={card.cardId}
-        locale={locale}
-        onSubmit$={handleSubmit$}
-      />
+      {useBlockInteraction ? (
+        <BlockOrderAnswer
+          correctAnswers={card.correctAnswers}
+          distractors={card.distractors}
+          cardId={card.cardId}
+          locale={locale}
+          onSubmit$={handleSubmit$}
+        />
+      ) : (
+        <TokenAnswer
+          correctAnswers={card.correctAnswers}
+          distractors={card.distractors}
+          cardId={card.cardId}
+          locale={locale}
+          onSubmit$={handleSubmit$}
+        />
+      )}
     </div>
   );
 });

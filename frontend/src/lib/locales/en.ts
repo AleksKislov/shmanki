@@ -111,15 +111,22 @@ export const en: Messages = {
   "deck.generate.loading": "Generating…",
   "deck.generate.preview.content": "Content",
   "deck.generate.preview.cards": "Generated cards",
+  "deck.generate.preview.cardType": "Card type",
   "deck.generate.preview.correctAnswers": "Correct answers",
   "deck.generate.preview.distractors": "Distractors",
   "deck.generate.preview.highlightLines": "Highlight lines",
+  "deck.generate.preview.progression": "Progression",
+  "deck.generate.progression.step0": "Step 0: concept and signatures",
+  "deck.generate.progression.step1": "Step 1: trace and key lines",
+  "deck.generate.progression.step2": "Step 2: line ordering",
+  "deck.generate.progression.step3": "Step 3+: blocks, snippets, bug fixes",
 
   // Info object detail
   "object.back": "Back to deck",
   "object.cards": "Cards",
   "object.addCard": "Add card",
   "object.form.front": "Question",
+  "object.form.cardType": "Card Type",
   "object.form.step": "Step",
   "object.form.correctAnswers": "Correct answer tokens (comma-separated)",
   "object.form.distractors": "Distractor tokens (comma-separated)",
@@ -128,6 +135,7 @@ export const en: Messages = {
   "object.form.cancel": "Cancel",
   "object.empty": "No cards yet.",
   "object.card.step": "Step",
+  "object.card.type": "Type",
   "object.card.delete": "Delete",
   "object.card.status": "Status",
   "object.edit": "Edit",
@@ -148,6 +156,17 @@ export const en: Messages = {
   "review.submit.error": "Failed to submit answer",
   "review.answer.tryAgain": "Incorrect — try again",
   "review.answer.clear": "Clear",
+  "review.answer.instructions.tokens": "Pick the answer units in the correct order.",
+  "review.answer.instructions.blocks": "Arrange the code lines or code blocks in the correct order.",
+
+  // Card types
+  "cardType.concept": "Concept",
+  "cardType.signature": "Signature",
+  "cardType.trace": "Trace",
+  "cardType.line_order": "Line order",
+  "cardType.block_order": "Block order",
+  "cardType.choose_snippet": "Choose snippet",
+  "cardType.fix_bug": "Fix bug",
 
   // Mastery
   "mastery.new": "New",

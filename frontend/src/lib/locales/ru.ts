@@ -111,15 +111,22 @@ export const ru: Messages = {
   "deck.generate.loading": "Генерация…",
   "deck.generate.preview.content": "Содержимое",
   "deck.generate.preview.cards": "Сгенерированные карточки",
+  "deck.generate.preview.cardType": "Тип карточки",
   "deck.generate.preview.correctAnswers": "Правильные ответы",
   "deck.generate.preview.distractors": "Дистракторы",
   "deck.generate.preview.highlightLines": "Строки подсветки",
+  "deck.generate.preview.progression": "Прогрессия",
+  "deck.generate.progression.step0": "Шаг 0: концепция и сигнатуры",
+  "deck.generate.progression.step1": "Шаг 1: трассировка и важные строки",
+  "deck.generate.progression.step2": "Шаг 2: порядок строк",
+  "deck.generate.progression.step3": "Шаг 3+: блоки, сниппеты, исправление ошибок",
 
   // Info object detail
   "object.back": "Назад к колоде",
   "object.cards": "Карточки",
   "object.addCard": "Добавить карточку",
   "object.form.front": "Вопрос",
+  "object.form.cardType": "Тип карточки",
   "object.form.step": "Шаг",
   "object.form.correctAnswers": "Токены правильного ответа (через запятую)",
   "object.form.distractors": "Токены-дистракторы (через запятую)",
@@ -128,6 +135,7 @@ export const ru: Messages = {
   "object.form.cancel": "Отмена",
   "object.empty": "Карточек пока нет.",
   "object.card.step": "Шаг",
+  "object.card.type": "Тип",
   "object.card.delete": "Удалить",
   "object.card.status": "Статус",
   "object.edit": "Редактировать",
@@ -148,6 +156,17 @@ export const ru: Messages = {
   "review.submit.error": "Не удалось отправить ответ",
   "review.answer.tryAgain": "Неверно — попробуйте ещё раз",
   "review.answer.clear": "Сбросить",
+  "review.answer.instructions.tokens": "Выберите элементы ответа в правильном порядке.",
+  "review.answer.instructions.blocks": "Расположите строки или блоки кода в правильном порядке.",
+
+  // Card types
+  "cardType.concept": "Концепция",
+  "cardType.signature": "Сигнатура",
+  "cardType.trace": "Трассировка",
+  "cardType.line_order": "Порядок строк",
+  "cardType.block_order": "Порядок блоков",
+  "cardType.choose_snippet": "Выбор сниппета",
+  "cardType.fix_bug": "Исправление ошибки",
 
   // Mastery
   "mastery.new": "Новая",

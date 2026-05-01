@@ -12,7 +12,7 @@ var (
 	ErrInfoObjectNotFound = errors.New("info object not found")
 	ErrCardNotFound       = errors.New("card not found")
 	ErrInvalidInfoObject  = errors.New("info object title is required")
-	ErrInvalidCard        = errors.New("card front and correct answers are required")
+	ErrInvalidCard        = errors.New("card front, valid type, and correct answers are required")
 )
 
 type store interface {
@@ -75,14 +75,20 @@ func (s *Service) DeleteInfoObject(ctx context.Context, userID uuid.UUID, object
 }
 
 func (s *Service) CreateCard(ctx context.Context, userID uuid.UUID, objectID uuid.UUID, req CreateCardRequest) (*Card, error) {
-	if strings.TrimSpace(req.Front) == "" || len(req.CorrectAnswers) == 0 {
+	if req.CardType == "" {
+		req.CardType = DefaultCardType()
+	}
+	if strings.TrimSpace(req.Front) == "" || !req.CardType.Valid() || len(req.CorrectAnswers) == 0 {
 		return nil, ErrInvalidCard
 	}
 	return s.store.CreateCard(ctx, userID, objectID, req)
 }
 
 func (s *Service) UpdateCard(ctx context.Context, userID uuid.UUID, cardID uuid.UUID, req UpdateCardRequest) (*Card, error) {
-	if strings.TrimSpace(req.Front) == "" || len(req.CorrectAnswers) == 0 {
+	if req.CardType == "" {
+		req.CardType = DefaultCardType()
+	}
+	if strings.TrimSpace(req.Front) == "" || !req.CardType.Valid() || len(req.CorrectAnswers) == 0 {
 		return nil, ErrInvalidCard
 	}
 	return s.store.UpdateCard(ctx, userID, cardID, req)

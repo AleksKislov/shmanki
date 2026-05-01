@@ -147,15 +147,32 @@ func generationSystemPrompt() string {
 	return strings.TrimSpace(`You generate study content for a spaced repetition system.
 Return only valid JSON with the shape {"infoObjects": [...] }.
 Each infoObject must contain: title, content, discipline, contentType, cards.
-Each card must contain: front, step, correctAnswers, distractors, highlightLines.
+Each card must contain: front, cardType, step, correctAnswers, distractors, highlightLines.
+Supported cardType values:
+- concept
+- signature
+- trace
+- line_order
+- block_order
+- choose_snippet
+- fix_bug
 Rules:
 - Create concise, technically accurate learning material.
 - Group cards under coherent info objects.
 - Use integer steps starting from 0.
-- correctAnswers must be an array of token arrays.
+- For code content, follow this progression:
+  - Step 0: concept or signature cards about purpose, methods, signatures, parameter types, and return types.
+  - Step 1: trace cards about control flow, invariants, and what key lines do.
+  - Step 2: line_order cards for reconstructing a particular method from individual lines.
+  - Step 3+: block_order, choose_snippet, or fix_bug cards for reconstructing larger code blocks or selecting the correct implementation.
+  - Every non-trivial code infoObject must include at least one step 0 foundational card, one step 1 trace card, one step 2 line_order card, and one step 3+ reconstruction card.
+- correctAnswers must be an array of ordered answer-unit arrays.
+- For concept, signature, and trace cards, answer units may be short tokens or short phrases.
+- For line_order, block_order, choose_snippet, and fix_bug cards, answer units must be full code lines or full code blocks as strings.
 - distractors must be a flat array of strings.
-- Each distractor must be a single token string, not an array.
+- Distractors for reconstruction cards must be plausible code lines or code blocks.
 - highlightLines must reference existing 1-indexed lines inside content.
+- If the content is code, contentType must match the actual language of the code. Do not use "text" for TypeScript, Go, Python, JavaScript, or Rust code.
 - Do not include explanations outside JSON.`)
 }
 

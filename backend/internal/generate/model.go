@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	cardpkg "shmanki/internal/card"
 )
 
 type SuggestRequest struct {
@@ -31,6 +33,7 @@ type SuggestedObject struct {
 
 type SuggestedCard struct {
 	Front          string     `json:"front"`
+	CardType       cardpkg.CardType `json:"cardType"`
 	Step           int        `json:"step"`
 	CorrectAnswers [][]string `json:"correctAnswers"`
 	Distractors    []string   `json:"distractors"`
@@ -63,6 +66,7 @@ type SavedCard struct {
 	ID             uuid.UUID  `json:"id"`
 	InfoObjectID   uuid.UUID  `json:"infoObjectId"`
 	Front          string     `json:"front"`
+	CardType       cardpkg.CardType `json:"cardType"`
 	Step           int        `json:"step"`
 	CorrectAnswers [][]string `json:"correctAnswers"`
 	Distractors    []string   `json:"distractors"`

@@ -99,6 +99,15 @@ Step 0 cards are always available. Step N cards unlock
 only when all step N-1 cards have stability >= 14 days.
 Cards inherit language from their parent deck.
 
+For code-oriented info objects, cards should follow this progression:
+
+- Step 0: `concept` and `signature` cards for purpose, method list, parameter types, and return types.
+- Step 1: `trace` cards for control flow, invariants, and the meaning of key lines.
+- Step 2: `line_order` cards for reconstructing a method from individual lines in the correct order.
+- Step 3+: `block_order`, `choose_snippet`, and `fix_bug` cards for larger reconstruction or discrimination tasks.
+
+All card types still use the shared ordered-answer model. For simple cards the answer units are short tokens or phrases. For reconstruction cards the answer units are whole code lines or code blocks.
+
 ```sql
 CREATE TABLE cards (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -108,21 +117,28 @@ CREATE TABLE cards (
     -- The question shown to the user.
     -- Example: "Реализация метода AddToTail"
 
+    card_type       VARCHAR(32) NOT NULL DEFAULT 'concept',
+    -- Interaction type and intended learning behavior.
+    -- Values:
+    -- 'concept' | 'signature' | 'trace' | 'line_order' |
+    -- 'block_order' | 'choose_snippet' | 'fix_bug'
+
     step            INT NOT NULL DEFAULT 0,
     -- Unlock order within the info object.
     -- Step 0: always available.
     -- Step N: unlocks when all step N-1 cards have S >= 14 days.
 
     correct_answers JSONB NOT NULL DEFAULT '[]',
-    -- Array of valid answer token sequences.
+    -- Array of valid answer-unit sequences.
     -- Each sequence is an ordered array of strings.
-    -- The user must click tokens in the exact order of one sequence.
+    -- The user must place answer units in the exact order of one sequence.
     -- Example: [["go", "myFunc()"], ["go", "myFunc(arg)"]]
-    -- Currently UI enforces single correct answer; multiple kept for flexibility.
+    -- For reconstruction cards, units may be full code lines or larger code blocks.
 
     distractors     JSONB NOT NULL DEFAULT '[]',
-    -- Array of incorrect token strings shown alongside correct tokens.
+    -- Array of incorrect answer-unit strings shown alongside correct answers.
     -- Example: ["defer", "func myFunc()", "goroutine", "chan struct{}"]
+    -- For reconstruction cards, these may be wrong code lines or wrong code blocks.
 
     highlight_lines JSONB NOT NULL DEFAULT '[]',
     -- Line numbers (1-indexed) of info_object.content to highlight
@@ -136,6 +152,7 @@ CREATE TABLE cards (
 
 CREATE INDEX idx_cards_info_object_id ON cards(info_object_id);
 CREATE INDEX idx_cards_step ON cards(info_object_id, step);
+CREATE INDEX idx_cards_card_type ON cards(card_type);
 ```
 
 ---

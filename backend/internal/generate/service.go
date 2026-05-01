@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	cardpkg "shmanki/internal/card"
 	"shmanki/internal/platform/language"
 )
 
@@ -162,14 +163,49 @@ func validateSuggestedObjects(items []SuggestedObject) error {
 		if len(object.Cards) == 0 {
 			return fmt.Errorf("%w: each info object must contain at least one card", ErrInvalidSuggestion)
 		}
+
+		hasFoundationalCard := false
+		hasTraceCard := false
+		hasLineOrderCard := false
+		hasReconstructionCard := false
 		for _, card := range object.Cards {
-			if strings.TrimSpace(card.Front) == "" || len(card.CorrectAnswers) == 0 {
+			if strings.TrimSpace(card.Front) == "" || len(card.CorrectAnswers) == 0 || !card.CardType.Valid() {
 				return fmt.Errorf("%w: card front and correct answers are required", ErrInvalidSuggestion)
 			}
 			for _, answer := range card.CorrectAnswers {
 				if len(answer) == 0 {
 					return fmt.Errorf("%w: correct answers cannot contain empty token sequences", ErrInvalidSuggestion)
 				}
+			}
+			for _, line := range card.HighlightLines {
+				if line <= 0 || line > len(strings.Split(object.Content, "\n")) {
+					return fmt.Errorf("%w: highlight lines must point to existing content lines", ErrInvalidSuggestion)
+				}
+			}
+
+			switch card.CardType {
+			case cardpkg.CardTypeConcept, cardpkg.CardTypeSignature:
+				if card.Step == 0 {
+					hasFoundationalCard = true
+				}
+			case cardpkg.CardTypeTrace:
+				if card.Step >= 1 {
+					hasTraceCard = true
+				}
+			case cardpkg.CardTypeLineOrder:
+				if card.Step >= 2 {
+					hasLineOrderCard = true
+				}
+			case cardpkg.CardTypeBlockOrder, cardpkg.CardTypeChooseSnippet, cardpkg.CardTypeFixBug:
+				if card.Step >= 3 {
+					hasReconstructionCard = true
+				}
+			}
+		}
+
+		if strings.HasPrefix(object.ContentType, "code_") {
+			if !hasFoundationalCard || !hasTraceCard || !hasLineOrderCard || !hasReconstructionCard {
+				return fmt.Errorf("%w: code info objects must follow the progression with foundational, trace, line-order, and reconstruction cards", ErrInvalidSuggestion)
 			}
 		}
 	}

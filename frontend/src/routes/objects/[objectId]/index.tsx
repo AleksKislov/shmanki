@@ -3,10 +3,9 @@ import { Link, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { api } from "~/lib/api";
 import { getLocale } from "~/lib/auth";
 import { t } from "~/lib/i18n";
-import { getMasteryLevel } from "~/lib/fsrs";
-import type { Card, InfoObjectDetail, LanguageCode } from "~/lib/types";
-import { MasteryBadge } from "~/components/mastery-badge";
+import type { Card, CardType, InfoObjectDetail, LanguageCode } from "~/lib/types";
 import { CodeBlock } from "~/components/code-block";
+import { getCardTypeLabel, isBlockInteraction } from "~/lib/card-types";
 
 export default component$(() => {
   const loc = useLocation();
@@ -18,6 +17,7 @@ export default component$(() => {
 
   const cardForm = useStore({
     front: "",
+    cardType: "concept" as CardType,
     step: 0,
     correctAnswersRaw: "",
     distractorsRaw: "",
@@ -53,6 +53,7 @@ export default component$(() => {
       const card = await api.cards.create(
         loc.params["objectId"],
         cardForm.front,
+        cardForm.cardType,
         cardForm.step,
         correctAnswers,
         distractors,
@@ -63,6 +64,7 @@ export default component$(() => {
       }
       showCardForm.value = false;
       cardForm.front = "";
+      cardForm.cardType = "concept";
       cardForm.correctAnswersRaw = "";
       cardForm.distractorsRaw = "";
       cardForm.highlightLinesRaw = "";
@@ -181,6 +183,30 @@ export default component$(() => {
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="form-control">
                 <div class="label">
+                  <span class="label-text">{t(locale.value, "object.form.cardType")}</span>
+                </div>
+                <select
+                  class="select select-bordered"
+                  value={cardForm.cardType}
+                  onChange$={(_, el) => (cardForm.cardType = el.value as CardType)}
+                >
+                  {[
+                    "concept",
+                    "signature",
+                    "trace",
+                    "line_order",
+                    "block_order",
+                    "choose_snippet",
+                    "fix_bug",
+                  ].map((cardType) => (
+                    <option key={cardType} value={cardType}>
+                      {getCardTypeLabel(locale.value, cardType as CardType)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label class="form-control">
+                <div class="label">
                   <span class="label-text">{t(locale.value, "object.form.step")}</span>
                 </div>
                 <input
@@ -286,10 +312,25 @@ export const CardRow = component$<CardRowProps>(({ card, locale, onDelete$ }) =>
             <p class="font-medium leading-snug">{card.front}</p>
             <div class="flex flex-wrap gap-2 text-sm text-base-content/60">
               <span>
+                {t(locale, "object.card.type")}: {getCardTypeLabel(locale, card.cardType)}
+              </span>
+              <span>
                 {t(locale, "object.card.step")} {card.step}
               </span>
               <span>→ {card.correctAnswers[0]?.join(" ")}</span>
             </div>
+            {isBlockInteraction(card.cardType) && (
+              <div class="mt-2 flex flex-col gap-2">
+                {card.correctAnswers[0]?.map((unit, index) => (
+                  <pre
+                    key={index}
+                    class="rounded-box border border-base-300 bg-base-200/60 p-2 text-xs whitespace-pre-wrap break-words"
+                  >
+                    {unit}
+                  </pre>
+                ))}
+              </div>
+            )}
             {card.distractors.length > 0 && (
               <div class="flex flex-wrap gap-1 mt-1">
                 {card.distractors.map((d) => (
