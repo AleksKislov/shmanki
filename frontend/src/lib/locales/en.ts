@@ -109,6 +109,11 @@ export const en: Messages = {
   "deck.generate.save": "Save all",
   "deck.generate.cancel": "Cancel",
   "deck.generate.loading": "Generating…",
+  "deck.generate.preview.content": "Content",
+  "deck.generate.preview.cards": "Generated cards",
+  "deck.generate.preview.correctAnswers": "Correct answers",
+  "deck.generate.preview.distractors": "Distractors",
+  "deck.generate.preview.highlightLines": "Highlight lines",
 
   // Info object detail
   "object.back": "Back to deck",

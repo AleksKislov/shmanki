@@ -109,6 +109,11 @@ export const ru: Messages = {
   "deck.generate.save": "Сохранить всё",
   "deck.generate.cancel": "Отмена",
   "deck.generate.loading": "Генерация…",
+  "deck.generate.preview.content": "Содержимое",
+  "deck.generate.preview.cards": "Сгенерированные карточки",
+  "deck.generate.preview.correctAnswers": "Правильные ответы",
+  "deck.generate.preview.distractors": "Дистракторы",
+  "deck.generate.preview.highlightLines": "Строки подсветки",
 
   // Info object detail
   "object.back": "Назад к колоде",

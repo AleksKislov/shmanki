@@ -18,6 +18,7 @@ type Config struct {
 	LLMAPIKey       string
 	LLMModel        string
 	LLMProvider     string
+	LLMTimeoutSeconds int
 	DefaultLanguage string
 }
 
@@ -31,15 +32,15 @@ func Load() (Config, error) {
 	}
 
 	cfg := Config{
-		Port:            getEnv("PORT", "8080"),
-		Env:             getEnv("ENV", "development"),
-		DatabaseURL:     getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/shmanki?sslmode=disable"),
-		JWTSecret:       getEnv("JWT_SECRET", "change-me-change-me-change-me-change-me"),
-		LLMAPIURL:       getEnv("LLM_API_URL", "https://api.openai.com/v1/chat/completions"),
-		LLMAPIKey:       os.Getenv("LLM_API_KEY"),
-		LLMModel:        getEnv("LLM_MODEL", "gpt-4.1-mini"),
-		LLMProvider:     getEnv("LLM_PROVIDER", "openai-compatible"),
-		DefaultLanguage: getEnv("DEFAULT_LANGUAGE", "en"),
+		Port:              getEnv("PORT", "8080"),
+		Env:               getEnv("ENV", "development"),
+		DatabaseURL:       getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/shmanki?sslmode=disable"),
+		JWTSecret:         getEnv("JWT_SECRET", "change-me-change-me-change-me-change-me"),
+		LLMAPIURL:         getEnv("LLM_API_URL", "https://api.openai.com/v1/chat/completions"),
+		LLMAPIKey:         os.Getenv("LLM_API_KEY"),
+		LLMModel:          getEnv("LLM_MODEL", "gpt-4.1-mini"),
+		LLMProvider:       getEnv("LLM_PROVIDER", "openai-compatible"),
+		DefaultLanguage:   getEnv("DEFAULT_LANGUAGE", "en"),
 	}
 
 	jwtTTLHours, err := strconv.Atoi(getEnv("JWT_TTL_HOURS", "168"))
@@ -47,6 +48,12 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("parse JWT_TTL_HOURS: %w", err)
 	}
 	cfg.JWTTTLHours = jwtTTLHours
+
+	llmTimeoutSeconds, err := strconv.Atoi(getEnv("LLM_TIMEOUT_SECONDS", "30"))
+	if err != nil {
+		return Config{}, fmt.Errorf("parse LLM_TIMEOUT_SECONDS: %w", err)
+	}
+	cfg.LLMTimeoutSeconds = llmTimeoutSeconds
 
 	return cfg, nil
 }

@@ -1,9 +1,10 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, useNavigate, useLocation, type DocumentHead } from "@builder.io/qwik-city";
+import { CodeBlock } from "~/components/code-block";
 import { api } from "~/lib/api";
 import { getLocale } from "~/lib/auth";
 import { t, getLocaleLabel, LANGUAGE_OPTIONS } from "~/lib/i18n";
-import type { DeckDetail, DeckStats, InfoObject, LanguageCode } from "~/lib/types";
+import type { DeckDetail, DeckStats, GeneratedCard, InfoObject, LanguageCode } from "~/lib/types";
 
 export default component$(() => {
   const loc = useLocation();
@@ -384,9 +385,37 @@ export default component$(() => {
                   {generateForm.result.infoObjects.length} objects generated
                 </p>
                 {generateForm.result.infoObjects.map((obj, i) => (
-                  <div key={i} class="mb-2">
-                    <p class="font-medium text-sm">{obj.title}</p>
-                    <p class="text-xs text-base-content/60">{obj.cards.length} cards</p>
+                  <div key={i} class="mb-4 rounded-box border border-base-300 bg-base-100 p-4 last:mb-0">
+                    <div class="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p class="font-medium">{obj.title}</p>
+                        <p class="text-xs text-base-content/60">{obj.cards.length} cards</p>
+                      </div>
+                      <div class="flex flex-wrap gap-2 text-xs">
+                        <span class="badge badge-outline">{obj.discipline}</span>
+                        <span class="badge badge-outline">{obj.contentType}</span>
+                      </div>
+                    </div>
+
+                    <div class="mt-4 flex flex-col gap-4">
+                      <div class="flex flex-col gap-2">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                          {t(locale.value, "deck.generate.preview.content")}
+                        </p>
+                        <div class="overflow-hidden rounded-box border border-base-300 bg-base-300/40">
+                          <CodeBlock code={obj.content} contentType={obj.contentType} highlightLines={[]} />
+                        </div>
+                      </div>
+
+                      <div class="flex flex-col gap-3">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                          {t(locale.value, "deck.generate.preview.cards")}
+                        </p>
+                        {obj.cards.map((card, cardIndex) => (
+                          <GeneratedCardPreview key={cardIndex} card={card} locale={locale.value} />
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -566,6 +595,61 @@ export default component$(() => {
     </main>
   );
 });
+
+interface GeneratedCardPreviewProps {
+  card: GeneratedCard;
+  locale: LanguageCode;
+}
+
+const GeneratedCardPreview = component$<GeneratedCardPreviewProps>(({ card, locale }) => {
+  return (
+    <div class="rounded-box border border-base-300 bg-base-200/60 p-3">
+      <div class="flex items-start justify-between gap-3">
+        <p class="font-medium leading-snug">{card.front}</p>
+        <span class="badge badge-ghost badge-sm shrink-0">
+          {t(locale, "object.card.step")} {card.step}
+        </span>
+      </div>
+
+      <div class="mt-3 grid gap-3 sm:grid-cols-3">
+        <PreviewField
+          label={t(locale, "deck.generate.preview.correctAnswers")}
+          value={formatAnswerGroups(card.correctAnswers)}
+        />
+        <PreviewField
+          label={t(locale, "deck.generate.preview.distractors")}
+          value={card.distractors.length > 0 ? card.distractors.join(", ") : "-"}
+        />
+        <PreviewField
+          label={t(locale, "deck.generate.preview.highlightLines")}
+          value={card.highlightLines.length > 0 ? card.highlightLines.join(", ") : "-"}
+        />
+      </div>
+    </div>
+  );
+});
+
+interface PreviewFieldProps {
+  label: string;
+  value: string;
+}
+
+const PreviewField = component$<PreviewFieldProps>(({ label, value }) => {
+  return (
+    <div class="flex flex-col gap-1 min-w-0">
+      <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">{label}</p>
+      <p class="text-sm whitespace-pre-wrap break-words">{value}</p>
+    </div>
+  );
+});
+
+function formatAnswerGroups(answerGroups: GeneratedCard["correctAnswers"]) {
+  if (answerGroups.length === 0) {
+    return "-";
+  }
+
+  return answerGroups.map((group) => group.join(" ")).join("\n");
+}
 
 export const head: DocumentHead = {
   title: "Deck — Shmanki",

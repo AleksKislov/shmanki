@@ -1,17 +1,13 @@
 meta {
-  name: Generate Cards
+  name: Suggest Cards
   type: http
   seq: 1
 }
 
 post {
-  url: {{baseUrl}}/api/v1/generate
+  url: {{baseUrl}}/api/v1/generate/suggest
   body: json
   auth: bearer
-}
-
-auth:bearer {
-  token: {{token}}
 }
 
 headers {
@@ -19,9 +15,13 @@ headers {
   Accept: application/json
 }
 
+auth:bearer {
+  token: {{token}}
+}
+
 body:json {
   {
     "deckId": "{{deckId}}",
-    "prompt": "Generate beginner cards for goroutines"
+    "prompt": "linked list in typescript"
   }
 }

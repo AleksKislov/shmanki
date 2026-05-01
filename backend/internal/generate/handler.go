@@ -2,6 +2,7 @@ package generate
 
 import (
 	"errors"
+	"log"
 	"net/http"
 
 	platformmiddleware "shmanki/internal/platform/middleware"
@@ -61,6 +62,7 @@ func handleError(w http.ResponseWriter, err error) {
 	case errors.Is(err, ErrDeckNotFound):
 		response.WriteError(w, http.StatusNotFound, err.Error(), "NOT_FOUND")
 	default:
+		log.Printf("[generate] internal error: %v", err)
 		response.WriteError(w, http.StatusInternalServerError, "internal server error", "INTERNAL_ERROR")
 	}
 }

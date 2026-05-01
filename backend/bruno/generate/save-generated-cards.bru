@@ -1,0 +1,45 @@
+meta {
+  name: Save Generated Cards
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/generate/save
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+  Accept: application/json
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "deckId": "{{deckId}}",
+    "prompt": "linked list in typescript",
+    "model": "manual",
+    "infoObjects": [
+      {
+        "title": "Launching a goroutine",
+        "content": "func worker() {\n  fmt.Println(\"working\")\n}\n\ngo worker()",
+        "discipline": "programming",
+        "contentType": "code_go",
+        "cards": [
+          {
+            "front": "Which expression starts the goroutine?",
+            "step": 0,
+            "correctAnswers": [["go", "worker()"]],
+            "distractors": ["defer", "func", "chan"],
+            "highlightLines": [5]
+          }
+        ]
+      }
+    ]
+  }
+}

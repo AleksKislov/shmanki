@@ -62,7 +62,7 @@ func main() {
 	reviewHandler := review.NewHandler(reviewService)
 
 	generateRepo := generate.NewRepository(dbPool)
-	generateClient := generate.NewClient(cfg.LLMAPIURL, cfg.LLMAPIKey, cfg.LLMModel, cfg.LLMProvider)
+	generateClient := generate.NewClient(cfg.LLMAPIURL, cfg.LLMAPIKey, cfg.LLMModel, cfg.LLMProvider, cfg.LLMTimeoutSeconds)
 	generateService := generate.NewService(generateRepo, generateClient, cfg.DefaultLanguage)
 	generateHandler := generate.NewHandler(generateService)
 
