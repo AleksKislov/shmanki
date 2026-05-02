@@ -104,6 +104,57 @@ func (s *Service) Suggest(ctx context.Context, userID uuid.UUID, req SuggestRequ
 	}, nil
 }
 
+func (s *Service) Edit(ctx context.Context, userID uuid.UUID, req EditRequest) (*SuggestResponse, error) {
+	if req.DeckID == uuid.Nil || strings.TrimSpace(req.Prompt) == "" || len(req.InfoObjects) == 0 {
+		return nil, ErrInvalidRequest
+	}
+	if s.client == nil {
+		return nil, ErrGenerationUnavailable
+	}
+	if err := validateSuggestedObjects(req.InfoObjects); err != nil {
+		return nil, err
+	}
+
+	tx, err := s.store.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	languageCode, err := s.store.GetDeckLanguage(ctx, tx, userID, req.DeckID)
+	if err != nil {
+		return nil, err
+	}
+	languageCode, err = language.Normalize(languageCode, s.defaultLanguage)
+	if err != nil {
+		return nil, fmt.Errorf("normalize deck language: %w", err)
+	}
+
+	result, err := s.client.Complete(ctx, llmCompletionRequest{
+		Prompt:        strings.TrimSpace(req.Prompt),
+		LanguageCode:  languageCode,
+		Discipline:    strings.TrimSpace(req.Discipline),
+		ContentType:   strings.TrimSpace(req.ContentType),
+		ExistingDraft: req.InfoObjects,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := validateSuggestedObjects(result.Objects); err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit generation edit tx: %w", err)
+	}
+
+	return &SuggestResponse{
+		GenerationID: req.GenerationID,
+		Model:        result.Model,
+		InfoObjects:  result.Objects,
+	}, nil
+}
+
 func (s *Service) Save(ctx context.Context, userID uuid.UUID, req SaveRequest) (*SaveResponse, error) {
 	if req.DeckID == uuid.Nil || len(req.InfoObjects) == 0 || strings.TrimSpace(req.Prompt) == "" {
 		return nil, ErrInvalidRequest

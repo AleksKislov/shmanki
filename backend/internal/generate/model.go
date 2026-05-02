@@ -15,6 +15,15 @@ type SuggestRequest struct {
 	ContentType string    `json:"contentType,omitempty"`
 }
 
+type EditRequest struct {
+	DeckID       uuid.UUID         `json:"deckId"`
+	Prompt       string            `json:"prompt"`
+	InfoObjects  []SuggestedObject `json:"infoObjects"`
+	GenerationID *uuid.UUID        `json:"generationId,omitempty"`
+	Discipline   string            `json:"discipline,omitempty"`
+	ContentType  string            `json:"contentType,omitempty"`
+}
+
 type SaveRequest struct {
 	DeckID       uuid.UUID         `json:"deckId"`
 	Prompt       string            `json:"prompt"`
@@ -88,10 +97,11 @@ type generationLog struct {
 }
 
 type llmCompletionRequest struct {
-	Prompt       string
-	LanguageCode string
-	Discipline   string
-	ContentType  string
+	Prompt        string
+	LanguageCode  string
+	Discipline    string
+	ContentType   string
+	ExistingDraft []SuggestedObject
 }
 
 type llmCompletionResult struct {

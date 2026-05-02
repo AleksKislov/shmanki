@@ -106,6 +106,8 @@ export const en: Messages = {
   "deck.generate": "Generate with AI",
   "deck.generate.prompt": "Describe what to generate",
   "deck.generate.submit": "Generate",
+  "deck.generate.edit": "Apply AI edit",
+  "deck.generate.editPrompt": "Refine this draft",
   "deck.generate.save": "Save all",
   "deck.generate.cancel": "Cancel",
   "deck.generate.loading": "Generating…",

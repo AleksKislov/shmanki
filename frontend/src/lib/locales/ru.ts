@@ -106,6 +106,8 @@ export const ru: Messages = {
   "deck.generate": "Сгенерировать с ИИ",
   "deck.generate.prompt": "Опишите, что нужно сгенерировать",
   "deck.generate.submit": "Сгенерировать",
+  "deck.generate.edit": "Применить ИИ-редактирование",
+  "deck.generate.editPrompt": "Уточнить этот черновик",
   "deck.generate.save": "Сохранить всё",
   "deck.generate.cancel": "Отмена",
   "deck.generate.loading": "Генерация…",

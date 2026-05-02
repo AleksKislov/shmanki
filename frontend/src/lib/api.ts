@@ -6,6 +6,7 @@ import type {
   DeckDetail,
   DeckStats,
   GenerateSaveRequest,
+  GenerateEditRequest,
   GenerateSuggestRequest,
   GenerateSuggestResponse,
   InfoObject,
@@ -130,6 +131,11 @@ export const api = {
   generate: {
     suggest: (input: GenerateSuggestRequest) =>
       request<GenerateSuggestResponse>("/api/v1/generate/suggest", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    edit: (input: GenerateEditRequest) =>
+      request<GenerateSuggestResponse>("/api/v1/generate/edit", {
         method: "POST",
         body: JSON.stringify(input),
       }),

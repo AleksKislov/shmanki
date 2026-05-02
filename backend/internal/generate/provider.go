@@ -179,6 +179,22 @@ func generationUserPrompt(req llmCompletionRequest) string {
 		contentType = "infer from the user prompt and generated content"
 	}
 
+	if len(req.ExistingDraft) > 0 {
+		draftJSON, err := json.Marshal(req.ExistingDraft)
+		if err != nil {
+			return fmt.Sprintf("languageCode: %s\ndiscipline: %s\ncontentType: %s\neditInstruction: %s", req.LanguageCode, discipline, contentType, req.Prompt)
+		}
+
+		return fmt.Sprintf(
+			"languageCode: %s\ndiscipline: %s\ncontentType: %s\neditInstruction: %s\nexistingDraft: %s\nApply the edit instruction to the existing draft. Preserve good unchanged material when possible, but return the full updated draft.",
+			req.LanguageCode,
+			discipline,
+			contentType,
+			req.Prompt,
+			string(draftJSON),
+		)
+	}
+
 	return fmt.Sprintf("languageCode: %s\ndiscipline: %s\ncontentType: %s\nuserPrompt: %s", req.LanguageCode, discipline, contentType, req.Prompt)
 }
 

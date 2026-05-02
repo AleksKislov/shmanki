@@ -37,6 +37,7 @@ export default component$(() => {
 
   const generateForm = useStore({
     prompt: "",
+    editPrompt: "",
     submitting: false,
     error: null as string | null,
     result: null as import("~/lib/types").GenerateSuggestResponse | null,
@@ -169,6 +170,27 @@ export default component$(() => {
       showGenerateForm.value = false;
       generateForm.result = null;
       generateForm.prompt = "";
+      generateForm.editPrompt = "";
+    } catch (e) {
+      generateForm.error = e instanceof Error ? e.message : t(locale.value, "common.error");
+    } finally {
+      generateForm.submitting = false;
+    }
+  });
+
+  const handleEditGenerated$ = $(async () => {
+    if (!deck.value || !generateForm.result || !generateForm.editPrompt.trim()) return;
+    generateForm.error = null;
+    generateForm.submitting = true;
+    try {
+      const res = await api.generate.edit({
+        deckId: deck.value.id,
+        prompt: generateForm.editPrompt,
+        generationId: generateForm.result.generationId,
+        infoObjects: generateForm.result.infoObjects,
+      });
+      generateForm.result = res;
+      generateForm.editPrompt = "";
     } catch (e) {
       generateForm.error = e instanceof Error ? e.message : t(locale.value, "common.error");
     } finally {
@@ -345,53 +367,82 @@ export default component$(() => {
               />
             </label>
             {generateForm.result && (
-              <div class="rounded-box border border-base-300 bg-base-200 p-4">
-                <p class="text-sm font-semibold mb-2">
-                  {generateForm.result.infoObjects.length} objects generated
-                </p>
-                <div class="mb-4 rounded-box border border-base-300 bg-base-100/70 p-3 text-sm text-base-content/70">
-                  <p class="font-semibold mb-2">{t(locale.value, "deck.generate.preview.progression")}</p>
-                  <div class="flex flex-col gap-1">
-                    <p>{t(locale.value, "deck.generate.progression.step0")}</p>
-                    <p>{t(locale.value, "deck.generate.progression.step1")}</p>
-                    <p>{t(locale.value, "deck.generate.progression.step2")}</p>
-                    <p>{t(locale.value, "deck.generate.progression.step3")}</p>
-                  </div>
-                </div>
-                {generateForm.result.infoObjects.map((obj, i) => (
-                  <div key={i} class="mb-4 rounded-box border border-base-300 bg-base-100 p-4 last:mb-0">
-                    <div class="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <p class="font-medium">{obj.title}</p>
-                        <p class="text-xs text-base-content/60">{obj.cards.length} cards</p>
-                      </div>
-                      <div class="flex flex-wrap gap-2 text-xs">
-                        <span class="badge badge-outline">{obj.discipline}</span>
-                        <span class="badge badge-outline">{obj.contentType}</span>
-                      </div>
+              <div class="flex flex-col gap-4">
+                <div class="rounded-box border border-base-300 bg-base-200 p-4">
+                  <p class="text-sm font-semibold mb-2">
+                    {generateForm.result.infoObjects.length} objects generated
+                  </p>
+                  <div class="mb-4 rounded-box border border-base-300 bg-base-100/70 p-3 text-sm text-base-content/70">
+                    <p class="font-semibold mb-2">{t(locale.value, "deck.generate.preview.progression")}</p>
+                    <div class="flex flex-col gap-1">
+                      <p>{t(locale.value, "deck.generate.progression.step0")}</p>
+                      <p>{t(locale.value, "deck.generate.progression.step1")}</p>
+                      <p>{t(locale.value, "deck.generate.progression.step2")}</p>
+                      <p>{t(locale.value, "deck.generate.progression.step3")}</p>
                     </div>
-
-                    <div class="mt-4 flex flex-col gap-4">
-                      <div class="flex flex-col gap-2">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                          {t(locale.value, "deck.generate.preview.content")}
-                        </p>
-                        <div class="overflow-hidden rounded-box border border-base-300 bg-base-300/40">
-                          <CodeBlock code={obj.content} contentType={obj.contentType} highlightLines={[]} />
+                  </div>
+                  {generateForm.result.infoObjects.map((obj, i) => (
+                    <div key={i} class="mb-4 rounded-box border border-base-300 bg-base-100 p-4 last:mb-0">
+                      <div class="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p class="font-medium">{obj.title}</p>
+                          <p class="text-xs text-base-content/60">{obj.cards.length} cards</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 text-xs">
+                          <span class="badge badge-outline">{obj.discipline}</span>
+                          <span class="badge badge-outline">{obj.contentType}</span>
                         </div>
                       </div>
 
-                      <div class="flex flex-col gap-3">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                          {t(locale.value, "deck.generate.preview.cards")}
-                        </p>
-                        {obj.cards.map((card, cardIndex) => (
-                          <GeneratedCardPreview key={cardIndex} card={card} locale={locale.value} />
-                        ))}
+                      <div class="mt-4 flex flex-col gap-4">
+                        <div class="flex flex-col gap-2">
+                          <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                            {t(locale.value, "deck.generate.preview.content")}
+                          </p>
+                          <div class="overflow-hidden rounded-box border border-base-300 bg-base-300/40">
+                            <CodeBlock code={obj.content} contentType={obj.contentType} highlightLines={[]} />
+                          </div>
+                        </div>
+
+                        <div class="flex flex-col gap-3">
+                          <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                            {t(locale.value, "deck.generate.preview.cards")}
+                          </p>
+                          {obj.cards.map((card, cardIndex) => (
+                            <GeneratedCardPreview key={cardIndex} card={card} locale={locale.value} />
+                          ))}
+                        </div>
                       </div>
                     </div>
+                  ))}
+                </div>
+                <div class="rounded-box border border-base-300 bg-base-200 p-4">
+                  <label class="form-control">
+                    <div class="label">
+                      <span class="label-text">{t(locale.value, "deck.generate.editPrompt")}</span>
+                    </div>
+                    <textarea
+                      class="textarea textarea-bordered"
+                      value={generateForm.editPrompt}
+                      onInput$={(_, el) => (generateForm.editPrompt = el.value)}
+                      rows={3}
+                    />
+                  </label>
+                  <div class="mt-3 flex gap-2">
+                    <button
+                      class="btn btn-outline btn-sm"
+                      onClick$={handleEditGenerated$}
+                      disabled={generateForm.submitting || !generateForm.editPrompt.trim()}
+                      type="button"
+                    >
+                      {generateForm.submitting ? (
+                        <span class="loading loading-spinner loading-xs" />
+                      ) : (
+                        t(locale.value, "deck.generate.edit")
+                      )}
+                    </button>
                   </div>
-                ))}
+                </div>
               </div>
             )}
 

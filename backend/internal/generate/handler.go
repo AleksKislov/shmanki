@@ -51,6 +51,23 @@ func (h *Handler) Save(w http.ResponseWriter, r *http.Request) {
 	response.WriteJSON(w, http.StatusCreated, result)
 }
 
+func (h *Handler) Edit(w http.ResponseWriter, r *http.Request) {
+	userID := platformmiddleware.UserIDFromContext(r.Context())
+	var req EditRequest
+	if err := response.DecodeJSON(r, &req); err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid request body", "INVALID_REQUEST")
+		return
+	}
+
+	result, err := h.service.Edit(r.Context(), userID, req)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, result)
+}
+
 func handleError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, ErrGenerationUnavailable):

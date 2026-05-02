@@ -322,6 +322,7 @@ For typed reconstruction cards, `answeredTokens` still carries the final ordered
 | Method | Path                     | Description                                         |
 | ------ | ------------------------ | --------------------------------------------------- |
 | POST   | /api/v1/generate/suggest | Ask configured LLM provider to suggest study drafts |
+| POST   | /api/v1/generate/edit    | Apply an AI edit instruction to an existing draft   |
 | POST   | /api/v1/generate/save    | Save user-approved generated info objects and cards |
 
 ### Language-aware request/response fields

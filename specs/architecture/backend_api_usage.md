@@ -520,6 +520,65 @@ Request:
 
 `discipline` and `contentType` may be omitted for generation requests. The backend and LLM should infer them from the prompt and generated material.
 
+#### `POST /api/v1/generate/edit`
+
+Apply a new AI instruction to an existing generated draft and return the full revised draft.
+
+Request:
+
+```json
+{
+  "deckId": "uuid",
+  "generationId": "uuid",
+  "prompt": "Split this into two info objects and make the later cards focus more on code reconstruction",
+  "infoObjects": [
+    {
+      "title": "Launching a goroutine",
+      "content": "func worker() {\n    fmt.Println(\"working\")\n}\n\ngo worker()",
+      "discipline": "programming",
+      "contentType": "go",
+      "cards": [
+        {
+          "front": "Which expression starts the goroutine?",
+          "cardType": "concept",
+          "step": 0,
+          "correctAnswers": [["go", "worker()"]],
+          "distractors": ["defer", "func", "chan"],
+          "highlightLines": [5]
+        }
+      ]
+    }
+  ]
+}
+```
+
+Response:
+
+```json
+{
+  "generationId": "uuid",
+  "model": "gpt-4.1-mini",
+  "infoObjects": [
+    {
+      "title": "Launching a goroutine",
+      "content": "func worker() {\n    fmt.Println(\"working\")\n}\n\ngo worker()",
+      "discipline": "programming",
+      "contentType": "go",
+      "cards": [
+        {
+          "front": "Which expression starts the goroutine?",
+          "cardType": "concept",
+          "step": 0,
+          "correctAnswers": [["go", "worker()"]],
+          "distractors": ["defer", "func", "chan"],
+          "highlightLines": [5]
+        }
+      ]
+    }
+  ]
+}
+```
+
 Response:
 
 ```json

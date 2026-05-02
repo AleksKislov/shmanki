@@ -375,6 +375,8 @@ const session = useStore<ReviewSessionState>({
 
 For AI generation, the frontend should not ask the user to choose `contentType` or `discipline`; the backend and LLM should infer both from the prompt and generated content.
 
+For the MVP AI editing flow, the frontend should let the user submit a second prompt against the current generated draft. That request should send the current `infoObjects` plus the new edit instruction to `POST /api/v1/generate/edit`, then replace the preview with the revised full draft.
+
 ---
 
 ## State Management

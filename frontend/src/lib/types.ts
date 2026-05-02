@@ -168,6 +168,15 @@ export interface GenerateSuggestResponse {
   infoObjects: GeneratedInfoObject[];
 }
 
+export interface GenerateEditRequest {
+  deckId: string;
+  prompt: string;
+  generationId?: string;
+  infoObjects: GeneratedInfoObject[];
+  discipline?: string;
+  contentType?: ContentType;
+}
+
 export interface GenerateSaveRequest {
   deckId: string;
   prompt: string;

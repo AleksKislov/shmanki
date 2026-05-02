@@ -123,6 +123,7 @@ func main() {
 
 			r.Route("/generate", func(r chi.Router) {
 				r.Post("/suggest", generateHandler.Suggest)
+				r.Post("/edit", generateHandler.Edit)
 				r.Post("/save", generateHandler.Save)
 			})
 		})
