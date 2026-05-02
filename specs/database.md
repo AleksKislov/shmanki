@@ -79,8 +79,10 @@ CREATE TABLE info_objects (
     -- Broad category of info object, e.g. 'programming', 'language', 'history'.
 
     content_type VARCHAR(50) NOT NULL DEFAULT 'text',
-    -- Values: 'text' | 'code_go' | 'code_python' | 'code_js' | 'code_ts' | 'code_rust'.
-    -- Language is stored on the parent deck, not in content_type.
+    -- Either 'text' or the plain language name of the stored content.
+    -- Examples: 'typescript', 'go', 'python', 'english', 'chinese'.
+    -- Language is stored on the parent deck for deck ownership, but content_type describes
+    -- the actual syntax or natural language of the info object content.
 
     created_at   TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at   TIMESTAMP NOT NULL DEFAULT NOW()

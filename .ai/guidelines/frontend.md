@@ -118,7 +118,7 @@ Keep types in sync with the backend Go models:
 export type CardStatus = "locked" | "new" | "learning" | "review" | "relearning";
 export type Rating = 1 | 2 | 3 | 4;
 export type LanguageCode = "en" | "ru" | "es" | "de" | "fr" | "ja" | "zh-CN";
-export type ContentType = "text" | "code_go" | "code_python" | "code_js" | "code_ts" | "code_rust";
+export type ContentType = string;
 
 export interface User {
   id: string;
@@ -389,13 +389,14 @@ interface Props {
   highlightLines: number[]; // 1-indexed line numbers to highlight
 }
 
-const langMap: Record<ContentType, string> = {
-  text: "text",
-  code_go: "go",
-  code_python: "python",
-  code_js: "javascript",
-  code_ts: "typescript",
-  code_rust: "rust",
+const langAliases: Record<string, string> = {
+  plaintext: "text",
+  plain: "text",
+  txt: "text",
+  js: "javascript",
+  ts: "typescript",
+  py: "python",
+  golang: "go",
 };
 
 export const CodeBlock = component$<Props>(({ code, contentType, highlightLines }) => {
@@ -403,7 +404,7 @@ export const CodeBlock = component$<Props>(({ code, contentType, highlightLines 
 
   useTask$(async () => {
     html.value = await codeToHtml(code, {
-      lang: langMap[contentType] ?? "text",
+      lang: langAliases[contentType.toLowerCase()] ?? contentType.toLowerCase() ?? "text",
       theme: "github-dark",
       transformers: [
         {

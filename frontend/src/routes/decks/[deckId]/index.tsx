@@ -23,7 +23,7 @@ export default component$(() => {
     title: "",
     content: "",
     discipline: "programming",
-    contentType: "code_go",
+    contentType: "text",
     submitting: false,
     error: null as string | null,
   });
@@ -37,8 +37,6 @@ export default component$(() => {
 
   const generateForm = useStore({
     prompt: "",
-    discipline: "programming",
-    contentType: "code_go",
     submitting: false,
     error: null as string | null,
     result: null as import("~/lib/types").GenerateSuggestResponse | null,
@@ -145,8 +143,6 @@ export default component$(() => {
       const res = await api.generate.suggest({
         deckId: deck.value.id,
         prompt: generateForm.prompt,
-        discipline: generateForm.discipline,
-        contentType: generateForm.contentType as import("~/lib/types").ContentType,
       });
       generateForm.result = res;
     } catch (e) {
@@ -348,38 +344,6 @@ export default component$(() => {
                 rows={3}
               />
             </label>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <label class="form-control">
-                <div class="label">
-                  <span class="label-text">{t(locale.value, "deck.form.discipline")}</span>
-                </div>
-                <input
-                  class="input input-bordered"
-                  type="text"
-                  value={generateForm.discipline}
-                  onInput$={(_, el) => (generateForm.discipline = el.value)}
-                />
-              </label>
-              <label class="form-control">
-                <div class="label">
-                  <span class="label-text">{t(locale.value, "deck.form.contentType")}</span>
-                </div>
-                <select
-                  class="select select-bordered"
-                  value={generateForm.contentType}
-                  onChange$={(_, el) => (generateForm.contentType = el.value)}
-                >
-                  {["text", "code_go", "code_python", "code_js", "code_ts", "code_rust"].map(
-                    (ct) => (
-                      <option key={ct} value={ct}>
-                        {ct}
-                      </option>
-                    ),
-                  )}
-                </select>
-              </label>
-            </div>
-
             {generateForm.result && (
               <div class="rounded-box border border-base-300 bg-base-200 p-4">
                 <p class="text-sm font-semibold mb-2">
@@ -522,19 +486,13 @@ export default component$(() => {
                   <div class="label">
                     <span class="label-text">{t(locale.value, "deck.form.contentType")}</span>
                   </div>
-                  <select
-                    class="select select-bordered"
+                  <input
+                    class="input input-bordered"
+                    type="text"
                     value={objectForm.contentType}
-                    onChange$={(_, el) => (objectForm.contentType = el.value)}
-                  >
-                    {["text", "code_go", "code_python", "code_js", "code_ts", "code_rust"].map(
-                      (ct) => (
-                        <option key={ct} value={ct}>
-                          {ct}
-                        </option>
-                      ),
-                    )}
-                  </select>
+                    onInput$={(_, el) => (objectForm.contentType = el.value)}
+                    placeholder="text, typescript, english, chinese"
+                  />
                 </label>
               </div>
             </div>

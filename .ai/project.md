@@ -12,6 +12,7 @@ Key differentiators vs Anki:
 - Automatic card generation from a topic via LLM
 - InfoObjects: cards are grouped under reference content (code/text) with line highlighting
 - User preferred language drives both UI localization and the default language for newly created decks
+- For AI generation, discipline and content_type are inferred from the user's prompt unless explicitly supplied by an internal caller
 
 ---
 
@@ -90,7 +91,7 @@ User
        ├── language_code: string   (source of truth for all nested study content)
        └── InfoObject (a concept/topic with full reference content)
               ├── content: string        (full code/text shown as reference)
-              ├── content_type: string   (text | code_go | code_python | ...)
+              ├── content_type: string   (text | typescript | go | python | english | chinese | ...)
               ├── language: inherited    (inherits from Deck.language_code)
               └── Card (a question about the info object)
                     ├── card_type: string       (concept | signature | trace | line_order | block_order | choose_snippet | fix_bug)

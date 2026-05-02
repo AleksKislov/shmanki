@@ -331,6 +331,8 @@ For typed reconstruction cards, `answeredTokens` still carries the final ordered
 - `POST /api/v1/decks` and `PUT /api/v1/decks/:id` accept `languageCode`
 - Deck responses include `languageCode`
 - Generation uses the target deck's `languageCode`
+- When generation requests omit `contentType`, the backend should infer it from the prompt and generated content
+- When generation requests omit `discipline`, the backend should infer it from the prompt and generated content
 
 Detailed language ownership and behavior live in `specs/i18n.md`.
 

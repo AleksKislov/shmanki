@@ -177,7 +177,7 @@ Response:
       "id": "uuid",
       "title": "Launching a goroutine",
       "discipline": "programming",
-      "contentType": "code_go"
+      "contentType": "go"
     }
   ]
 }
@@ -225,7 +225,7 @@ Response:
     "title": "Launching a goroutine",
     "content": "func worker() {}",
     "discipline": "programming",
-    "contentType": "code_go",
+    "contentType": "go",
     "createdAt": "2026-03-27T12:00:00Z",
     "updatedAt": "2026-03-27T12:00:00Z"
   }
@@ -243,7 +243,7 @@ Request:
   "title": "Launching a goroutine",
   "content": "func worker() {\n    fmt.Println(\"working\")\n}\n\ngo worker()",
   "discipline": "programming",
-  "contentType": "code_go"
+  "contentType": "go"
 }
 ```
 
@@ -260,7 +260,7 @@ Response:
   "title": "Launching a goroutine",
   "content": "func worker() {}",
   "discipline": "programming",
-  "contentType": "code_go",
+  "contentType": "go",
   "createdAt": "2026-03-27T12:00:00Z",
   "updatedAt": "2026-03-27T12:00:00Z",
   "cards": [
@@ -291,7 +291,7 @@ Request:
   "title": "Launching multiple goroutines",
   "content": "updated content",
   "discipline": "programming",
-  "contentType": "code_go"
+  "contentType": "go"
 }
 ```
 
@@ -374,7 +374,7 @@ Response:
     "highlightLines": [5],
     "step": 0,
     "content": "func worker() {}",
-    "contentType": "code_go",
+    "contentType": "go",
     "languageCode": "en",
     "infoObjectId": "uuid",
     "state": {
@@ -514,11 +514,11 @@ Request:
 ```json
 {
   "deckId": "uuid",
-  "prompt": "Generate beginner study material about goroutines",
-  "discipline": "programming",
-  "contentType": "code_go"
+  "prompt": "Generate beginner study material about goroutines"
 }
 ```
+
+`discipline` and `contentType` may be omitted for generation requests. The backend and LLM should infer them from the prompt and generated material.
 
 Response:
 
@@ -531,7 +531,7 @@ Response:
       "title": "Launching a goroutine",
       "content": "func worker() {\n    fmt.Println(\"working\")\n}\n\ngo worker()",
       "discipline": "programming",
-      "contentType": "code_go",
+      "contentType": "go",
       "cards": [
         {
           "front": "Which expression starts the goroutine?",
@@ -564,7 +564,7 @@ Request:
       "title": "Launching a goroutine",
       "content": "func worker() {\n    fmt.Println(\"working\")\n}\n\ngo worker()",
       "discipline": "programming",
-      "contentType": "code_go",
+      "contentType": "go",
       "cards": [
         {
           "front": "Which expression starts the goroutine?",
@@ -591,7 +591,7 @@ Response:
       "title": "Launching a goroutine",
       "content": "func worker() {\n    fmt.Println(\"working\")\n}\n\ngo worker()",
       "discipline": "programming",
-      "contentType": "code_go",
+      "contentType": "go",
       "createdAt": "2026-03-27T12:00:00Z",
       "updatedAt": "2026-03-27T12:00:00Z",
       "cards": [

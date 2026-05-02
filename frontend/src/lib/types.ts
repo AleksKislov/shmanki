@@ -1,7 +1,7 @@
 export type CardStatus = "locked" | "new" | "learning" | "review" | "relearning";
 export type Rating = 1 | 2 | 3 | 4;
 export type LanguageCode = "en" | "ru" | "es" | "de" | "fr" | "ja" | "zh-CN";
-export type ContentType = "text" | "code_go" | "code_python" | "code_js" | "code_ts" | "code_rust";
+export type ContentType = string;
 export type MasteryLevel = "new" | "learning" | "learned" | "mastered" | "expert";
 export type CardType =
   | "concept"
@@ -141,8 +141,8 @@ export interface DeckStats {
 export interface GenerateSuggestRequest {
   deckId: string;
   prompt: string;
-  discipline: string;
-  contentType: ContentType;
+  discipline?: string;
+  contentType?: ContentType;
 }
 
 export interface GeneratedCard {

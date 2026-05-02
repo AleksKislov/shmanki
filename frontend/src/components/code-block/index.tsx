@@ -8,21 +8,33 @@ interface Props {
   highlightLines: number[];
 }
 
-const langMap: Record<ContentType, string> = {
-  text: "text",
-  code_go: "go",
-  code_python: "python",
-  code_js: "javascript",
-  code_ts: "typescript",
-  code_rust: "rust",
+const langAliases: Record<string, string> = {
+  plaintext: "text",
+  plain: "text",
+  txt: "text",
+  js: "javascript",
+  ts: "typescript",
+  py: "python",
+  golang: "go",
+  csharp: "c#",
+  cpp: "c++",
+  md: "markdown",
 };
+
+function normalizeLanguage(contentType: ContentType) {
+  const normalized = contentType.trim().toLowerCase();
+  if (!normalized) {
+    return "text";
+  }
+  return langAliases[normalized] ?? normalized;
+}
 
 export const CodeBlock = component$<Props>(({ code, contentType, highlightLines }) => {
   const html = useSignal("");
 
   useTask$(async () => {
     html.value = await codeToHtml(code, {
-      lang: langMap[contentType] ?? "text",
+      lang: normalizeLanguage(contentType),
       theme: "github-dark",
       transformers: [
         {

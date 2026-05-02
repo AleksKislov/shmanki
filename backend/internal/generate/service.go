@@ -65,8 +65,8 @@ func (s *Service) Suggest(ctx context.Context, userID uuid.UUID, req SuggestRequ
 	result, err := s.client.Complete(ctx, llmCompletionRequest{
 		Prompt:       strings.TrimSpace(req.Prompt),
 		LanguageCode: languageCode,
-		Discipline:   defaultString(req.Discipline, "programming"),
-		ContentType:  defaultString(req.ContentType, "text"),
+		Discipline:   strings.TrimSpace(req.Discipline),
+		ContentType:  strings.TrimSpace(req.ContentType),
 	})
 	if err != nil {
 		return nil, err
@@ -159,6 +159,9 @@ func validateSuggestedObjects(items []SuggestedObject) error {
 	for _, object := range items {
 		if strings.TrimSpace(object.Title) == "" || strings.TrimSpace(object.Content) == "" {
 			return fmt.Errorf("%w: info object title and content are required", ErrInvalidSuggestion)
+		}
+		if strings.TrimSpace(object.Discipline) == "" || strings.TrimSpace(object.ContentType) == "" {
+			return fmt.Errorf("%w: info object discipline and content type are required", ErrInvalidSuggestion)
 		}
 		if len(object.Cards) == 0 {
 			return fmt.Errorf("%w: each info object must contain at least one card", ErrInvalidSuggestion)

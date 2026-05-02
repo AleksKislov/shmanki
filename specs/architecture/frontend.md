@@ -371,6 +371,10 @@ const session = useStore<ReviewSessionState>({
 });
 ```
 
+`contentType` is a free-form string. It should be either `text` or the plain language name of the content, for example `typescript`, `go`, `python`, `english`, or `chinese`.
+
+For AI generation, the frontend should not ask the user to choose `contentType` or `discipline`; the backend and LLM should infer both from the prompt and generated content.
+
 ---
 
 ## State Management
