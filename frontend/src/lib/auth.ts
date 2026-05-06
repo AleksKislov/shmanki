@@ -1,5 +1,7 @@
 import type { LanguageCode, User } from "./types";
 
+const VALID_LOCALES: LanguageCode[] = ["en", "ru", "es", "de", "fr", "ja", "zh-CN"];
+
 export function getToken(): string | null {
   if (typeof localStorage === "undefined") return null;
   return localStorage.getItem("jwt");
@@ -31,8 +33,8 @@ export function setUser(user: User): void {
 
 export function getLocale(): LanguageCode {
   if (typeof localStorage === "undefined") return "en";
-  const lang = localStorage.getItem("preferredLanguage");
-  if (lang === "ru") return "ru";
+  const lang = localStorage.getItem("preferredLanguage") as LanguageCode;
+  if (lang && VALID_LOCALES.includes(lang)) return lang;
   return "en";
 }
 

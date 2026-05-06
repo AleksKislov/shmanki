@@ -1,4 +1,5 @@
 import { $, component$ } from "@builder.io/qwik";
+import type { QRL } from "@builder.io/qwik";
 import type { ReviewCard, ReviewResult, ReviewSubmission } from "~/lib/types";
 import { CodeBlock } from "~/components/code-block";
 import { BlockOrderAnswer } from "~/components/block-order-answer";
@@ -14,12 +15,19 @@ interface Props {
   total: number;
   locale: string;
   onAnswer$: (result: ReviewResult) => void;
+  onSubmit$?: QRL<(submission: ReviewSubmission) => Promise<ReviewResult>>;
+  showContent?: boolean;
 }
 
-export const CardReview = component$<Props>(({ card, index, total, locale, onAnswer$ }) => {
+export const CardReview = component$<Props>(({ card, index, total, locale, onAnswer$, onSubmit$, showContent = true }) => {
   const handleSubmit$ = $(async (submission: ReviewSubmission) => {
-    const { api } = await import("~/lib/api");
-    const result = await api.review.submit(submission);
+    let result: ReviewResult;
+    if (onSubmit$) {
+      result = await onSubmit$(submission);
+    } else {
+      const { api } = await import("~/lib/api");
+      result = await api.review.submit(submission);
+    }
     onAnswer$(result);
   });
 
@@ -43,13 +51,15 @@ export const CardReview = component$<Props>(({ card, index, total, locale, onAns
       <ProgressBar value={(index) / total} />
 
       {/* Code block */}
-      <div class="rounded-box border border-base-300 overflow-hidden">
-        <CodeBlock
-          code={card.content}
-          contentType={card.contentType}
-          highlightLines={card.highlightLines}
-        />
-      </div>
+      {showContent && (
+        <div class="rounded-box border border-base-300 overflow-hidden">
+          <CodeBlock
+            code={card.content}
+            contentType={card.contentType}
+            highlightLines={card.highlightLines}
+          />
+        </div>
+      )}
 
       {/* Question */}
       <div class="flex flex-col gap-2">

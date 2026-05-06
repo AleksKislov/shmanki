@@ -1,5 +1,5 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
-import { Link, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
+import { Link, type DocumentHead } from "@builder.io/qwik-city";
 import { api } from "~/lib/api";
 import { getLocale } from "~/lib/auth";
 import { t, getLocaleLabel, LANGUAGE_OPTIONS } from "~/lib/i18n";
@@ -10,7 +10,6 @@ interface DeckWithStats extends Deck {
 }
 
 export default component$(() => {
-  const nav = useNavigate();
   const locale = useSignal<LanguageCode>("en");
   const decks = useSignal<DeckWithStats[]>([]);
   const loading = useSignal(true);
@@ -71,17 +70,17 @@ export default component$(() => {
   });
 
   return (
-    <main class="flex flex-col gap-6">
-      <div class="flex items-center justify-between gap-4">
-        <h1 class="text-3xl font-semibold">{t(locale.value, "decks.title")}</h1>
-        <div class="flex gap-2">
-          <Link class="btn btn-primary btn-sm" href="/review">
+    <main class='flex flex-col gap-6'>
+      <div class='flex items-center justify-between gap-4'>
+        <h1 class='text-3xl font-semibold'>{t(locale.value, "decks.title")}</h1>
+        <div class='flex gap-2'>
+          <Link class='btn btn-primary btn-sm' href='/review'>
             {t(locale.value, "header.review")}
           </Link>
           <button
-            class="btn btn-outline btn-sm"
+            class='btn btn-outline btn-sm'
             onClick$={() => (showForm.value = !showForm.value)}
-            type="button"
+            type='button'
           >
             {t(locale.value, "decks.create")}
           </button>
@@ -89,31 +88,31 @@ export default component$(() => {
       </div>
 
       {showForm.value && (
-        <div class="card border border-base-300 bg-base-100 shadow-sm">
-          <div class="card-body gap-4">
+        <div class='card border border-base-300 bg-base-100 shadow-sm'>
+          <div class='card-body gap-4'>
             {form.error && (
-              <div class="alert alert-error">
+              <div class='alert alert-error'>
                 <span>{form.error}</span>
               </div>
             )}
-            <div class="grid gap-4 sm:grid-cols-2">
-              <label class="form-control">
-                <div class="label">
-                  <span class="label-text">{t(locale.value, "decks.form.title")}</span>
+            <div class='grid gap-4 sm:grid-cols-2'>
+              <label class='form-control'>
+                <div class='label'>
+                  <span class='label-text'>{t(locale.value, "decks.form.title")}</span>
                 </div>
                 <input
-                  class="input input-bordered"
-                  type="text"
+                  class='input input-bordered'
+                  type='text'
                   value={form.title}
                   onInput$={(_, el) => (form.title = el.value)}
                 />
               </label>
-              <label class="form-control">
-                <div class="label">
-                  <span class="label-text">{t(locale.value, "decks.form.language")}</span>
+              <label class='form-control'>
+                <div class='label'>
+                  <span class='label-text'>{t(locale.value, "decks.form.language")}</span>
                 </div>
                 <select
-                  class="select select-bordered"
+                  class='select select-bordered'
                   value={form.languageCode}
                   onChange$={(_, el) => (form.languageCode = el.value as LanguageCode)}
                 >
@@ -125,34 +124,34 @@ export default component$(() => {
                 </select>
               </label>
             </div>
-            <label class="form-control">
-              <div class="label">
-                <span class="label-text">{t(locale.value, "decks.form.description")}</span>
+            <label class='form-control'>
+              <div class='label'>
+                <span class='label-text'>{t(locale.value, "decks.form.description")}</span>
               </div>
               <textarea
-                class="textarea textarea-bordered"
+                class='textarea textarea-bordered'
                 value={form.description}
                 onInput$={(_, el) => (form.description = el.value)}
                 rows={2}
               />
             </label>
-            <div class="flex gap-2">
+            <div class='flex gap-2'>
               <button
-                class="btn btn-primary btn-sm"
+                class='btn btn-primary btn-sm'
                 onClick$={handleCreate$}
                 disabled={form.submitting || !form.title.trim()}
-                type="button"
+                type='button'
               >
                 {form.submitting ? (
-                  <span class="loading loading-spinner loading-xs" />
+                  <span class='loading loading-spinner loading-xs' />
                 ) : (
                   t(locale.value, "decks.form.submit")
                 )}
               </button>
               <button
-                class="btn btn-ghost btn-sm"
+                class='btn btn-ghost btn-sm'
                 onClick$={() => (showForm.value = false)}
-                type="button"
+                type='button'
               >
                 {t(locale.value, "decks.form.cancel")}
               </button>
@@ -162,58 +161,59 @@ export default component$(() => {
       )}
 
       {loading.value && (
-        <div class="flex justify-center py-12">
-          <span class="loading loading-spinner loading-lg" />
+        <div class='flex justify-center py-12'>
+          <span class='loading loading-spinner loading-lg' />
         </div>
       )}
 
       {error.value && (
-        <div class="alert alert-error">
+        <div class='alert alert-error'>
           <span>{error.value}</span>
         </div>
       )}
 
       {!loading.value && !error.value && decks.value.length === 0 && (
-        <div class="text-center py-12 text-base-content/60">
-          {t(locale.value, "decks.empty")}
-        </div>
+        <div class='text-center py-12 text-base-content/60'>{t(locale.value, "decks.empty")}</div>
       )}
 
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
         {decks.value.map((deck) => (
-          <article key={deck.id} class="card border border-base-300 bg-base-100 shadow-sm">
-            <div class="card-body gap-3">
-              <div class="flex items-start justify-between gap-2">
-                <h2 class="card-title text-lg leading-tight">{deck.title}</h2>
-                <span class="badge badge-outline badge-sm shrink-0">{deck.languageCode}</span>
+          <article key={deck.id} class='card border border-base-300 bg-base-100 shadow-sm'>
+            <div class='card-body gap-3'>
+              <div class='flex items-start justify-between gap-2'>
+                <h2 class='card-title text-lg leading-tight'>{deck.title}</h2>
+                <span class='badge badge-outline badge-sm shrink-0'>{deck.languageCode}</span>
               </div>
 
               {deck.description && (
-                <p class="text-sm text-base-content/70 leading-relaxed">{deck.description}</p>
+                <p class='text-sm text-base-content/70 leading-relaxed'>{deck.description}</p>
               )}
 
               {deck.stats && (
-                <div class="flex flex-wrap gap-2">
-                  <span class="badge badge-ghost badge-sm">
+                <div class='flex flex-wrap gap-2'>
+                  <span class='badge badge-ghost badge-sm'>
                     {t(locale.value, "decks.card.due")} {deck.stats.dueNow}
                   </span>
-                  <span class="badge badge-ghost badge-sm">
+                  <span class='badge badge-ghost badge-sm'>
                     {t(locale.value, "decks.card.new")} {deck.stats.newNow}
                   </span>
-                  <span class="badge badge-ghost badge-sm">
-                    {deck.stats.total} {t(locale.value, "decks.card.objects")}
+                  <span class='badge badge-ghost badge-sm'>
+                    {deck.stats.infoObjects} {t(locale.value, "decks.card.objects")}
+                  </span>
+                  <span class='badge badge-ghost badge-sm'>
+                    {deck.stats.cards} {t(locale.value, "decks.card.cards")}
                   </span>
                 </div>
               )}
 
-              <div class="card-actions mt-2 justify-between">
-                <Link class="btn btn-primary btn-sm" href={`/decks/${deck.id}`}>
+              <div class='card-actions mt-2 justify-between'>
+                <Link class='btn btn-primary btn-sm' href={`/decks/${deck.id}`}>
                   {t(locale.value, "common.edit")}
                 </Link>
                 <button
-                  class="btn btn-ghost btn-sm text-error"
+                  class='btn btn-ghost btn-sm text-error'
                   onClick$={() => handleDelete$(deck.id)}
-                  type="button"
+                  type='button'
                 >
                   {t(locale.value, "common.delete")}
                 </button>

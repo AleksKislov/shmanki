@@ -135,11 +135,13 @@ export default component$(() => {
     <main class="max-w-2xl mx-auto flex flex-col gap-6">
       <h1 class="text-2xl font-semibold">{t(locale.value, "review.title")}</h1>
       <CardReview
+        key={currentCard.cardId}
         card={currentCard}
         index={session.currentIndex}
         total={session.queue.length}
         locale={locale.value}
         onAnswer$={handleAnswer$}
+        showContent={false}
       />
     </main>
   );

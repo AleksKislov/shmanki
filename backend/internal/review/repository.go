@@ -376,18 +376,19 @@ WHERE user_id = $1
 func (r *Repository) GetDeckStats(ctx context.Context, userID uuid.UUID, deckID uuid.UUID) (*DeckStats, error) {
 	const totalsQuery = `
 SELECT
-    COUNT(*) AS total,
-    COUNT(*) FILTER (WHERE cs.status = 'new') AS new_now,
-    COUNT(*) FILTER (WHERE cs.status IN ('learning', 'review', 'relearning') AND cs.due_date <= NOW()) AS due_now
-FROM card_states cs
-JOIN cards c ON c.id = cs.card_id
-JOIN info_objects io ON io.id = c.info_object_id
-JOIN decks d ON d.id = io.deck_id
-WHERE cs.user_id = $1 AND d.user_id = $1 AND d.id = $2
+    COUNT(DISTINCT io.id) AS info_objects,
+    COUNT(DISTINCT c.id) AS cards,
+    COUNT(cs.id) FILTER (WHERE cs.status = 'new') AS new_now,
+    COUNT(cs.id) FILTER (WHERE cs.status IN ('learning', 'review', 'relearning') AND cs.due_date <= NOW()) AS due_now
+FROM decks d
+LEFT JOIN info_objects io ON io.deck_id = d.id
+LEFT JOIN cards c ON c.info_object_id = io.id
+LEFT JOIN card_states cs ON cs.card_id = c.id AND cs.user_id = $1
+WHERE d.user_id = $1 AND d.id = $2
 `
 
 	stats := &DeckStats{DeckID: deckID, Levels: map[string]int64{"new": 0, "learning": 0, "learned": 0, "mastered": 0, "expert": 0}}
-	if err := r.db.QueryRow(ctx, totalsQuery, userID, deckID).Scan(&stats.Total, &stats.NewNow, &stats.DueNow); err != nil {
+	if err := r.db.QueryRow(ctx, totalsQuery, userID, deckID).Scan(&stats.InfoObjects, &stats.Cards, &stats.NewNow, &stats.DueNow); err != nil {
 		return nil, fmt.Errorf("get deck stats totals: %w", err)
 	}
 

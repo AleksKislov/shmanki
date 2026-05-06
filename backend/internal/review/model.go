@@ -61,11 +61,12 @@ type ReviewResult struct {
 }
 
 type DeckStats struct {
-	DeckID uuid.UUID        `json:"deckId"`
-	Levels map[string]int64 `json:"levels"`
-	Total  int64            `json:"total"`
-	DueNow int64            `json:"dueNow"`
-	NewNow int64            `json:"newNow"`
+	DeckID      uuid.UUID        `json:"deckId"`
+	Levels      map[string]int64 `json:"levels"`
+	InfoObjects int64            `json:"infoObjects"`
+	Cards       int64            `json:"cards"`
+	DueNow      int64            `json:"dueNow"`
+	NewNow      int64            `json:"newNow"`
 }
 
 type CardHistoryEntry struct {

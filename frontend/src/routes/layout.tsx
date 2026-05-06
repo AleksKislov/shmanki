@@ -1,7 +1,7 @@
 import { $, component$, Slot, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, useNavigate } from "@builder.io/qwik-city";
-import { clearAuth, getLocale, getToken, getUser } from "~/lib/auth";
-import { t } from "~/lib/i18n";
+import { clearAuth, getLocale, getToken, getUser, setLocale } from "~/lib/auth";
+import { getLocaleLabel, LANGUAGE_OPTIONS, t } from "~/lib/i18n";
 import type { LanguageCode } from "~/lib/types";
 
 const THEME_STORAGE_KEY = "theme";
@@ -71,6 +71,24 @@ export default component$(() => {
 
           <div class="navbar-end gap-3">
             <div class="hidden items-center gap-2 sm:flex">
+              <select
+                class="select select-sm"
+                value={locale.value}
+                onChange$={(_, el) => {
+                  const next = el.value as LanguageCode;
+                  locale.value = next;
+                  setLocale(next);
+                }}
+              >
+                {LANGUAGE_OPTIONS.map((code) => (
+                  <option key={code} value={code}>
+                    {getLocaleLabel(code)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div class="hidden items-center gap-2 sm:flex">
               <label class="label cursor-pointer gap-3">
                 <span class="text-sm">{t(locale.value, "header.light")}</span>
                 <input
@@ -111,6 +129,24 @@ export default component$(() => {
                 </li>
                 <li>
                   <Link href="/review">{t(locale.value, "header.review")}</Link>
+                </li>
+                <li class="menu-title mt-2">{t(locale.value, "header.language") || "Language"}</li>
+                <li>
+                  <select
+                    class="select select-sm w-full"
+                    value={locale.value}
+                    onChange$={(_, el) => {
+                      const next = el.value as LanguageCode;
+                      locale.value = next;
+                      setLocale(next);
+                    }}
+                  >
+                    {LANGUAGE_OPTIONS.map((code) => (
+                      <option key={code} value={code}>
+                        {getLocaleLabel(code)}
+                      </option>
+                    ))}
+                  </select>
                 </li>
                 <li class="menu-title mt-2">{t(locale.value, "header.theme")}</li>
                 <li>

@@ -231,11 +231,6 @@ func validateSuggestedObjects(items []SuggestedObject) error {
 					return fmt.Errorf("%w: correct answers cannot contain empty token sequences", ErrInvalidSuggestion)
 				}
 			}
-			for _, line := range card.HighlightLines {
-				if line <= 0 || line > len(strings.Split(object.Content, "\n")) {
-					return fmt.Errorf("%w: highlight lines must point to existing content lines", ErrInvalidSuggestion)
-				}
-			}
 
 			switch card.CardType {
 			case cardpkg.CardTypeConcept, cardpkg.CardTypeSignature:

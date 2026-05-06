@@ -210,27 +210,35 @@ func generationResponseFormat() *chatCompletionRespFmt {
 }
 
 func generationResponseSchema() map[string]any {
+	nonBlankString := map[string]any{
+		"type":      "string",
+		"minLength": 1,
+		"pattern":   `.*\S.*`,
+	}
+
 	cardSchema := map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
 		"required":             []string{"front", "cardType", "step", "correctAnswers", "distractors", "highlightLines"},
 		"properties": map[string]any{
-			"front": map[string]any{"type": "string"},
+			"front": nonBlankString,
 			"cardType": map[string]any{
 				"type": "string",
 				"enum": []string{"concept", "signature", "trace", "line_order", "block_order", "choose_snippet", "fix_bug"},
 			},
 			"step": map[string]any{"type": "integer"},
 			"correctAnswers": map[string]any{
-				"type": "array",
+				"type":     "array",
+				"minItems": 1,
 				"items": map[string]any{
-					"type": "array",
-					"items": map[string]any{"type": "string"},
+					"type":     "array",
+					"minItems": 1,
+					"items":    nonBlankString,
 				},
 			},
 			"distractors": map[string]any{
 				"type": "array",
-				"items": map[string]any{"type": "string"},
+				"items": nonBlankString,
 			},
 			"highlightLines": map[string]any{
 				"type": "array",
@@ -244,13 +252,14 @@ func generationResponseSchema() map[string]any {
 		"additionalProperties": false,
 		"required":             []string{"title", "content", "discipline", "contentType", "cards"},
 		"properties": map[string]any{
-			"title":       map[string]any{"type": "string"},
-			"content":     map[string]any{"type": "string"},
-			"discipline":  map[string]any{"type": "string"},
-			"contentType": map[string]any{"type": "string"},
+			"title":       nonBlankString,
+			"content":     nonBlankString,
+			"discipline":  nonBlankString,
+			"contentType": nonBlankString,
 			"cards": map[string]any{
-				"type":  "array",
-				"items": cardSchema,
+				"type":     "array",
+				"minItems": 1,
+				"items":    cardSchema,
 			},
 		},
 	}
@@ -261,8 +270,9 @@ func generationResponseSchema() map[string]any {
 		"required":             []string{"infoObjects"},
 		"properties": map[string]any{
 			"infoObjects": map[string]any{
-				"type":  "array",
-				"items": infoObjectSchema,
+				"type":     "array",
+				"minItems": 1,
+				"items":    infoObjectSchema,
 			},
 		},
 	}

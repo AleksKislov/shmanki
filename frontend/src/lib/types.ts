@@ -133,7 +133,8 @@ export interface DeckStats {
     mastered: number;
     expert: number;
   };
-  total: number;
+  infoObjects: number;
+  cards: number;
   dueNow: number;
   newNow: number;
 }

@@ -3,8 +3,9 @@ import { Link, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { api } from "~/lib/api";
 import { getLocale } from "~/lib/auth";
 import { t } from "~/lib/i18n";
-import type { Card, CardType, InfoObjectDetail, LanguageCode } from "~/lib/types";
+import type { Card, CardType, InfoObjectDetail, LanguageCode, ReviewCard, ReviewResult, ReviewSubmission } from "~/lib/types";
 import { CodeBlock } from "~/components/code-block";
+import { CardReview } from "~/components/card-review";
 import { getCardTypeLabel, isBlockInteraction } from "~/lib/card-types";
 
 export default component$(() => {
@@ -14,6 +15,8 @@ export default component$(() => {
   const loading = useSignal(true);
   const error = useSignal<string | null>(null);
   const showCardForm = useSignal(false);
+  const testCard = useSignal<ReviewCard | null>(null);
+  const testResult = useSignal<boolean | null>(null);
 
   const cardForm = useStore({
     front: "",
@@ -99,6 +102,48 @@ export default component$(() => {
     }
   });
 
+  const handleTestCard$ = $((card: Card) => {
+    if (!obj.value) return;
+    const reviewCard: ReviewCard = {
+      cardId: card.id,
+      front: card.front,
+      cardType: card.cardType,
+      correctAnswers: card.correctAnswers,
+      distractors: card.distractors,
+      highlightLines: card.highlightLines,
+      step: card.step,
+      content: obj.value.content,
+      contentType: obj.value.contentType,
+      languageCode: locale.value,
+      infoObjectId: card.infoObjectId,
+      state: {
+        cardId: card.id,
+        stability: 0,
+        difficulty: 5,
+        effectiveDifficulty: 5,
+        hierarchicalSupport: 1,
+        retrievability: 0,
+        dueDate: null,
+        status: "new",
+        reps: 0,
+        lapses: 0,
+        intervalDays: 0,
+        lastReview: null,
+      },
+    };
+    testCard.value = reviewCard;
+    testResult.value = null;
+  });
+
+  const mockSubmit$ = $(async (submission: ReviewSubmission): Promise<ReviewResult> => {
+    const wasCorrect = submission.wrongAttemptsCount === 0 && submission.distractorClicksCount === 0;
+    return {
+      state: testCard.value!.state,
+      rating: wasCorrect ? 4 : 1,
+      wasCorrect,
+    };
+  });
+
   if (loading.value) {
     return (
       <div class="flex justify-center py-20">
@@ -119,6 +164,53 @@ export default component$(() => {
 
   return (
     <main class="flex flex-col gap-6">
+      {/* Test card modal */}
+      {testCard.value && (
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div class="card w-full max-w-2xl border border-base-300 bg-base-100 shadow-xl">
+            <div class="card-body gap-5">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-base-content/60">
+                  {t(locale.value, "object.card.testMode")}
+                </span>
+                <button
+                  class="btn btn-ghost btn-sm"
+                  onClick$={() => { testCard.value = null; testResult.value = null; }}
+                  type="button"
+                >
+                  ✕
+                </button>
+              </div>
+              {testResult.value === null ? (
+                <CardReview
+                  card={testCard.value}
+                  index={0}
+                  total={1}
+                  locale={locale.value}
+                  onAnswer$={$((result: ReviewResult) => { testResult.value = result.wasCorrect; })}
+                  onSubmit$={mockSubmit$}
+                  showContent={false}
+                />
+              ) : (
+                <div class="flex flex-col items-center gap-5 py-4">
+                  <div class={testResult.value ? "alert alert-success text-lg font-semibold" : "alert alert-error text-lg font-semibold"}>
+                    {testResult.value
+                      ? t(locale.value, "object.card.testCorrect")
+                      : t(locale.value, "object.card.testWrong")}
+                  </div>
+                  <button
+                    class="btn btn-primary"
+                    onClick$={() => { testCard.value = null; testResult.value = null; }}
+                    type="button"
+                  >
+                    {t(locale.value, "object.form.cancel")}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div class="flex flex-col gap-1">
@@ -289,6 +381,7 @@ export default component$(() => {
               card={card}
               locale={locale.value}
               onDelete$={handleDeleteCard$}
+              onTest$={handleTestCard$}
             />
           ))}
         </div>
@@ -301,9 +394,10 @@ interface CardRowProps {
   card: Card;
   locale: LanguageCode;
   onDelete$: (id: string) => void;
+  onTest$: (card: Card) => void;
 }
 
-export const CardRow = component$<CardRowProps>(({ card, locale, onDelete$ }) => {
+export const CardRow = component$<CardRowProps>(({ card, locale, onDelete$, onTest$ }) => {
   return (
     <div class="card border border-base-300 bg-base-100 shadow-sm">
       <div class="card-body gap-3 py-4">
@@ -341,13 +435,22 @@ export const CardRow = component$<CardRowProps>(({ card, locale, onDelete$ }) =>
               </div>
             )}
           </div>
-          <button
-            class="btn btn-ghost btn-xs text-error shrink-0"
-            onClick$={() => onDelete$(card.id)}
-            type="button"
-          >
-            {t(locale, "common.delete")}
-          </button>
+          <div class="flex shrink-0 gap-1">
+            <button
+              class="btn btn-ghost btn-xs"
+              onClick$={() => onTest$(card)}
+              type="button"
+            >
+              {t(locale, "object.card.test")}
+            </button>
+            <button
+              class="btn btn-ghost btn-xs text-error"
+              onClick$={() => onDelete$(card.id)}
+              type="button"
+            >
+              {t(locale, "common.delete")}
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -265,6 +265,8 @@ export default component$(() => {
         <div class="stats stats-horizontal border border-base-300 bg-base-100 shadow-sm overflow-x-auto">
           {(
             [
+              ["deck.stats.topics", stats.value.infoObjects],
+              ["deck.stats.cards", stats.value.cards],
               ["deck.stats.new", stats.value.levels.new],
               ["deck.stats.learning", stats.value.levels.learning],
               ["deck.stats.learned", stats.value.levels.learned],
@@ -382,7 +384,7 @@ export default component$(() => {
                     </div>
                   </div>
                   {generateForm.result.infoObjects.map((obj, i) => (
-                    <div key={i} class="mb-4 rounded-box border border-base-300 bg-base-100 p-4 last:mb-0">
+                    <div key={`${i}-${obj.title}-${obj.content}`} class="mb-4 rounded-box border border-base-300 bg-base-100 p-4 last:mb-0">
                       <div class="flex flex-wrap items-start justify-between gap-2">
                         <div>
                           <p class="font-medium">{obj.title}</p>
@@ -492,13 +494,6 @@ export default component$(() => {
       {/* Info objects */}
       <div class="flex items-center justify-between gap-4">
         <h2 class="text-xl font-semibold">{t(locale.value, "deck.objects")}</h2>
-        <button
-          class="btn btn-outline btn-sm"
-          onClick$={() => (showObjectForm.value = !showObjectForm.value)}
-          type="button"
-        >
-          {t(locale.value, "deck.addObject")}
-        </button>
       </div>
 
       {showObjectForm.value && (
