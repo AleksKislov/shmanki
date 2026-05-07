@@ -46,7 +46,6 @@ type SuggestedCard struct {
 	Step           int        `json:"step"`
 	CorrectAnswers [][]string `json:"correctAnswers"`
 	Distractors    []string   `json:"distractors"`
-	HighlightLines []int      `json:"highlightLines"`
 }
 
 type SuggestResponse struct {
@@ -79,7 +78,6 @@ type SavedCard struct {
 	Step           int        `json:"step"`
 	CorrectAnswers [][]string `json:"correctAnswers"`
 	Distractors    []string   `json:"distractors"`
-	HighlightLines []int      `json:"highlightLines"`
 	CreatedAt      time.Time  `json:"createdAt"`
 	UpdatedAt      time.Time  `json:"updatedAt"`
 }

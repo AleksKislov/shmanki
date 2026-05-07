@@ -7,7 +7,6 @@ const (
 	CardTypeSignature     CardType = "signature"
 	CardTypeTrace         CardType = "trace"
 	CardTypeLineOrder     CardType = "line_order"
-	CardTypeBlockOrder    CardType = "block_order"
 	CardTypeChooseSnippet CardType = "choose_snippet"
 	CardTypeFixBug        CardType = "fix_bug"
 )
@@ -18,7 +17,7 @@ func DefaultCardType() CardType {
 
 func (t CardType) Valid() bool {
 	switch t {
-	case CardTypeConcept, CardTypeSignature, CardTypeTrace, CardTypeLineOrder, CardTypeBlockOrder, CardTypeChooseSnippet, CardTypeFixBug:
+	case CardTypeConcept, CardTypeSignature, CardTypeTrace, CardTypeLineOrder, CardTypeChooseSnippet, CardTypeFixBug:
 		return true
 	default:
 		return false
@@ -27,7 +26,7 @@ func (t CardType) Valid() bool {
 
 func IsBlockCardType(t CardType) bool {
 	switch t {
-	case CardTypeLineOrder, CardTypeBlockOrder, CardTypeChooseSnippet, CardTypeFixBug:
+	case CardTypeLineOrder, CardTypeChooseSnippet, CardTypeFixBug:
 		return true
 	default:
 		return false

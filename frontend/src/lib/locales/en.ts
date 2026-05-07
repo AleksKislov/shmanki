@@ -119,7 +119,6 @@ export const en: Messages = {
   "deck.generate.preview.cardType": "Card type",
   "deck.generate.preview.correctAnswers": "Correct answers",
   "deck.generate.preview.distractors": "Distractors",
-  "deck.generate.preview.highlightLines": "Highlight lines",
   "deck.generate.preview.progression": "Progression",
   "deck.generate.progression.step0": "Step 0: concept and signatures",
   "deck.generate.progression.step1": "Step 1: trace and key lines",
@@ -135,7 +134,6 @@ export const en: Messages = {
   "object.form.step": "Step",
   "object.form.correctAnswers": "Correct answer tokens (comma-separated)",
   "object.form.distractors": "Distractor tokens (comma-separated)",
-  "object.form.highlightLines": "Highlight lines (comma-separated)",
   "object.form.submit": "Add card",
   "object.form.cancel": "Cancel",
   "object.empty": "No cards yet.",
@@ -173,7 +171,6 @@ export const en: Messages = {
   "cardType.signature": "Signature",
   "cardType.trace": "Trace",
   "cardType.line_order": "Line order",
-  "cardType.block_order": "Block order",
   "cardType.choose_snippet": "Choose snippet",
   "cardType.fix_bug": "Fix bug",
 

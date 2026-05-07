@@ -24,7 +24,6 @@ export default component$(() => {
     step: 0,
     correctAnswersRaw: "",
     distractorsRaw: "",
-    highlightLinesRaw: "",
     submitting: false,
     error: null as string | null,
   });
@@ -48,10 +47,6 @@ export default component$(() => {
         cardForm.correctAnswersRaw.split(",").map((s) => s.trim()).filter(Boolean),
       ];
       const distractors = cardForm.distractorsRaw.split(",").map((s) => s.trim()).filter(Boolean);
-      const highlightLines = cardForm.highlightLinesRaw
-        .split(",")
-        .map((s) => parseInt(s.trim(), 10))
-        .filter((n) => !isNaN(n));
 
       const card = await api.cards.create(
         loc.params["objectId"],
@@ -60,7 +55,6 @@ export default component$(() => {
         cardForm.step,
         correctAnswers,
         distractors,
-        highlightLines,
       );
       if (obj.value) {
         obj.value = { ...obj.value, cards: [...obj.value.cards, card] };
@@ -70,7 +64,6 @@ export default component$(() => {
       cardForm.cardType = "concept";
       cardForm.correctAnswersRaw = "";
       cardForm.distractorsRaw = "";
-      cardForm.highlightLinesRaw = "";
       cardForm.step = 0;
     } catch (e) {
       cardForm.error = e instanceof Error ? e.message : t(locale.value, "common.error");
@@ -110,7 +103,6 @@ export default component$(() => {
       cardType: card.cardType,
       correctAnswers: card.correctAnswers,
       distractors: card.distractors,
-      highlightLines: card.highlightLines,
       step: card.step,
       content: obj.value.content,
       contentType: obj.value.contentType,
@@ -238,7 +230,7 @@ export default component$(() => {
 
       {/* Reference content */}
       <div class="rounded-box border border-base-300 overflow-hidden">
-        <CodeBlock code={o.content} contentType={o.contentType} highlightLines={[]} />
+        <CodeBlock code={o.content} contentType={o.contentType} />
       </div>
 
       {/* Cards section */}
@@ -287,7 +279,6 @@ export default component$(() => {
                     "signature",
                     "trace",
                     "line_order",
-                    "block_order",
                     "choose_snippet",
                     "fix_bug",
                   ].map((cardType) => (
@@ -307,18 +298,6 @@ export default component$(() => {
                   min={0}
                   value={cardForm.step}
                   onInput$={(_, el) => (cardForm.step = parseInt(el.value, 10) || 0)}
-                />
-              </label>
-              <label class="form-control">
-                <div class="label">
-                  <span class="label-text">{t(locale.value, "object.form.highlightLines")}</span>
-                </div>
-                <input
-                  class="input input-bordered"
-                  type="text"
-                  value={cardForm.highlightLinesRaw}
-                  onInput$={(_, el) => (cardForm.highlightLinesRaw = el.value)}
-                  placeholder="1, 5, 6"
                 />
               </label>
             </div>

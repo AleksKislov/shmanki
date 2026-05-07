@@ -87,7 +87,6 @@ SELECT
     c.card_type,
     c.correct_answers,
     c.distractors,
-    c.highlight_lines,
     c.step,
     cs.stability,
     cs.difficulty,
@@ -478,14 +477,12 @@ func scanReviewCard(rows pgx.Rows) (ReviewCard, error) {
 	var item ReviewCard
 	var rawAnswers []byte
 	var rawDistractors []byte
-	var rawHighlight []byte
 	if err := rows.Scan(
 		&item.CardID,
 		&item.Front,
 		&item.CardType,
 		&rawAnswers,
 		&rawDistractors,
-		&rawHighlight,
 		&item.Step,
 		&item.State.Stability,
 		&item.State.Difficulty,
@@ -511,9 +508,6 @@ func scanReviewCard(rows pgx.Rows) (ReviewCard, error) {
 	}
 	if err := json.Unmarshal(rawDistractors, &item.Distractors); err != nil {
 		return ReviewCard{}, fmt.Errorf("decode review card distractors: %w", err)
-	}
-	if err := json.Unmarshal(rawHighlight, &item.HighlightLines); err != nil {
-		return ReviewCard{}, fmt.Errorf("decode review card highlight lines: %w", err)
 	}
 	return item, nil
 }

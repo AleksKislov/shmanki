@@ -106,7 +106,7 @@ For code-oriented info objects, cards should follow this progression:
 - Step 0: `concept` and `signature` cards for purpose, method list, parameter types, and return types.
 - Step 1: `trace` cards for control flow, invariants, and the meaning of key lines.
 - Step 2: `line_order` cards for reconstructing a method from individual lines in the correct order.
-- Step 3+: `block_order`, `choose_snippet`, and `fix_bug` cards for larger reconstruction or discrimination tasks.
+- Step 3+: `choose_snippet` and `fix_bug` cards for larger reconstruction or discrimination tasks.
 
 All card types still use the shared ordered-answer model. For simple cards the answer units are short tokens or phrases. For reconstruction cards the answer units are whole code lines or code blocks.
 
@@ -123,7 +123,7 @@ CREATE TABLE cards (
     -- Interaction type and intended learning behavior.
     -- Values:
     -- 'concept' | 'signature' | 'trace' | 'line_order' |
-    -- 'block_order' | 'choose_snippet' | 'fix_bug'
+    -- 'choose_snippet' | 'fix_bug'
 
     step            INT NOT NULL DEFAULT 0,
     -- Unlock order within the info object.
@@ -141,12 +141,6 @@ CREATE TABLE cards (
     -- Array of incorrect answer-unit strings shown alongside correct answers.
     -- Example: ["defer", "func myFunc()", "goroutine", "chan struct{}"]
     -- For reconstruction cards, these may be wrong code lines or wrong code blocks.
-
-    highlight_lines JSONB NOT NULL DEFAULT '[]',
-    -- Line numbers (1-indexed) of info_object.content to highlight
-    -- when this card is being reviewed.
-    -- Example: [11, 12, 13, 14, 15]
-    -- Lines are determined at content-creation time; no extra storage needed in content.
 
     created_at      TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMP NOT NULL DEFAULT NOW()
@@ -328,7 +322,6 @@ SELECT
     c.front,
     c.correct_answers,
     c.distractors,
-    c.highlight_lines,
     c.step,
     cs.stability,
     cs.difficulty,

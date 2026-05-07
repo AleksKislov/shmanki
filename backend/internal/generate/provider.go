@@ -159,13 +159,19 @@ Use contentType as either "text" or the plain language name of the content, such
 For code content, follow this progression:
   - Step 0: concept or signature cards about purpose, methods, signatures, parameter types, and return types.
   - Step 1: trace cards about control flow, invariants, and what key lines do.
-  - Step 2: line_order cards for reconstructing a particular method from individual lines.
-  - Step 3+: block_order, choose_snippet, or fix_bug cards for reconstructing larger code blocks or selecting the correct implementation.
+  - Step 2: line_order cards for reconstructing a single specific method from its individual lines. Never ask about an entire class or file — scope each card to one method only.
+  - Step 3+: choose_snippet or fix_bug cards scoped to a single method: selecting the correct implementation of that method or identifying the bug within it.
   - Every non-trivial code infoObject must include at least one step 0 foundational card, one step 1 trace card, one step 2 line_order card, and one step 3+ reconstruction card.
 Every non-trivial code infoObject must include at least one card from each of those progression levels.
-highlightLines must reference existing 1-indexed lines in content.
 If the content is code, contentType must match the actual language of the code.
-Do not include explanations outside the schema response.`)
+Do not include explanations outside the schema response.
+
+Distractor and answer quality rules — follow these strictly for every card:
+  - Keep each correct answer token short and precise. Test one specific fact per token; do not pack multiple details into a single answer. If the concept has many facets, spread them across multiple cards.
+  - Distractors must be the same length and style as the correct answer. A user must not be able to identify the correct answer by its length, formatting, or level of detail alone.
+  - Distractors must be plausibly wrong: subtly incorrect in a way that requires genuine knowledge to reject. Use the same vocabulary and phrasing as the correct answer but change a key detail — wrong type, inverted condition, off-by-one, incorrect complexity, swapped terms, etc.
+  - Never use obviously nonsensical or unrelated distractors.
+  - For trace and signature cards: distractors should be lines or signatures that could plausibly appear in similar code but contain a specific error.`)
 }
 
 func generationUserPrompt(req llmCompletionRequest) string {
@@ -219,12 +225,12 @@ func generationResponseSchema() map[string]any {
 	cardSchema := map[string]any{
 		"type":                 "object",
 		"additionalProperties": false,
-		"required":             []string{"front", "cardType", "step", "correctAnswers", "distractors", "highlightLines"},
+		"required":             []string{"front", "cardType", "step", "correctAnswers", "distractors"},
 		"properties": map[string]any{
 			"front": nonBlankString,
 			"cardType": map[string]any{
 				"type": "string",
-				"enum": []string{"concept", "signature", "trace", "line_order", "block_order", "choose_snippet", "fix_bug"},
+				"enum": []string{"concept", "signature", "trace", "line_order", "choose_snippet", "fix_bug"},
 			},
 			"step": map[string]any{"type": "integer"},
 			"correctAnswers": map[string]any{
@@ -239,10 +245,6 @@ func generationResponseSchema() map[string]any {
 			"distractors": map[string]any{
 				"type": "array",
 				"items": nonBlankString,
-			},
-			"highlightLines": map[string]any{
-				"type": "array",
-				"items": map[string]any{"type": "integer"},
 			},
 		},
 	}

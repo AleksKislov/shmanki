@@ -119,7 +119,6 @@ export const ru: Messages = {
   "deck.generate.preview.cardType": "Тип карточки",
   "deck.generate.preview.correctAnswers": "Правильные ответы",
   "deck.generate.preview.distractors": "Дистракторы",
-  "deck.generate.preview.highlightLines": "Строки подсветки",
   "deck.generate.preview.progression": "Прогрессия",
   "deck.generate.progression.step0": "Шаг 0: концепция и сигнатуры",
   "deck.generate.progression.step1": "Шаг 1: трассировка и важные строки",
@@ -135,7 +134,6 @@ export const ru: Messages = {
   "object.form.step": "Шаг",
   "object.form.correctAnswers": "Токены правильного ответа (через запятую)",
   "object.form.distractors": "Токены-дистракторы (через запятую)",
-  "object.form.highlightLines": "Строки для подсветки (через запятую)",
   "object.form.submit": "Добавить карточку",
   "object.form.cancel": "Отмена",
   "object.empty": "Карточек пока нет.",
@@ -173,7 +171,6 @@ export const ru: Messages = {
   "cardType.signature": "Сигнатура",
   "cardType.trace": "Трассировка",
   "cardType.line_order": "Порядок строк",
-  "cardType.block_order": "Порядок блоков",
   "cardType.choose_snippet": "Выбор сниппета",
   "cardType.fix_bug": "Исправление ошибки",
 

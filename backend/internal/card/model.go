@@ -25,7 +25,6 @@ type Card struct {
 	Step           int        `json:"step"`
 	CorrectAnswers [][]string `json:"correctAnswers"`
 	Distractors    []string   `json:"distractors"`
-	HighlightLines []int      `json:"highlightLines"`
 	CreatedAt      time.Time  `json:"createdAt"`
 	UpdatedAt      time.Time  `json:"updatedAt"`
 }
@@ -55,7 +54,6 @@ type CreateCardRequest struct {
 	Step           int        `json:"step"`
 	CorrectAnswers [][]string `json:"correctAnswers"`
 	Distractors    []string   `json:"distractors"`
-	HighlightLines []int      `json:"highlightLines"`
 }
 
 type UpdateCardRequest struct {
@@ -64,5 +62,4 @@ type UpdateCardRequest struct {
 	Step           int        `json:"step"`
 	CorrectAnswers [][]string `json:"correctAnswers"`
 	Distractors    []string   `json:"distractors"`
-	HighlightLines []int      `json:"highlightLines"`
 }

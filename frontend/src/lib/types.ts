@@ -8,7 +8,6 @@ export type CardType =
   | "signature"
   | "trace"
   | "line_order"
-  | "block_order"
   | "choose_snippet"
   | "fix_bug";
 
@@ -64,7 +63,6 @@ export interface Card {
   step: number;
   correctAnswers: string[][];
   distractors: string[];
-  highlightLines: number[];
   createdAt: string;
   updatedAt: string;
 }
@@ -94,7 +92,6 @@ export interface ReviewCard {
   cardType: CardType;
   correctAnswers: string[][];
   distractors: string[];
-  highlightLines: number[];
   step: number;
   content: string;
   contentType: ContentType;
@@ -152,7 +149,6 @@ export interface GeneratedCard {
   step: number;
   correctAnswers: string[][];
   distractors: string[];
-  highlightLines: number[];
 }
 
 export interface GeneratedInfoObject {

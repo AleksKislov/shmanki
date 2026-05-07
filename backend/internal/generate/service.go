@@ -245,7 +245,7 @@ func validateSuggestedObjects(items []SuggestedObject) error {
 				if card.Step >= 2 {
 					hasLineOrderCard = true
 				}
-			case cardpkg.CardTypeBlockOrder, cardpkg.CardTypeChooseSnippet, cardpkg.CardTypeFixBug:
+			case cardpkg.CardTypeChooseSnippet, cardpkg.CardTypeFixBug:
 				if card.Step >= 3 {
 					hasReconstructionCard = true
 				}

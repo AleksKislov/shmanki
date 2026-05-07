@@ -10,7 +10,7 @@ Key differentiators vs Anki:
 - Custom FSRS implementation with step-based card unlocking
 - Cards use token-selection answers (click tokens in order) instead of self-rating buttons
 - Automatic card generation from a topic via LLM
-- InfoObjects: cards are grouped under reference content (code/text) with line highlighting
+- InfoObjects: cards are grouped under reference content (code/text)
 - User preferred language drives both UI localization and the default language for newly created decks
 - For AI generation, discipline and content_type are inferred from the user's prompt unless explicitly supplied by an internal caller
 
@@ -94,12 +94,11 @@ User
               ├── content_type: string   (text | typescript | go | python | english | chinese | ...)
               ├── language: inherited    (inherits from Deck.language_code)
               └── Card (a question about the info object)
-                    ├── card_type: string       (concept | signature | trace | line_order | block_order | choose_snippet | fix_bug)
+                    ├── card_type: string       (concept | signature | trace | line_order | choose_snippet | fix_bug)
                     ├── step: int              (unlock order, 0 = always available)
                     ├── correct_answers: JSONB ([[token, token, ...], ...])
                     ├── distractors: JSONB     ([token, token, ...])
                     ├── language: inherited    (inherits from Deck.language_code)
-                    └── highlight_lines: JSONB ([1, 5, 6, ...])
 
 CardState (per Card per User — FSRS parameters)
  ├── stability: float       (S: days until R drops to 0.9)
@@ -160,7 +159,7 @@ For code-heavy info objects, generation and review should follow this progressio
 1. Step 0: `concept` and `signature` cards for purpose, methods, parameter types, and return types.
 2. Step 1: `trace` cards for control flow, invariants, and the role of important lines.
 3. Step 2: `line_order` cards for reconstructing one method line-by-line.
-4. Step 3+: `block_order`, `choose_snippet`, and `fix_bug` cards for larger reconstruction and discrimination tasks.
+4. Step 3+: `choose_snippet` and `fix_bug` cards for larger reconstruction and discrimination tasks.
 
 This progression is preferred over pure fact-recall when the source material is an algorithm, data structure, or non-trivial code implementation.
 
@@ -197,7 +196,6 @@ See `specs/i18n.md` for language ownership, localization rules, and scope limits
 - [ ] Review session endpoints
 - [ ] Step unlock logic
 - [ ] Token answer component (frontend)
-- [ ] Code block with line highlighting (frontend)
 - [ ] LLM generation endpoint
 - [ ] Stats endpoints
 - [ ] User language preference

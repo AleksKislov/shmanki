@@ -107,7 +107,7 @@ WHERE io.id = $1 AND d.user_id = $2
 	}
 
 	const cardsQuery = `
-SELECT id, info_object_id, front, card_type, step, correct_answers, distractors, highlight_lines, created_at, updated_at
+SELECT id, info_object_id, front, card_type, step, correct_answers, distractors, created_at, updated_at
 FROM cards
 WHERE info_object_id = $1
 ORDER BY step ASC, created_at ASC
@@ -198,25 +198,20 @@ func (r *Repository) CreateCard(ctx context.Context, userID uuid.UUID, objectID 
 	if err != nil {
 		return nil, fmt.Errorf("marshal distractors: %w", err)
 	}
-	highlightJSON, err := json.Marshal(req.HighlightLines)
-	if err != nil {
-		return nil, fmt.Errorf("marshal highlight lines: %w", err)
-	}
 
 	const insertCardQuery = `
-INSERT INTO cards (info_object_id, front, card_type, step, correct_answers, distractors, highlight_lines)
-SELECT io.id, $3, $4, $5, $6, $7, $8
+INSERT INTO cards (info_object_id, front, card_type, step, correct_answers, distractors)
+SELECT io.id, $3, $4, $5, $6, $7
 FROM info_objects io
 JOIN decks d ON d.id = io.deck_id
 WHERE io.id = $1 AND d.user_id = $2
-RETURNING id, info_object_id, front, card_type, step, correct_answers, distractors, highlight_lines, created_at, updated_at
+RETURNING id, info_object_id, front, card_type, step, correct_answers, distractors, created_at, updated_at
 `
 
 	var created Card
 	var rawAnswers []byte
 	var rawDistractors []byte
-	var rawHighlight []byte
-	err = tx.QueryRow(ctx, insertCardQuery, objectID, userID, req.Front, req.CardType, req.Step, answersJSON, distractorsJSON, highlightJSON).Scan(
+	err = tx.QueryRow(ctx, insertCardQuery, objectID, userID, req.Front, req.CardType, req.Step, answersJSON, distractorsJSON).Scan(
 		&created.ID,
 		&created.InfoObjectID,
 		&created.Front,
@@ -224,7 +219,6 @@ RETURNING id, info_object_id, front, card_type, step, correct_answers, distracto
 		&created.Step,
 		&rawAnswers,
 		&rawDistractors,
-		&rawHighlight,
 		&created.CreatedAt,
 		&created.UpdatedAt,
 	)
@@ -235,7 +229,7 @@ RETURNING id, info_object_id, front, card_type, step, correct_answers, distracto
 		return nil, fmt.Errorf("insert card: %w", err)
 	}
 
-	if err := decodeCardJSON(&created, rawAnswers, rawDistractors, rawHighlight); err != nil {
+	if err := decodeCardJSON(&created, rawAnswers, rawDistractors); err != nil {
 		return nil, err
 	}
 
@@ -268,25 +262,20 @@ func (r *Repository) UpdateCard(ctx context.Context, userID uuid.UUID, cardID uu
 	if err != nil {
 		return nil, fmt.Errorf("marshal distractors: %w", err)
 	}
-	highlightJSON, err := json.Marshal(req.HighlightLines)
-	if err != nil {
-		return nil, fmt.Errorf("marshal highlight lines: %w", err)
-	}
 
 	const query = `
 UPDATE cards c
-SET front = $3, card_type = $4, step = $5, correct_answers = $6, distractors = $7, highlight_lines = $8, updated_at = NOW()
+SET front = $3, card_type = $4, step = $5, correct_answers = $6, distractors = $7, updated_at = NOW()
 FROM info_objects io
 JOIN decks d ON d.id = io.deck_id
 WHERE c.info_object_id = io.id AND c.id = $1 AND d.user_id = $2
-RETURNING c.id, c.info_object_id, c.front, c.card_type, c.step, c.correct_answers, c.distractors, c.highlight_lines, c.created_at, c.updated_at
+RETURNING c.id, c.info_object_id, c.front, c.card_type, c.step, c.correct_answers, c.distractors, c.created_at, c.updated_at
 `
 
 	var updated Card
 	var rawAnswers []byte
 	var rawDistractors []byte
-	var rawHighlight []byte
-	err = r.db.QueryRow(ctx, query, cardID, userID, req.Front, req.CardType, req.Step, answersJSON, distractorsJSON, highlightJSON).Scan(
+	err = r.db.QueryRow(ctx, query, cardID, userID, req.Front, req.CardType, req.Step, answersJSON, distractorsJSON).Scan(
 		&updated.ID,
 		&updated.InfoObjectID,
 		&updated.Front,
@@ -294,7 +283,6 @@ RETURNING c.id, c.info_object_id, c.front, c.card_type, c.step, c.correct_answer
 		&updated.Step,
 		&rawAnswers,
 		&rawDistractors,
-		&rawHighlight,
 		&updated.CreatedAt,
 		&updated.UpdatedAt,
 	)
@@ -305,7 +293,7 @@ RETURNING c.id, c.info_object_id, c.front, c.card_type, c.step, c.correct_answer
 		return nil, fmt.Errorf("update card: %w", err)
 	}
 
-	if err := decodeCardJSON(&updated, rawAnswers, rawDistractors, rawHighlight); err != nil {
+	if err := decodeCardJSON(&updated, rawAnswers, rawDistractors); err != nil {
 		return nil, err
 	}
 
@@ -334,25 +322,21 @@ func scanCard(rows pgx.Rows) (Card, error) {
 	var item Card
 	var rawAnswers []byte
 	var rawDistractors []byte
-	var rawHighlight []byte
-	if err := rows.Scan(&item.ID, &item.InfoObjectID, &item.Front, &item.CardType, &item.Step, &rawAnswers, &rawDistractors, &rawHighlight, &item.CreatedAt, &item.UpdatedAt); err != nil {
+	if err := rows.Scan(&item.ID, &item.InfoObjectID, &item.Front, &item.CardType, &item.Step, &rawAnswers, &rawDistractors, &item.CreatedAt, &item.UpdatedAt); err != nil {
 		return Card{}, fmt.Errorf("scan card: %w", err)
 	}
-	if err := decodeCardJSON(&item, rawAnswers, rawDistractors, rawHighlight); err != nil {
+	if err := decodeCardJSON(&item, rawAnswers, rawDistractors); err != nil {
 		return Card{}, err
 	}
 	return item, nil
 }
 
-func decodeCardJSON(item *Card, rawAnswers []byte, rawDistractors []byte, rawHighlight []byte) error {
+func decodeCardJSON(item *Card, rawAnswers []byte, rawDistractors []byte) error {
 	if err := json.Unmarshal(rawAnswers, &item.CorrectAnswers); err != nil {
 		return fmt.Errorf("decode correct answers: %w", err)
 	}
 	if err := json.Unmarshal(rawDistractors, &item.Distractors); err != nil {
 		return fmt.Errorf("decode distractors: %w", err)
-	}
-	if err := json.Unmarshal(rawHighlight, &item.HighlightLines); err != nil {
-		return fmt.Errorf("decode highlight lines: %w", err)
 	}
 	return nil
 }

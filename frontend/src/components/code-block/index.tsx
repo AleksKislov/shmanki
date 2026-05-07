@@ -5,7 +5,6 @@ import type { ContentType } from "~/lib/types";
 interface Props {
   code: string;
   contentType: ContentType;
-  highlightLines: number[];
 }
 
 const langAliases: Record<string, string> = {
@@ -29,32 +28,16 @@ function normalizeLanguage(contentType: ContentType) {
   return langAliases[normalized] ?? normalized;
 }
 
-export const CodeBlock = component$<Props>(({ code, contentType, highlightLines }) => {
+export const CodeBlock = component$<Props>(({ code, contentType }) => {
   const html = useSignal("");
 
   useTask$(async ({ track }) => {
     const trackedCode = track(() => code);
     const trackedContentType = track(() => contentType);
-    const trackedHighlightLines = track(() => highlightLines.join(","));
-    const highlightLineSet = new Set(
-      trackedHighlightLines
-        .split(",")
-        .filter(Boolean)
-        .map((value) => Number(value)),
-    );
 
     html.value = await codeToHtml(trackedCode, {
       lang: normalizeLanguage(trackedContentType),
       theme: "github-dark",
-      transformers: [
-        {
-          line(node, line) {
-            if (highlightLineSet.has(line)) {
-              (node.properties as Record<string, string>)["data-highlighted"] = "true";
-            }
-          },
-        },
-      ],
     });
   });
 

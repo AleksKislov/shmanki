@@ -5,7 +5,6 @@ CREATE TABLE cards (
     step INT NOT NULL DEFAULT 0,
     correct_answers JSONB NOT NULL DEFAULT '[]'::jsonb,
     distractors JSONB NOT NULL DEFAULT '[]'::jsonb,
-    highlight_lines JSONB NOT NULL DEFAULT '[]'::jsonb,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

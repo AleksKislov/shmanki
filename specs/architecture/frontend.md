@@ -247,11 +247,11 @@ This is the most complex UI flow in the app.
 2. Store cards in useStore({ queue: ReviewCard[], current: 0 })
         ↓
 3. Show CardReview component for queue[current]:
-    ├── CodeBlock: full info object content with highlight_lines for this card's step
+    ├── CodeBlock: full info object content for this card's step
     ├── Card front: the question text
     └── Typed answer component selected by cardType
         ├── TokenAnswer for concept / signature / trace
-        └── BlockOrderAnswer for line_order / block_order / choose_snippet / fix_bug
+        └── BlockOrderAnswer for line_order / choose_snippet / fix_bug
          ↓
 4. User arranges answer units in order
          ↓
@@ -276,8 +276,7 @@ This is the most complex UI flow in the app.
 ```
 routes/review/index.tsx
   └── CardReview                     ← orchestrates the full review UI
-        ├── CodeBlock                ← info object content + highlighted lines
-        │     (highlight_lines from current card)
+        ├── CodeBlock                ← info object content
         ├── <h2> card.front </h2>    ← the question
         ├── TokenAnswer              ← concept/signature/trace cards
         ├── BlockOrderAnswer         ← line/block ordering and snippet cards
@@ -315,12 +314,10 @@ interface ReviewCard {
     | "signature"
     | "trace"
     | "line_order"
-    | "block_order"
     | "choose_snippet"
     | "fix_bug";
   correctAnswers: string[][];
   distractors: string[];
-  highlightLines: number[];
   step: number;
   content: string;
   contentType: ContentType;

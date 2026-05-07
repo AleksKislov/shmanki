@@ -30,7 +30,6 @@ type ReviewCard struct {
 	CardType       cardpkg.CardType `json:"cardType"`
 	CorrectAnswers [][]string    `json:"correctAnswers"`
 	Distractors    []string      `json:"distractors"`
-	HighlightLines []int         `json:"highlightLines"`
 	Step           int           `json:"step"`
 	Content        string        `json:"content"`
 	ContentType    string        `json:"contentType"`

@@ -102,25 +102,20 @@ func (r *Repository) CreateCard(ctx context.Context, tx pgx.Tx, userID uuid.UUID
 	if err != nil {
 		return nil, fmt.Errorf("marshal card distractors: %w", err)
 	}
-	highlightJSON, err := json.Marshal(card.HighlightLines)
-	if err != nil {
-		return nil, fmt.Errorf("marshal card highlight lines: %w", err)
-	}
 
 	const insertCardQuery = `
-INSERT INTO cards (info_object_id, front, card_type, step, correct_answers, distractors, highlight_lines)
-SELECT io.id, $3, $4, $5, $6, $7, $8
+INSERT INTO cards (info_object_id, front, card_type, step, correct_answers, distractors)
+SELECT io.id, $3, $4, $5, $6, $7
 FROM info_objects io
 JOIN decks d ON d.id = io.deck_id
 WHERE io.id = $1 AND d.user_id = $2
-RETURNING id, info_object_id, front, card_type, step, correct_answers, distractors, highlight_lines, created_at, updated_at
+RETURNING id, info_object_id, front, card_type, step, correct_answers, distractors, created_at, updated_at
 `
 
 	var item SavedCard
 	var rawAnswers []byte
 	var rawDistractors []byte
-	var rawHighlights []byte
-	if err := tx.QueryRow(ctx, insertCardQuery, infoObjectID, userID, card.Front, card.CardType, card.Step, answersJSON, distractorsJSON, highlightJSON).Scan(
+	if err := tx.QueryRow(ctx, insertCardQuery, infoObjectID, userID, card.Front, card.CardType, card.Step, answersJSON, distractorsJSON).Scan(
 		&item.ID,
 		&item.InfoObjectID,
 		&item.Front,
@@ -128,7 +123,6 @@ RETURNING id, info_object_id, front, card_type, step, correct_answers, distracto
 		&item.Step,
 		&rawAnswers,
 		&rawDistractors,
-		&rawHighlights,
 		&item.CreatedAt,
 		&item.UpdatedAt,
 	); err != nil {
@@ -143,9 +137,6 @@ RETURNING id, info_object_id, front, card_type, step, correct_answers, distracto
 	}
 	if err := json.Unmarshal(rawDistractors, &item.Distractors); err != nil {
 		return nil, fmt.Errorf("decode saved distractors: %w", err)
-	}
-	if err := json.Unmarshal(rawHighlights, &item.HighlightLines); err != nil {
-		return nil, fmt.Errorf("decode saved highlight lines: %w", err)
 	}
 
 	const insertStatesQuery = `

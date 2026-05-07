@@ -402,7 +402,7 @@ export default component$(() => {
                             {t(locale.value, "deck.generate.preview.content")}
                           </p>
                           <div class="overflow-hidden rounded-box border border-base-300 bg-base-300/40">
-                            <CodeBlock code={obj.content} contentType={obj.contentType} highlightLines={[]} />
+                            <CodeBlock code={obj.content} contentType={obj.contentType} />
                           </div>
                         </div>
 
@@ -661,10 +661,6 @@ const GeneratedCardPreview = component$<GeneratedCardPreviewProps>(({ card, loca
         <PreviewField
           label={t(locale, "deck.generate.preview.distractors")}
           value={card.distractors.length > 0 ? card.distractors.join(", ") : "-"}
-        />
-        <PreviewField
-          label={t(locale, "deck.generate.preview.highlightLines")}
-          value={card.highlightLines.length > 0 ? card.highlightLines.join(", ") : "-"}
         />
       </div>
     </div>

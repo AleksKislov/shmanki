@@ -56,7 +56,6 @@ export const CardReview = component$<Props>(({ card, index, total, locale, onAns
           <CodeBlock
             code={card.content}
             contentType={card.contentType}
-            highlightLines={card.highlightLines}
           />
         </div>
       )}

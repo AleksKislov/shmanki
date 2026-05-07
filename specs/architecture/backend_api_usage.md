@@ -272,7 +272,6 @@ Response:
       "step": 0,
       "correctAnswers": [["go", "worker()"]],
       "distractors": ["defer", "func", "chan"],
-      "highlightLines": [5],
       "createdAt": "2026-03-27T12:00:00Z",
       "updatedAt": "2026-03-27T12:00:00Z"
     }
@@ -322,7 +321,6 @@ Request:
   "step": 0,
   "correctAnswers": [["go", "worker()"]],
   "distractors": ["defer", "func", "chan"],
-  "highlightLines": [5]
 }
 ```
 
@@ -339,7 +337,6 @@ Request:
   "step": 1,
   "correctAnswers": [["worker()"]],
   "distractors": ["main()", "run()", "job()"],
-  "highlightLines": [5]
 }
 ```
 
@@ -371,7 +368,6 @@ Response:
     "cardType": "concept",
     "correctAnswers": [["go", "worker()"]],
     "distractors": ["defer", "func", "chan"],
-    "highlightLines": [5],
     "step": 0,
     "content": "func worker() {}",
     "contentType": "go",
@@ -507,7 +503,7 @@ For code material, generated cards should follow this progression:
 1. Step 0: `concept` / `signature`
 2. Step 1: `trace`
 3. Step 2: `line_order`
-4. Step 3+: `block_order`, `choose_snippet`, `fix_bug`
+4. Step 3+: `choose_snippet`, `fix_bug`
 
 Request:
 
@@ -544,7 +540,6 @@ Request:
           "step": 0,
           "correctAnswers": [["go", "worker()"]],
           "distractors": ["defer", "func", "chan"],
-          "highlightLines": [5]
         }
       ]
     }
@@ -571,7 +566,6 @@ Response:
           "step": 0,
           "correctAnswers": [["go", "worker()"]],
           "distractors": ["defer", "func", "chan"],
-          "highlightLines": [5]
         }
       ]
     }
@@ -598,7 +592,6 @@ Response:
           "step": 0,
           "correctAnswers": [["go", "worker()"]],
           "distractors": ["defer", "func", "chan"],
-          "highlightLines": [5]
         }
       ]
     }
@@ -631,7 +624,6 @@ Request:
           "step": 0,
           "correctAnswers": [["go", "worker()"]],
           "distractors": ["defer", "func", "chan"],
-          "highlightLines": [5]
         }
       ]
     }
@@ -662,7 +654,6 @@ Response:
           "step": 0,
           "correctAnswers": [["go", "worker()"]],
           "distractors": ["defer", "func", "chan"],
-          "highlightLines": [5],
           "createdAt": "2026-03-27T12:00:00Z",
           "updatedAt": "2026-03-27T12:00:00Z"
         }

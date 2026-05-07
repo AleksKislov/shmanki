@@ -149,7 +149,6 @@ export interface Card {
   step: number;
   correctAnswers: string[][];
   distractors: string[];
-  highlightLines: number[];
 }
 
 export interface CardState {
@@ -371,7 +370,7 @@ export const TokenAnswer = component$<Props>(
 
 ## Code Block with Line Highlighting
 
-Uses **Shiki** for syntax highlighting with line-level highlighting:
+Uses **Shiki** for syntax highlighting:
 
 ```bash
 npm install shiki
@@ -386,7 +385,6 @@ import type { ContentType } from "~/lib/types";
 interface Props {
   code: string;
   contentType: ContentType;
-  highlightLines: number[]; // 1-indexed line numbers to highlight
 }
 
 const langAliases: Record<string, string> = {
@@ -399,22 +397,13 @@ const langAliases: Record<string, string> = {
   golang: "go",
 };
 
-export const CodeBlock = component$<Props>(({ code, contentType, highlightLines }) => {
+export const CodeBlock = component$<Props>(({ code, contentType }) => {
   const html = useSignal("");
 
   useTask$(async () => {
     html.value = await codeToHtml(code, {
       lang: langAliases[contentType.toLowerCase()] ?? contentType.toLowerCase() ?? "text",
       theme: "github-dark",
-      transformers: [
-        {
-          line(node, line) {
-            if (highlightLines.includes(line)) {
-              node.properties["data-highlighted"] = "true";
-            }
-          },
-        },
-      ],
     });
   });
 

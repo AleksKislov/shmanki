@@ -98,11 +98,10 @@ export const api = {
       step: number,
       correctAnswers: string[][],
       distractors: string[],
-      highlightLines: number[],
     ) =>
       request<Card>(`/api/v1/objects/${objectId}/cards`, {
         method: "POST",
-        body: JSON.stringify({ front, cardType, step, correctAnswers, distractors, highlightLines }),
+        body: JSON.stringify({ front, cardType, step, correctAnswers, distractors }),
       }),
     update: (
       id: string,
@@ -111,11 +110,10 @@ export const api = {
       step: number,
       correctAnswers: string[][],
       distractors: string[],
-      highlightLines: number[],
     ) =>
       request<Card>(`/api/v1/cards/${id}`, {
         method: "PUT",
-        body: JSON.stringify({ front, cardType, step, correctAnswers, distractors, highlightLines }),
+        body: JSON.stringify({ front, cardType, step, correctAnswers, distractors }),
       }),
     delete: (id: string) => request<{ status: string }>(`/api/v1/cards/${id}`, { method: "DELETE" }),
   },
