@@ -252,7 +252,7 @@ func validateSuggestedObjects(items []SuggestedObject) error {
 			}
 		}
 
-		if strings.HasPrefix(object.ContentType, "code_") {
+		if isCodeDiscipline(object.Discipline) {
 			if !hasFoundationalCard || !hasTraceCard || !hasLineOrderCard || !hasReconstructionCard {
 				return fmt.Errorf("%w: code info objects must follow the progression with foundational, trace, line-order, and reconstruction cards", ErrInvalidSuggestion)
 			}
@@ -260,6 +260,11 @@ func validateSuggestedObjects(items []SuggestedObject) error {
 	}
 
 	return nil
+}
+
+func isCodeDiscipline(discipline string) bool {
+	d := strings.ToLower(strings.TrimSpace(discipline))
+	return d == "programming" || d == "computer science"
 }
 
 func totalCards(items []SuggestedObject) int {
