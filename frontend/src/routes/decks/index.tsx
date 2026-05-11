@@ -96,23 +96,19 @@ export default component$(() => {
               </div>
             )}
             <div class='grid gap-4 sm:grid-cols-2'>
-              <label class='form-control'>
-                <div class='label'>
-                  <span class='label-text'>{t(locale.value, "decks.form.title")}</span>
-                </div>
+              <fieldset class='fieldset'>
+                <legend class='fieldset-legend'>{t(locale.value, "decks.form.title")}</legend>
                 <input
-                  class='input input-bordered'
+                  class='input input-bordered w-full'
                   type='text'
                   value={form.title}
                   onInput$={(_, el) => (form.title = el.value)}
                 />
-              </label>
-              <label class='form-control'>
-                <div class='label'>
-                  <span class='label-text'>{t(locale.value, "decks.form.language")}</span>
-                </div>
+              </fieldset>
+              <fieldset class='fieldset'>
+                <legend class='fieldset-legend'>{t(locale.value, "decks.form.language")}</legend>
                 <select
-                  class='select select-bordered'
+                  class='select select-bordered w-full'
                   value={form.languageCode}
                   onChange$={(_, el) => (form.languageCode = el.value as LanguageCode)}
                 >
@@ -122,19 +118,17 @@ export default component$(() => {
                     </option>
                   ))}
                 </select>
-              </label>
+              </fieldset>
             </div>
-            <label class='form-control'>
-              <div class='label'>
-                <span class='label-text'>{t(locale.value, "decks.form.description")}</span>
-              </div>
+            <fieldset class='fieldset'>
+              <legend class='fieldset-legend'>{t(locale.value, "decks.form.description")}</legend>
               <textarea
-                class='textarea textarea-bordered'
+                class='textarea textarea-bordered w-full'
                 value={form.description}
                 onInput$={(_, el) => (form.description = el.value)}
                 rows={2}
               />
-            </label>
+            </fieldset>
             <div class='flex gap-2'>
               <button
                 class='btn btn-primary btn-sm'

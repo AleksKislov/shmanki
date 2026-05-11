@@ -1,6 +1,6 @@
 import { $, component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
-import { setLocale, setToken, setUser, getToken } from "~/lib/auth";
+import { setLocale, setToken, setUser, getToken, getLocale } from "~/lib/auth";
 import { api } from "~/lib/api";
 import { t } from "~/lib/i18n";
 import type { LanguageCode } from "~/lib/types";
@@ -14,7 +14,7 @@ export default component$(() => {
   const loading = useSignal(false);
 
   useVisibleTask$(() => {
-    // redirect if already authed
+    locale.value = getLocale();
     if (getToken()) {
       nav("/decks");
     }
@@ -48,25 +48,21 @@ export default component$(() => {
             </div>
           )}
 
-          <label class="form-control">
-            <div class="label">
-              <span class="label-text">{t(locale.value, "auth.login.email")}</span>
-            </div>
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend">{t(locale.value, "auth.login.email")}</legend>
             <input
-              class="input input-bordered"
+              class="input input-bordered w-full"
               type="email"
               value={email.value}
               onInput$={(_, el) => (email.value = el.value)}
               disabled={loading.value}
             />
-          </label>
+          </fieldset>
 
-          <label class="form-control">
-            <div class="label">
-              <span class="label-text">{t(locale.value, "auth.login.password")}</span>
-            </div>
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend">{t(locale.value, "auth.login.password")}</legend>
             <input
-              class="input input-bordered"
+              class="input input-bordered w-full"
               type="password"
               value={password.value}
               onInput$={(_, el) => (password.value = el.value)}
@@ -75,7 +71,7 @@ export default component$(() => {
                 if (e.key === "Enter") handleSubmit$();
               }}
             />
-          </label>
+          </fieldset>
 
           <button
             class="btn btn-primary"

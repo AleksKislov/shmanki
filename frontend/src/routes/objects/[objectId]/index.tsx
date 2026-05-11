@@ -253,24 +253,20 @@ export default component$(() => {
                 <span>{cardForm.error}</span>
               </div>
             )}
-            <label class="form-control">
-              <div class="label">
-                <span class="label-text">{t(locale.value, "object.form.front")}</span>
-              </div>
+            <fieldset class="fieldset">
+              <legend class="fieldset-legend">{t(locale.value, "object.form.front")}</legend>
               <input
-                class="input input-bordered"
+                class="input input-bordered w-full"
                 type="text"
                 value={cardForm.front}
                 onInput$={(_, el) => (cardForm.front = el.value)}
               />
-            </label>
+            </fieldset>
             <div class="grid gap-4 sm:grid-cols-2">
-              <label class="form-control">
-                <div class="label">
-                  <span class="label-text">{t(locale.value, "object.form.cardType")}</span>
-                </div>
+              <fieldset class="fieldset">
+                <legend class="fieldset-legend">{t(locale.value, "object.form.cardType")}</legend>
                 <select
-                  class="select select-bordered"
+                  class="select select-bordered w-full"
                   value={cardForm.cardType}
                   onChange$={(_, el) => (cardForm.cardType = el.value as CardType)}
                 >
@@ -287,44 +283,38 @@ export default component$(() => {
                     </option>
                   ))}
                 </select>
-              </label>
-              <label class="form-control">
-                <div class="label">
-                  <span class="label-text">{t(locale.value, "object.form.step")}</span>
-                </div>
+              </fieldset>
+              <fieldset class="fieldset">
+                <legend class="fieldset-legend">{t(locale.value, "object.form.step")}</legend>
                 <input
-                  class="input input-bordered"
+                  class="input input-bordered w-full"
                   type="number"
                   min={0}
                   value={cardForm.step}
                   onInput$={(_, el) => (cardForm.step = parseInt(el.value, 10) || 0)}
                 />
-              </label>
+              </fieldset>
             </div>
-            <label class="form-control">
-              <div class="label">
-                <span class="label-text">{t(locale.value, "object.form.correctAnswers")}</span>
-              </div>
+            <fieldset class="fieldset">
+              <legend class="fieldset-legend">{t(locale.value, "object.form.correctAnswers")}</legend>
               <input
-                class="input input-bordered"
+                class="input input-bordered w-full"
                 type="text"
                 value={cardForm.correctAnswersRaw}
                 onInput$={(_, el) => (cardForm.correctAnswersRaw = el.value)}
                 placeholder="go, worker()"
               />
-            </label>
-            <label class="form-control">
-              <div class="label">
-                <span class="label-text">{t(locale.value, "object.form.distractors")}</span>
-              </div>
+            </fieldset>
+            <fieldset class="fieldset">
+              <legend class="fieldset-legend">{t(locale.value, "object.form.distractors")}</legend>
               <input
-                class="input input-bordered"
+                class="input input-bordered w-full"
                 type="text"
                 value={cardForm.distractorsRaw}
                 onInput$={(_, el) => (cardForm.distractorsRaw = el.value)}
                 placeholder="defer, func, chan"
               />
-            </label>
+            </fieldset>
             <div class="flex gap-2">
               <button
                 class="btn btn-primary btn-sm"

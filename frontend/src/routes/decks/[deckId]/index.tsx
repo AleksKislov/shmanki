@@ -5,7 +5,7 @@ import { api } from "~/lib/api";
 import { getLocale } from "~/lib/auth";
 import { getCardTypeLabel, isBlockInteraction } from "~/lib/card-types";
 import { t, getLocaleLabel, LANGUAGE_OPTIONS } from "~/lib/i18n";
-import type { DeckDetail, DeckStats, GeneratedCard, InfoObject, LanguageCode } from "~/lib/types";
+import type { DeckDetail, DeckStats, GeneratedCard, LanguageCode } from "~/lib/types";
 
 export default component$(() => {
   const loc = useLocation();
@@ -76,7 +76,12 @@ export default component$(() => {
           ...deck.value,
           infoObjects: [
             ...deck.value.infoObjects,
-            { id: obj.id, title: obj.title, discipline: obj.discipline, contentType: obj.contentType },
+            {
+              id: obj.id,
+              title: obj.title,
+              discipline: obj.discipline,
+              contentType: obj.contentType,
+            },
           ],
         };
       }
@@ -200,15 +205,15 @@ export default component$(() => {
 
   if (loading.value) {
     return (
-      <div class="flex justify-center py-20">
-        <span class="loading loading-spinner loading-lg" />
+      <div class='flex justify-center py-20'>
+        <span class='loading loading-spinner loading-lg' />
       </div>
     );
   }
 
   if (error.value || !deck.value) {
     return (
-      <div class="alert alert-error">
+      <div class='alert alert-error'>
         <span>{error.value ?? t(locale.value, "common.error")}</span>
       </div>
     );
@@ -217,43 +222,41 @@ export default component$(() => {
   const d = deck.value;
 
   return (
-    <main class="flex flex-col gap-6">
+    <main class='flex flex-col gap-6'>
       {/* Header */}
-      <div class="flex flex-wrap items-start justify-between gap-4">
-        <div class="flex flex-col gap-1">
-          <Link class="link link-hover text-sm text-base-content/60" href="/decks">
+      <div class='flex flex-wrap items-start justify-between gap-4'>
+        <div class='flex flex-col gap-1'>
+          <Link class='link link-hover text-sm text-base-content/60' href='/decks'>
             ← {t(locale.value, "deck.back")}
           </Link>
-          <div class="flex items-center gap-3">
-            <h1 class="text-3xl font-semibold">{d.title}</h1>
-            <span class="badge badge-outline">{d.languageCode}</span>
+          <div class='flex items-center gap-3'>
+            <h1 class='text-3xl font-semibold'>{d.title}</h1>
+            <span class='badge badge-outline'>{d.languageCode}</span>
           </div>
-          {d.description && (
-            <p class="text-base-content/70 text-sm max-w-2xl">{d.description}</p>
-          )}
+          {d.description && <p class='text-base-content/70 text-sm max-w-2xl'>{d.description}</p>}
         </div>
-        <div class="flex flex-wrap gap-2">
-          <Link class="btn btn-primary btn-sm" href="/review">
+        <div class='flex flex-wrap gap-2'>
+          <Link class='btn btn-primary btn-sm' href='/review'>
             {t(locale.value, "deck.review")}
           </Link>
           <button
-            class="btn btn-outline btn-sm"
+            class='btn btn-outline btn-sm'
             onClick$={() => (showGenerateForm.value = !showGenerateForm.value)}
-            type="button"
+            type='button'
           >
             {t(locale.value, "deck.generate")}
           </button>
           <button
-            class="btn btn-ghost btn-sm"
+            class='btn btn-ghost btn-sm'
             onClick$={() => (showEditForm.value = !showEditForm.value)}
-            type="button"
+            type='button'
           >
             {t(locale.value, "deck.edit")}
           </button>
           <button
-            class="btn btn-ghost btn-sm text-error"
+            class='btn btn-ghost btn-sm text-error'
             onClick$={handleDeleteDeck$}
-            type="button"
+            type='button'
           >
             {t(locale.value, "deck.delete")}
           </button>
@@ -262,7 +265,7 @@ export default component$(() => {
 
       {/* Stats */}
       {stats.value && (
-        <div class="stats stats-horizontal border border-base-300 bg-base-100 shadow-sm overflow-x-auto">
+        <div class='stats stats-horizontal border border-base-300 bg-base-100 shadow-sm overflow-x-auto'>
           {(
             [
               ["deck.stats.topics", stats.value.infoObjects],
@@ -275,9 +278,9 @@ export default component$(() => {
               ["deck.stats.due", stats.value.dueNow],
             ] as [string, number][]
           ).map(([key, val]) => (
-            <div key={key} class="stat px-4 py-3">
-              <div class="stat-title text-xs">{t(locale.value, key)}</div>
-              <div class="stat-value text-xl">{val}</div>
+            <div key={key} class='stat px-4 py-3'>
+              <div class='stat-title text-xs'>{t(locale.value, key)}</div>
+              <div class='stat-value text-xl'>{val}</div>
             </div>
           ))}
         </div>
@@ -285,26 +288,22 @@ export default component$(() => {
 
       {/* Edit form */}
       {showEditForm.value && (
-        <div class="card border border-base-300 bg-base-100 shadow-sm">
-          <div class="card-body gap-4">
-            <div class="grid gap-4 sm:grid-cols-2">
-              <label class="form-control">
-                <div class="label">
-                  <span class="label-text">{t(locale.value, "deck.form.title")}</span>
-                </div>
+        <div class='card border border-base-300 bg-base-100 shadow-sm'>
+          <div class='card-body gap-4'>
+            <div class='grid gap-4 sm:grid-cols-2'>
+              <fieldset class='fieldset'>
+                <legend class='fieldset-legend'>{t(locale.value, "deck.form.title")}</legend>
                 <input
-                  class="input input-bordered"
-                  type="text"
+                  class='input input-bordered w-full'
+                  type='text'
                   value={editForm.title}
                   onInput$={(_, el) => (editForm.title = el.value)}
                 />
-              </label>
-              <label class="form-control">
-                <div class="label">
-                  <span class="label-text">{t(locale.value, "decks.form.language")}</span>
-                </div>
+              </fieldset>
+              <fieldset class='fieldset'>
+                <legend class='fieldset-legend'>{t(locale.value, "decks.form.language")}</legend>
                 <select
-                  class="select select-bordered"
+                  class='select select-bordered w-full'
                   value={editForm.languageCode}
                   onChange$={(_, el) => (editForm.languageCode = el.value as LanguageCode)}
                 >
@@ -314,32 +313,30 @@ export default component$(() => {
                     </option>
                   ))}
                 </select>
-              </label>
+              </fieldset>
             </div>
-            <label class="form-control">
-              <div class="label">
-                <span class="label-text">{t(locale.value, "decks.form.description")}</span>
-              </div>
+            <fieldset class='fieldset'>
+              <legend class='fieldset-legend'>{t(locale.value, "decks.form.description")}</legend>
               <textarea
-                class="textarea textarea-bordered"
+                class='textarea textarea-bordered w-full'
                 value={editForm.description}
                 onInput$={(_, el) => (editForm.description = el.value)}
                 rows={2}
               />
-            </label>
-            <div class="flex gap-2">
+            </fieldset>
+            <div class='flex gap-2'>
               <button
-                class="btn btn-primary btn-sm"
+                class='btn btn-primary btn-sm'
                 onClick$={handleEditDeck$}
                 disabled={editForm.submitting}
-                type="button"
+                type='button'
               >
                 {t(locale.value, "common.save")}
               </button>
               <button
-                class="btn btn-ghost btn-sm"
+                class='btn btn-ghost btn-sm'
                 onClick$={() => (showEditForm.value = false)}
-                type="button"
+                type='button'
               >
                 {t(locale.value, "common.cancel")}
               </button>
@@ -350,33 +347,33 @@ export default component$(() => {
 
       {/* Generate form */}
       {showGenerateForm.value && (
-        <div class="card border border-base-300 bg-base-100 shadow-sm">
-          <div class="card-body gap-4">
+        <div class='card border border-base-300 bg-base-100 shadow-sm'>
+          <div class='card-body gap-4'>
             {generateForm.error && (
-              <div class="alert alert-error">
+              <div class='alert alert-error'>
                 <span>{generateForm.error}</span>
               </div>
             )}
-            <label class="form-control">
-              <div class="label">
-                <span class="label-text">{t(locale.value, "deck.generate.prompt")}</span>
-              </div>
+            <fieldset class='fieldset'>
+              <legend class='fieldset-legend'>{t(locale.value, "deck.generate.prompt")}</legend>
               <textarea
-                class="textarea textarea-bordered"
+                class='textarea textarea-bordered w-full'
                 value={generateForm.prompt}
                 onInput$={(_, el) => (generateForm.prompt = el.value)}
                 rows={3}
               />
-            </label>
+            </fieldset>
             {generateForm.result && (
-              <div class="flex flex-col gap-4">
-                <div class="rounded-box border border-base-300 bg-base-200 p-4">
-                  <p class="text-sm font-semibold mb-2">
+              <div class='flex flex-col gap-4'>
+                <div class='rounded-box border border-base-300 bg-base-200 p-4'>
+                  <p class='text-sm font-semibold mb-2'>
                     {generateForm.result.infoObjects.length} objects generated
                   </p>
-                  <div class="mb-4 rounded-box border border-base-300 bg-base-100/70 p-3 text-sm text-base-content/70">
-                    <p class="font-semibold mb-2">{t(locale.value, "deck.generate.preview.progression")}</p>
-                    <div class="flex flex-col gap-1">
+                  <div class='mb-4 rounded-box border border-base-300 bg-base-100/70 p-3 text-sm text-base-content/70'>
+                    <p class='font-semibold mb-2'>
+                      {t(locale.value, "deck.generate.preview.progression")}
+                    </p>
+                    <div class='flex flex-col gap-1'>
                       <p>{t(locale.value, "deck.generate.progression.step0")}</p>
                       <p>{t(locale.value, "deck.generate.progression.step1")}</p>
                       <p>{t(locale.value, "deck.generate.progression.step2")}</p>
@@ -384,61 +381,68 @@ export default component$(() => {
                     </div>
                   </div>
                   {generateForm.result.infoObjects.map((obj, i) => (
-                    <div key={`${i}-${obj.title}-${obj.content}`} class="mb-4 rounded-box border border-base-300 bg-base-100 p-4 last:mb-0">
-                      <div class="flex flex-wrap items-start justify-between gap-2">
+                    <div
+                      key={`${i}-${obj.title}-${obj.content}`}
+                      class='mb-4 rounded-box border border-base-300 bg-base-100 p-4 last:mb-0'
+                    >
+                      <div class='flex flex-wrap items-start justify-between gap-2'>
                         <div>
-                          <p class="font-medium">{obj.title}</p>
-                          <p class="text-xs text-base-content/60">{obj.cards.length} cards</p>
+                          <p class='font-medium'>{obj.title}</p>
+                          <p class='text-xs text-base-content/60'>{obj.cards.length} cards</p>
                         </div>
-                        <div class="flex flex-wrap gap-2 text-xs">
-                          <span class="badge badge-outline">{obj.discipline}</span>
-                          <span class="badge badge-outline">{obj.contentType}</span>
+                        <div class='flex flex-wrap gap-2 text-xs'>
+                          <span class='badge badge-outline'>{obj.discipline}</span>
+                          <span class='badge badge-outline'>{obj.contentType}</span>
                         </div>
                       </div>
 
-                      <div class="mt-4 flex flex-col gap-4">
-                        <div class="flex flex-col gap-2">
-                          <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                      <div class='mt-4 flex flex-col gap-4'>
+                        <div class='flex flex-col gap-2'>
+                          <p class='text-xs font-semibold uppercase tracking-wide text-base-content/60'>
                             {t(locale.value, "deck.generate.preview.content")}
                           </p>
-                          <div class="overflow-hidden rounded-box border border-base-300 bg-base-300/40">
+                          <div class='overflow-hidden rounded-box border border-base-300 bg-base-300/40'>
                             <CodeBlock code={obj.content} contentType={obj.contentType} />
                           </div>
                         </div>
 
-                        <div class="flex flex-col gap-3">
-                          <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                        <div class='flex flex-col gap-3'>
+                          <p class='text-xs font-semibold uppercase tracking-wide text-base-content/60'>
                             {t(locale.value, "deck.generate.preview.cards")}
                           </p>
                           {obj.cards.map((card, cardIndex) => (
-                            <GeneratedCardPreview key={cardIndex} card={card} locale={locale.value} />
+                            <GeneratedCardPreview
+                              key={cardIndex}
+                              card={card}
+                              locale={locale.value}
+                            />
                           ))}
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-                <div class="rounded-box border border-base-300 bg-base-200 p-4">
-                  <label class="form-control">
-                    <div class="label">
-                      <span class="label-text">{t(locale.value, "deck.generate.editPrompt")}</span>
-                    </div>
+                <div class='rounded-box border border-base-300 bg-base-200 p-4'>
+                  <fieldset class='fieldset'>
+                    <legend class='fieldset-legend'>
+                      {t(locale.value, "deck.generate.editPrompt")}
+                    </legend>
                     <textarea
-                      class="textarea textarea-bordered"
+                      class='textarea textarea-bordered w-full'
                       value={generateForm.editPrompt}
                       onInput$={(_, el) => (generateForm.editPrompt = el.value)}
                       rows={3}
                     />
-                  </label>
-                  <div class="mt-3 flex gap-2">
+                  </fieldset>
+                  <div class='mt-3 flex gap-2'>
                     <button
-                      class="btn btn-outline btn-sm"
+                      class='btn btn-outline btn-sm'
                       onClick$={handleEditGenerated$}
                       disabled={generateForm.submitting || !generateForm.editPrompt.trim()}
-                      type="button"
+                      type='button'
                     >
                       {generateForm.submitting ? (
-                        <span class="loading loading-spinner loading-xs" />
+                        <span class='loading loading-spinner loading-xs' />
                       ) : (
                         t(locale.value, "deck.generate.edit")
                       )}
@@ -448,41 +452,41 @@ export default component$(() => {
               </div>
             )}
 
-            <div class="flex gap-2">
+            <div class='flex gap-2'>
               {!generateForm.result ? (
                 <button
-                  class="btn btn-primary btn-sm"
+                  class='btn btn-primary btn-sm'
                   onClick$={handleGenerate$}
                   disabled={generateForm.submitting || !generateForm.prompt.trim()}
-                  type="button"
+                  type='button'
                 >
                   {generateForm.submitting ? (
-                    <span class="loading loading-spinner loading-xs" />
+                    <span class='loading loading-spinner loading-xs' />
                   ) : (
                     t(locale.value, "deck.generate.submit")
                   )}
                 </button>
               ) : (
                 <button
-                  class="btn btn-success btn-sm"
+                  class='btn btn-success btn-sm'
                   onClick$={handleSaveGenerated$}
                   disabled={generateForm.submitting}
-                  type="button"
+                  type='button'
                 >
                   {generateForm.submitting ? (
-                    <span class="loading loading-spinner loading-xs" />
+                    <span class='loading loading-spinner loading-xs' />
                   ) : (
                     t(locale.value, "deck.generate.save")
                   )}
                 </button>
               )}
               <button
-                class="btn btn-ghost btn-sm"
+                class='btn btn-ghost btn-sm'
                 onClick$={() => {
                   showGenerateForm.value = false;
                   generateForm.result = null;
                 }}
-                type="button"
+                type='button'
               >
                 {t(locale.value, "deck.generate.cancel")}
               </button>
@@ -492,84 +496,78 @@ export default component$(() => {
       )}
 
       {/* Info objects */}
-      <div class="flex items-center justify-between gap-4">
-        <h2 class="text-xl font-semibold">{t(locale.value, "deck.objects")}</h2>
+      <div class='flex items-center justify-between gap-4'>
+        <h2 class='text-xl font-semibold'>{t(locale.value, "deck.objects")}</h2>
       </div>
 
       {showObjectForm.value && (
-        <div class="card border border-base-300 bg-base-100 shadow-sm">
-          <div class="card-body gap-4">
+        <div class='card border border-base-300 bg-base-100 shadow-sm'>
+          <div class='card-body gap-4'>
             {objectForm.error && (
-              <div class="alert alert-error">
+              <div class='alert alert-error'>
                 <span>{objectForm.error}</span>
               </div>
             )}
-            <div class="grid gap-4 sm:grid-cols-2">
-              <label class="form-control">
-                <div class="label">
-                  <span class="label-text">{t(locale.value, "deck.form.title")}</span>
-                </div>
+            <div class='grid gap-4 sm:grid-cols-2'>
+              <fieldset class='fieldset'>
+                <legend class='fieldset-legend'>{t(locale.value, "deck.form.title")}</legend>
                 <input
-                  class="input input-bordered"
-                  type="text"
+                  class='input input-bordered w-full'
+                  type='text'
                   value={objectForm.title}
                   onInput$={(_, el) => (objectForm.title = el.value)}
                 />
-              </label>
-              <div class="grid gap-4 sm:grid-cols-2">
-                <label class="form-control">
-                  <div class="label">
-                    <span class="label-text">{t(locale.value, "deck.form.discipline")}</span>
-                  </div>
+              </fieldset>
+              <div class='grid gap-4 sm:grid-cols-2'>
+                <fieldset class='fieldset'>
+                  <legend class='fieldset-legend'>{t(locale.value, "deck.form.discipline")}</legend>
                   <input
-                    class="input input-bordered"
-                    type="text"
+                    class='input input-bordered w-full'
+                    type='text'
                     value={objectForm.discipline}
                     onInput$={(_, el) => (objectForm.discipline = el.value)}
                   />
-                </label>
-                <label class="form-control">
-                  <div class="label">
-                    <span class="label-text">{t(locale.value, "deck.form.contentType")}</span>
-                  </div>
+                </fieldset>
+                <fieldset class='fieldset'>
+                  <legend class='fieldset-legend'>
+                    {t(locale.value, "deck.form.contentType")}
+                  </legend>
                   <input
-                    class="input input-bordered"
-                    type="text"
+                    class='input input-bordered w-full'
+                    type='text'
                     value={objectForm.contentType}
                     onInput$={(_, el) => (objectForm.contentType = el.value)}
-                    placeholder="text, typescript, english, chinese"
+                    placeholder='text, typescript, english, chinese'
                   />
-                </label>
+                </fieldset>
               </div>
             </div>
-            <label class="form-control">
-              <div class="label">
-                <span class="label-text">{t(locale.value, "deck.form.content")}</span>
-              </div>
+            <fieldset class='fieldset'>
+              <legend class='fieldset-legend'>{t(locale.value, "deck.form.content")}</legend>
               <textarea
-                class="textarea textarea-bordered font-mono text-sm"
+                class='textarea textarea-bordered font-mono text-sm w-full'
                 value={objectForm.content}
                 onInput$={(_, el) => (objectForm.content = el.value)}
                 rows={6}
               />
-            </label>
-            <div class="flex gap-2">
+            </fieldset>
+            <div class='flex gap-2'>
               <button
-                class="btn btn-primary btn-sm"
+                class='btn btn-primary btn-sm'
                 onClick$={handleAddObject$}
                 disabled={objectForm.submitting || !objectForm.title.trim()}
-                type="button"
+                type='button'
               >
                 {objectForm.submitting ? (
-                  <span class="loading loading-spinner loading-xs" />
+                  <span class='loading loading-spinner loading-xs' />
                 ) : (
                   t(locale.value, "deck.form.submit")
                 )}
               </button>
               <button
-                class="btn btn-ghost btn-sm"
+                class='btn btn-ghost btn-sm'
                 onClick$={() => (showObjectForm.value = false)}
-                type="button"
+                type='button'
               >
                 {t(locale.value, "deck.form.cancel")}
               </button>
@@ -579,24 +577,24 @@ export default component$(() => {
       )}
 
       {d.infoObjects.length === 0 ? (
-        <p class="text-center py-8 text-base-content/60">{t(locale.value, "deck.empty")}</p>
+        <p class='text-center py-8 text-base-content/60'>{t(locale.value, "deck.empty")}</p>
       ) : (
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div class='grid gap-3 sm:grid-cols-2 lg:grid-cols-3'>
           {d.infoObjects.map((obj) => (
-            <article key={obj.id} class="card border border-base-300 bg-base-100 shadow-sm">
-              <div class="card-body gap-2">
-                <div class="flex items-start justify-between gap-2">
-                  <h3 class="font-semibold text-base leading-tight">{obj.title}</h3>
-                  <span class="badge badge-ghost badge-sm shrink-0">{obj.contentType}</span>
+            <article key={obj.id} class='card border border-base-300 bg-base-100 shadow-sm'>
+              <div class='card-body gap-2'>
+                <div class='flex items-start justify-between gap-2'>
+                  <h3 class='font-semibold text-base leading-tight'>{obj.title}</h3>
+                  <span class='badge badge-ghost badge-sm shrink-0'>{obj.contentType}</span>
                 </div>
-                <div class="card-actions mt-2 justify-between">
-                  <Link class="btn btn-primary btn-xs" href={`/objects/${obj.id}`}>
+                <div class='card-actions mt-2 justify-between'>
+                  <Link class='btn btn-primary btn-xs' href={`/objects/${obj.id}`}>
                     {t(locale.value, "common.edit")}
                   </Link>
                   <button
-                    class="btn btn-ghost btn-xs text-error"
+                    class='btn btn-ghost btn-xs text-error'
                     onClick$={() => handleDeleteObject$(obj.id)}
-                    type="button"
+                    type='button'
                   >
                     {t(locale.value, "common.delete")}
                   </button>
@@ -617,30 +615,30 @@ interface GeneratedCardPreviewProps {
 
 const GeneratedCardPreview = component$<GeneratedCardPreviewProps>(({ card, locale }) => {
   return (
-    <div class="rounded-box border border-base-300 bg-base-200/60 p-3">
-      <div class="flex items-start justify-between gap-3">
-        <p class="font-medium leading-snug">{card.front}</p>
-        <div class="flex flex-wrap gap-2 justify-end">
-          <span class="badge badge-outline badge-sm shrink-0">
+    <div class='rounded-box border border-base-300 bg-base-200/60 p-3'>
+      <div class='flex items-start justify-between gap-3'>
+        <p class='font-medium leading-snug'>{card.front}</p>
+        <div class='flex flex-wrap gap-2 justify-end'>
+          <span class='badge badge-outline badge-sm shrink-0'>
             {getCardTypeLabel(locale, card.cardType)}
           </span>
-          <span class="badge badge-ghost badge-sm shrink-0">
+          <span class='badge badge-ghost badge-sm shrink-0'>
             {t(locale, "object.card.step")} {card.step}
           </span>
         </div>
       </div>
 
       {isBlockInteraction(card.cardType) && (
-        <div class="mt-3 flex flex-col gap-2">
+        <div class='mt-3 flex flex-col gap-2'>
           <PreviewField
             label={t(locale, "deck.generate.preview.cardType")}
             value={getCardTypeLabel(locale, card.cardType)}
           />
-          <div class="flex flex-col gap-2">
+          <div class='flex flex-col gap-2'>
             {(card.correctAnswers[0] ?? []).map((unit, index) => (
               <pre
                 key={index}
-                class="rounded-box border border-base-300 bg-base-100/80 p-2 text-xs whitespace-pre-wrap break-words"
+                class='rounded-box border border-base-300 bg-base-100/80 p-2 text-xs whitespace-pre-wrap break-words'
               >
                 {unit}
               </pre>
@@ -649,7 +647,7 @@ const GeneratedCardPreview = component$<GeneratedCardPreviewProps>(({ card, loca
         </div>
       )}
 
-      <div class="mt-3 grid gap-3 sm:grid-cols-3">
+      <div class='mt-3 grid gap-3 sm:grid-cols-3'>
         <PreviewField
           label={t(locale, "deck.generate.preview.cardType")}
           value={getCardTypeLabel(locale, card.cardType)}
@@ -674,9 +672,9 @@ interface PreviewFieldProps {
 
 const PreviewField = component$<PreviewFieldProps>(({ label, value }) => {
   return (
-    <div class="flex flex-col gap-1 min-w-0">
-      <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">{label}</p>
-      <p class="text-sm whitespace-pre-wrap break-words">{value}</p>
+    <div class='flex flex-col gap-1 min-w-0'>
+      <p class='text-xs font-semibold uppercase tracking-wide text-base-content/60'>{label}</p>
+      <p class='text-sm whitespace-pre-wrap break-words'>{value}</p>
     </div>
   );
 });
