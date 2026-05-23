@@ -1,11 +1,11 @@
 meta {
-  name: Save Generated Cards
+  name: Edit Generated Cards
   type: http
-  seq: 3
+  seq: 2
 }
 
 post {
-  url: {{baseUrl}}/api/v1/generate/save
+  url: {{baseUrl}}/api/v1/generate/edit
   body: json
   auth: bearer
 }
@@ -22,6 +22,7 @@ auth:bearer {
 body:json {
   {
     "deckId": "{{deckId}}",
-    "generationId": "{{generationId}}"
+    "generationId": "{{generationId}}",
+    "prompt": "Split this into two info objects and make later cards focus on reconstruction"
   }
 }
