@@ -1,1 +1,1 @@
-ALTER TABLE cards DROP COLUMN highlight_lines;
+ALTER TABLE cards DROP COLUMN IF EXISTS highlight_lines;
