@@ -1,5 +1,6 @@
 # ---------- build stage ----------
 FROM golang:1.24-alpine AS builder
+ENV GOTOOLCHAIN=local
 RUN apk add --no-cache git
 WORKDIR /src
 COPY go.mod go.sum ./
