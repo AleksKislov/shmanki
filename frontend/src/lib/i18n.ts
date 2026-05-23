@@ -14,7 +14,12 @@ export function t(locale: LanguageCode, key: string): string {
 export function getLocaleLabel(code: LanguageCode): string {
   const labels: Record<LanguageCode, string> = {
     en: "English",
-    ru: "Русский"
+    ru: "Русский",
+    es: "Español",
+    de: "Deutsch",
+    fr: "Français",
+    ja: "日本語",
+    "zh-CN": "中文",
   };
   return labels[code] ?? code;
 }

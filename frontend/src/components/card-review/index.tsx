@@ -1,6 +1,6 @@
 import { $, component$ } from "@builder.io/qwik";
 import type { QRL } from "@builder.io/qwik";
-import type { ReviewCard, ReviewResult, ReviewSubmission } from "~/lib/types";
+import type { ReviewCard, ReviewResult, ReviewSubmission, LanguageCode } from "~/lib/types";
 import { CodeBlock } from "~/components/code-block";
 import { BlockOrderAnswer } from "~/components/block-order-answer";
 import { TokenAnswer } from "~/components/token-answer";
@@ -13,7 +13,7 @@ interface Props {
   card: ReviewCard;
   index: number;
   total: number;
-  locale: string;
+  locale: LanguageCode;
   onAnswer$: (result: ReviewResult) => void;
   onSubmit$?: QRL<(submission: ReviewSubmission) => Promise<ReviewResult>>;
   showContent?: boolean;
