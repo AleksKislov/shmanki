@@ -51,6 +51,7 @@ Common codes:
 - `CONFLICT`
 - `VALIDATION_ERROR`
 - `INTERNAL_ERROR`
+- `RATE_LIMITED`
 
 ## Endpoints
 
@@ -494,6 +495,13 @@ Response:
 
 ### Generation
 
+Security and behavior notes:
+
+- Generation endpoints are rate limited per user to protect LLM-backed routes.
+- `/generate/edit` and `/generate/save` operate on a server-side draft keyed by `generationId`.
+- Drafts expire after 24 hours. Expired or unknown `generationId` returns `404 NOT_FOUND`.
+- User prompt fields are validated for size and disallowed control characters.
+
 #### `POST /api/v1/generate/suggest`
 
 Ask the configured LLM provider to suggest draft info objects and cards.
@@ -526,50 +534,7 @@ Request:
 {
   "deckId": "uuid",
   "generationId": "uuid",
-  "prompt": "Split this into two info objects and make the later cards focus more on code reconstruction",
-  "infoObjects": [
-    {
-      "title": "Launching a goroutine",
-      "content": "func worker() {\n    fmt.Println(\"working\")\n}\n\ngo worker()",
-      "discipline": "programming",
-      "contentType": "go",
-      "cards": [
-        {
-          "front": "Which expression starts the goroutine?",
-          "cardType": "concept",
-          "step": 0,
-          "correctAnswers": [["go", "worker()"]],
-          "distractors": ["defer", "func", "chan"],
-        }
-      ]
-    }
-  ]
-}
-```
-
-Response:
-
-```json
-{
-  "generationId": "uuid",
-  "model": "gpt-4.1-mini",
-  "infoObjects": [
-    {
-      "title": "Launching a goroutine",
-      "content": "func worker() {\n    fmt.Println(\"working\")\n}\n\ngo worker()",
-      "discipline": "programming",
-      "contentType": "go",
-      "cards": [
-        {
-          "front": "Which expression starts the goroutine?",
-          "cardType": "concept",
-          "step": 0,
-          "correctAnswers": [["go", "worker()"]],
-          "distractors": ["defer", "func", "chan"],
-        }
-      ]
-    }
-  ]
+  "prompt": "Split this into two info objects and make the later cards focus more on code reconstruction"
 }
 ```
 
@@ -608,28 +573,11 @@ Request:
 ```json
 {
   "deckId": "uuid",
-  "prompt": "Generate beginner study material about goroutines",
-  "model": "gpt-4.1-mini",
-  "generationId": "uuid",
-  "infoObjects": [
-    {
-      "title": "Launching a goroutine",
-      "content": "func worker() {\n    fmt.Println(\"working\")\n}\n\ngo worker()",
-      "discipline": "programming",
-      "contentType": "go",
-      "cards": [
-        {
-          "front": "Which expression starts the goroutine?",
-          "cardType": "concept",
-          "step": 0,
-          "correctAnswers": [["go", "worker()"]],
-          "distractors": ["defer", "func", "chan"],
-        }
-      ]
-    }
-  ]
+  "generationId": "uuid"
 }
 ```
+
+`/generate/save` saves the latest server-side draft associated with `generationId` and then deletes that draft.
 
 Response:
 

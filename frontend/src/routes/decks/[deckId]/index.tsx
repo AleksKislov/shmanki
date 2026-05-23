@@ -164,10 +164,7 @@ export default component$(() => {
     try {
       await api.generate.save({
         deckId: deck.value.id,
-        prompt: generateForm.prompt,
-        model: generateForm.result.model,
         generationId: generateForm.result.generationId,
-        infoObjects: generateForm.result.infoObjects,
       });
       // Refresh deck
       const d = await api.decks.get(deck.value.id);
@@ -192,7 +189,6 @@ export default component$(() => {
         deckId: deck.value.id,
         prompt: generateForm.editPrompt,
         generationId: generateForm.result.generationId,
-        infoObjects: generateForm.result.infoObjects,
       });
       generateForm.result = res;
       generateForm.editPrompt = "";

@@ -16,20 +16,16 @@ type SuggestRequest struct {
 }
 
 type EditRequest struct {
-	DeckID       uuid.UUID         `json:"deckId"`
-	Prompt       string            `json:"prompt"`
-	InfoObjects  []SuggestedObject `json:"infoObjects"`
-	GenerationID *uuid.UUID        `json:"generationId,omitempty"`
-	Discipline   string            `json:"discipline,omitempty"`
-	ContentType  string            `json:"contentType,omitempty"`
+	DeckID       uuid.UUID  `json:"deckId"`
+	Prompt       string     `json:"prompt"`
+	GenerationID *uuid.UUID `json:"generationId,omitempty"`
+	Discipline   string     `json:"discipline,omitempty"`
+	ContentType  string     `json:"contentType,omitempty"`
 }
 
 type SaveRequest struct {
-	DeckID       uuid.UUID         `json:"deckId"`
-	Prompt       string            `json:"prompt"`
-	Model        string            `json:"model"`
-	InfoObjects  []SuggestedObject `json:"infoObjects"`
-	GenerationID *uuid.UUID        `json:"generationId,omitempty"`
+	DeckID       uuid.UUID  `json:"deckId"`
+	GenerationID *uuid.UUID `json:"generationId,omitempty"`
 }
 
 type SuggestedObject struct {
@@ -92,6 +88,14 @@ type generationLog struct {
 	ObjectsRaw []byte
 	CardsCount int
 	CreatedAt  time.Time
+}
+
+type generationDraft struct {
+	GenerationID uuid.UUID
+	UserID       uuid.UUID
+	DeckID       uuid.UUID
+	ObjectsRaw   []byte
+	Model        string
 }
 
 type llmCompletionRequest struct {

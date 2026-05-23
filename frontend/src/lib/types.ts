@@ -168,16 +168,12 @@ export interface GenerateSuggestResponse {
 export interface GenerateEditRequest {
   deckId: string;
   prompt: string;
-  generationId?: string;
-  infoObjects: GeneratedInfoObject[];
+  generationId: string;
   discipline?: string;
   contentType?: ContentType;
 }
 
 export interface GenerateSaveRequest {
   deckId: string;
-  prompt: string;
-  model: string;
   generationId: string;
-  infoObjects: GeneratedInfoObject[];
 }

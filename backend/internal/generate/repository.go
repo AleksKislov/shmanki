@@ -64,6 +64,52 @@ RETURNING id, deck_id, user_id, prompt, provider, model, objects_raw, cards_coun
 	return &item, nil
 }
 
+func (r *Repository) UpsertGenerationDraft(ctx context.Context, tx pgx.Tx, draft generationDraft) error {
+	const query = `
+INSERT INTO generation_drafts (generation_id, user_id, deck_id, objects_raw, model, expires_at)
+VALUES ($1, $2, $3, $4, $5, NOW() + INTERVAL '24 hours')
+ON CONFLICT (generation_id) DO UPDATE
+SET objects_raw = EXCLUDED.objects_raw,
+    model = EXCLUDED.model,
+    updated_at = NOW(),
+    expires_at = NOW() + INTERVAL '24 hours'
+`
+	if _, err := tx.Exec(ctx, query, draft.GenerationID, draft.UserID, draft.DeckID, draft.ObjectsRaw, draft.Model); err != nil {
+		return fmt.Errorf("upsert generation draft: %w", err)
+	}
+	return nil
+}
+
+func (r *Repository) GetGenerationDraft(ctx context.Context, tx pgx.Tx, userID uuid.UUID, generationID uuid.UUID) (*generationDraft, error) {
+	const query = `
+SELECT generation_id, user_id, deck_id, objects_raw, model
+FROM generation_drafts
+WHERE generation_id = $1 AND user_id = $2 AND expires_at > NOW()
+`
+	var item generationDraft
+	if err := tx.QueryRow(ctx, query, generationID, userID).Scan(
+		&item.GenerationID,
+		&item.UserID,
+		&item.DeckID,
+		&item.ObjectsRaw,
+		&item.Model,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrDraftNotFound
+		}
+		return nil, fmt.Errorf("get generation draft: %w", err)
+	}
+	return &item, nil
+}
+
+func (r *Repository) DeleteGenerationDraft(ctx context.Context, tx pgx.Tx, userID uuid.UUID, generationID uuid.UUID) error {
+	const query = `DELETE FROM generation_drafts WHERE generation_id = $1 AND user_id = $2`
+	if _, err := tx.Exec(ctx, query, generationID, userID); err != nil {
+		return fmt.Errorf("delete generation draft: %w", err)
+	}
+	return nil
+}
+
 func (r *Repository) CreateInfoObject(ctx context.Context, tx pgx.Tx, userID uuid.UUID, deckID uuid.UUID, object SuggestedObject) (*SavedObject, error) {
 	const query = `
 INSERT INTO info_objects (deck_id, title, content, discipline, content_type)

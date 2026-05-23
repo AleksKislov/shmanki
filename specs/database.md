@@ -306,6 +306,34 @@ CREATE INDEX idx_generation_logs_deck_user ON generation_logs(deck_id, user_id, 
 
 ---
 
+### `generation_drafts`
+
+Ephemeral server-side drafts for the generation edit/save flow.
+
+Security role:
+
+- Prevents clients from sending arbitrary `infoObjects` to `/generate/save`.
+- `edit` and `save` now resolve draft content by `generation_id` on the server.
+- Draft rows expire automatically based on `expires_at`.
+
+```sql
+CREATE TABLE generation_drafts (
+    generation_id UUID PRIMARY KEY REFERENCES generation_logs(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    deck_id UUID NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
+    objects_raw JSONB NOT NULL,
+    model VARCHAR(100) NOT NULL DEFAULT '',
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '24 hours')
+);
+
+CREATE INDEX idx_generation_drafts_user_deck ON generation_drafts(user_id, deck_id);
+CREATE INDEX idx_generation_drafts_expires_at ON generation_drafts(expires_at);
+```
+
+---
+
 ## Key Queries
 
 ### Get due cards for a user session

@@ -78,6 +78,8 @@ func handleError(w http.ResponseWriter, err error) {
 		response.WriteError(w, http.StatusUnprocessableEntity, err.Error(), "VALIDATION_ERROR")
 	case errors.Is(err, ErrDeckNotFound):
 		response.WriteError(w, http.StatusNotFound, err.Error(), "NOT_FOUND")
+	case errors.Is(err, ErrDraftNotFound):
+		response.WriteError(w, http.StatusNotFound, err.Error(), "NOT_FOUND")
 	default:
 		log.Printf("[generate] internal error: %v", err)
 		response.WriteError(w, http.StatusInternalServerError, "internal server error", "INTERNAL_ERROR")

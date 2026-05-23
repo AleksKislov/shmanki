@@ -62,7 +62,7 @@ func main() {
 	reviewHandler := review.NewHandler(reviewService)
 
 	generateRepo := generate.NewRepository(dbPool)
-	generateClient := generate.NewClient(cfg.LLMAPIURL, cfg.LLMAPIKey, cfg.LLMModel, cfg.LLMProvider, cfg.LLMTimeoutSeconds)
+	generateClient := generate.NewClient(cfg.LLMAPIURL, cfg.LLMAPIKey, cfg.LLMModel, cfg.LLMProvider, cfg.LLMTimeoutSeconds, cfg.Env == "development")
 	generateService := generate.NewService(generateRepo, generateClient, cfg.DefaultLanguage)
 	generateHandler := generate.NewHandler(generateService)
 
@@ -122,6 +122,8 @@ func main() {
 			})
 
 			r.Route("/generate", func(r chi.Router) {
+				generateLimiter := platformmiddleware.NewRateLimiter(20, time.Minute)
+				r.Use(generateLimiter.PerUser())
 				r.Post("/suggest", generateHandler.Suggest)
 				r.Post("/edit", generateHandler.Edit)
 				r.Post("/save", generateHandler.Save)
