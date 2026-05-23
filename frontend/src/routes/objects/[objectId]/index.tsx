@@ -1,4 +1,5 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
+import type { QRL } from "@builder.io/qwik";
 import { Link, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { api } from "~/lib/api";
 import { getLocale } from "~/lib/auth";
@@ -362,8 +363,8 @@ export default component$(() => {
 interface CardRowProps {
   card: Card;
   locale: LanguageCode;
-  onDelete$: (id: string) => void;
-  onTest$: (card: Card) => void;
+  onDelete$: QRL<(id: string) => void>;
+  onTest$: QRL<(card: Card) => void>;
 }
 
 export const CardRow = component$<CardRowProps>(({ card, locale, onDelete$, onTest$ }) => {

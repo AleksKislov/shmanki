@@ -1,4 +1,5 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
+import type { QRL } from "@builder.io/qwik";
 import type { ReviewAttempt, ReviewSubmission } from "~/lib/types";
 
 interface Props {
@@ -6,7 +7,7 @@ interface Props {
   distractors: string[];
   cardId: string;
   locale: string;
-  onSubmit$: (submission: ReviewSubmission) => void;
+  onSubmit$: QRL<(submission: ReviewSubmission) => void>;
 }
 
 export const TokenAnswer = component$<Props>(

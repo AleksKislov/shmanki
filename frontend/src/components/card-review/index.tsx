@@ -14,7 +14,7 @@ interface Props {
   index: number;
   total: number;
   locale: LanguageCode;
-  onAnswer$: (result: ReviewResult) => void;
+  onAnswer$: QRL<(result: ReviewResult) => void>;
   onSubmit$?: QRL<(submission: ReviewSubmission) => Promise<ReviewResult>>;
   showContent?: boolean;
 }
