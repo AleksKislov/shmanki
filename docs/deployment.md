@@ -197,10 +197,10 @@ nano .env.prod
 cd ~/shmanki
 
 # Build and start all services (db, backend, frontend, nginx)
-docker compose -f compose.prod.yaml up -d --build
+docker compose -f compose.prod.yaml --env-file .env.prod up -d --build
 
 # Run database migrations
-docker compose -f compose.prod.yaml --profile tools run --rm migrate
+docker compose -f compose.prod.yaml --env-file .env.prod --profile tools run --rm migrate
 
 # Check everything is running
 docker compose -f compose.prod.yaml ps
@@ -223,7 +223,7 @@ After pushing new code to GitHub:
 ```bash
 cd ~/shmanki
 git pull
-docker compose -f compose.prod.yaml up -d --build
+docker compose -f compose.prod.yaml --env-file .env.prod up -d --build
 ```
 
 If there are new migrations:
@@ -248,8 +248,8 @@ cat > ~/redeploy.sh << 'EOF'
 set -e
 cd ~/shmanki
 git pull origin main
-docker compose -f compose.prod.yaml up -d --build
-docker compose -f compose.prod.yaml --profile tools run --rm migrate
+docker compose -f compose.prod.yaml --env-file .env.prod up -d --build
+docker compose -f compose.prod.yaml --env-file .env.prod --profile tools run --rm migrate
 docker image prune -f
 echo "Deploy complete!"
 EOF
