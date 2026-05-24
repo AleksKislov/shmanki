@@ -29,6 +29,7 @@ type stateRecord struct {
 	DueDate        *time.Time
 	LastReview     *time.Time
 	IntervalDays   float64
+	LearningStep   int
 	Status         fsrs.CardStatus
 	Reps           int
 	Lapses         int
@@ -90,13 +91,14 @@ SELECT
     c.step,
     cs.stability,
     cs.difficulty,
-    cs.retrievability,
-    cs.due_date,
-    cs.status,
-    cs.reps,
-    cs.lapses,
-    cs.interval_days,
-    cs.last_review,
+	cs.retrievability,
+	cs.due_date,
+	cs.status,
+	cs.reps,
+	cs.lapses,
+	cs.learning_step,
+	cs.interval_days,
+	cs.last_review,
     io.content,
     io.content_type,
     d.language_code,
@@ -158,6 +160,7 @@ SELECT
     cs.due_date,
     cs.last_review,
     cs.interval_days,
+    cs.learning_step,
     cs.status,
     cs.reps,
     cs.lapses
@@ -182,6 +185,7 @@ FOR UPDATE
 		&item.DueDate,
 		&item.LastReview,
 		&item.IntervalDays,
+		&item.LearningStep,
 		&item.Status,
 		&item.Reps,
 		&item.Lapses,
@@ -210,11 +214,12 @@ SET stability = $3,
     interval_days = $8,
     status = $9,
     reps = $10,
-    lapses = $11
+    lapses = $11,
+    learning_step = $12
 WHERE card_id = $1 AND user_id = $2
 `
 
-	_, err := tx.Exec(ctx, query, state.CardID, userID, state.Stability, state.Difficulty, state.Retrievability, state.DueDate, state.LastReview, state.IntervalDays, state.Status, state.Reps, state.Lapses)
+	_, err := tx.Exec(ctx, query, state.CardID, userID, state.Stability, state.Difficulty, state.Retrievability, state.DueDate, state.LastReview, state.IntervalDays, state.Status, state.Reps, state.Lapses, state.LearningStep)
 	if err != nil {
 		return fmt.Errorf("update card state: %w", err)
 	}
@@ -491,6 +496,7 @@ func scanReviewCard(rows pgx.Rows) (ReviewCard, error) {
 		&item.State.Status,
 		&item.State.Reps,
 		&item.State.Lapses,
+		&item.State.LearningStep,
 		&item.State.IntervalDays,
 		&item.State.LastReview,
 		&item.Content,

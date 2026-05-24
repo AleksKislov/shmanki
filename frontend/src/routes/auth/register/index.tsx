@@ -2,7 +2,7 @@ import { $, component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { setLocale, setToken, setUser, getToken, getLocale } from "~/lib/auth";
 import { api } from "~/lib/api";
-import { t, getLocaleLabel, LANGUAGE_OPTIONS } from "~/lib/i18n";
+import { t } from "~/lib/i18n";
 import type { LanguageCode } from "~/lib/types";
 
 export default component$(() => {
@@ -10,7 +10,6 @@ export default component$(() => {
   const nav = useNavigate();
   const email = useSignal("");
   const password = useSignal("");
-  const preferredLanguage = useSignal<LanguageCode>("en");
   const error = useSignal<string | null>(null);
   const loading = useSignal(false);
 
@@ -25,7 +24,7 @@ export default component$(() => {
     error.value = null;
     loading.value = true;
     try {
-      const res = await api.auth.register(email.value, password.value, preferredLanguage.value);
+      const res = await api.auth.register(email.value, password.value, locale.value);
       setToken(res.token);
       setUser(res.user);
       setLocale(res.user.preferredLanguage);
@@ -69,22 +68,6 @@ export default component$(() => {
               onInput$={(_, el) => (password.value = el.value)}
               disabled={loading.value}
             />
-          </fieldset>
-
-          <fieldset class="fieldset">
-            <legend class="fieldset-legend">{t(locale.value, "auth.register.language")}</legend>
-            <select
-              class="select select-bordered w-full"
-              value={preferredLanguage.value}
-              onChange$={(_, el) => (preferredLanguage.value = el.value as LanguageCode)}
-              disabled={loading.value}
-            >
-              {LANGUAGE_OPTIONS.map((code) => (
-                <option key={code} value={code}>
-                  {getLocaleLabel(code)}
-                </option>
-              ))}
-            </select>
           </fieldset>
 
           <button

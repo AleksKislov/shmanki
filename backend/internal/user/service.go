@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
 	"shmanki/internal/platform/language"
@@ -18,11 +19,13 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrInvalidEmail       = errors.New("invalid email")
 	ErrInvalidPassword    = errors.New("password must be at least 8 characters")
+	ErrInvalidLanguage    = errors.New("invalid language")
 )
 
 type creator interface {
 	Create(ctx context.Context, params CreateParams) (*User, error)
 	GetByEmail(ctx context.Context, email string) (*User, string, error)
+	UpdatePreferredLanguage(ctx context.Context, userID uuid.UUID, preferredLanguage string) error
 }
 
 type Service struct {
@@ -45,7 +48,7 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (*AuthRespo
 
 	preferredLanguage, err := language.Normalize(req.PreferredLanguage, s.defaultLanguage)
 	if err != nil {
-		return nil, fmt.Errorf("normalize preferred language: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrInvalidLanguage, err)
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
@@ -93,4 +96,17 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (*AuthResponse, e
 	}
 
 	return &AuthResponse{Token: jwtToken, User: *storedUser}, nil
+}
+
+func (s *Service) UpdatePreferredLanguage(ctx context.Context, userID uuid.UUID, req UpdatePreferredLanguageRequest) error {
+	preferredLanguage, err := language.Normalize(req.PreferredLanguage, s.defaultLanguage)
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrInvalidLanguage, err)
+	}
+
+	if err := s.users.UpdatePreferredLanguage(ctx, userID, preferredLanguage); err != nil {
+		return err
+	}
+
+	return nil
 }

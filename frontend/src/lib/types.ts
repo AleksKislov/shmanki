@@ -83,6 +83,7 @@ export interface CardState {
   reps: number;
   lapses: number;
   intervalDays: number;
+  learningStep: number;
   lastReview?: string | null;
 }
 

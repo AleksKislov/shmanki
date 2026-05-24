@@ -47,6 +47,13 @@ export const api = {
         body: JSON.stringify({ email, password, preferredLanguage }),
       }),
   },
+  users: {
+    updatePreferredLanguage: (preferredLanguage: LanguageCode) =>
+      request<{ status: string }>("/api/v1/users/me/language", {
+        method: "PATCH",
+        body: JSON.stringify({ preferredLanguage }),
+      }),
+  },
   decks: {
     list: () => request<Deck[]>("/api/v1/decks"),
     create: (title: string, description: string, languageCode: LanguageCode) =>

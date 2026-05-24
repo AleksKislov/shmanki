@@ -108,3 +108,22 @@ func (r *Repository) GetPreferredLanguage(ctx context.Context, userID uuid.UUID)
 
 	return preferredLanguage, nil
 }
+
+func (r *Repository) UpdatePreferredLanguage(ctx context.Context, userID uuid.UUID, preferredLanguage string) error {
+	const query = `
+UPDATE users
+SET preferred_language = $2
+WHERE id = $1
+`
+
+	result, err := r.db.Exec(ctx, query, userID, preferredLanguage)
+	if err != nil {
+		return fmt.Errorf("update preferred language: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}

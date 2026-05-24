@@ -14,6 +14,10 @@ type RegisterRequest struct {
 	PreferredLanguage string `json:"preferredLanguage,omitempty"`
 }
 
+type UpdatePreferredLanguageRequest struct {
+	PreferredLanguage string `json:"preferredLanguage"`
+}
+
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`

@@ -187,13 +187,21 @@ CREATE TABLE card_states (
 
     interval_days   FLOAT NOT NULL DEFAULT 0,
     -- Current scheduled interval in days.
+    -- For cards in learning/relearning step mode this can be fractional,
+    -- e.g. 10 minutes = 0.00694 days.
+
+    learning_step   INT NOT NULL DEFAULT 0,
+    -- Index into the active step list:
+    -- learning  -> Config.LearningSteps
+    -- relearning -> Config.RelearningSteps
+    -- Ignored when status = 'review'.
 
     -- Status
     status          VARCHAR(20) NOT NULL DEFAULT 'new',
     -- 'locked'      step prerequisites not yet met
     -- 'new'         available, never reviewed
-    -- 'learning'    S < ReviewStabilityThresholdDays (currently 21 days)
-    -- 'review'      S >= ReviewStabilityThresholdDays
+    -- 'learning'    currently in learning steps (minutes-based)
+    -- 'review'      graduated, scheduled by day-based FSRS
     -- 'relearning'  answered Again after being in review
 
     -- Counters
@@ -427,7 +435,9 @@ migrate -path migrations -database $DATABASE_URL up
 
 ## Schema Decision For Hierarchical Support
 
-No schema change is required for the current algorithm revision.
+The hierarchical-support algorithm itself still does not require additional persistence.
+The only recent schema addition is `card_states.learning_step`, introduced for
+minutes-based learning/relearning step scheduling.
 
 - `card_states.difficulty` already stores the persisted base difficulty `D_base`.
 - `H_c` is derived from predecessor cards' current `stability` values.

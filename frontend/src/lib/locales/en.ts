@@ -61,7 +61,6 @@ export const en: Messages = {
   "auth.register.title": "Create your account",
   "auth.register.email": "Email",
   "auth.register.password": "Password",
-  "auth.register.language": "UI Language",
   "auth.register.submit": "Create account",
   "auth.register.hasAccount": "Already have an account?",
   "auth.register.login": "Log in",

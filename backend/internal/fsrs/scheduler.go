@@ -11,6 +11,7 @@ type CardState struct {
 	DueDate             *time.Time
 	LastReview          *time.Time
 	IntervalDays        float64
+	LearningStep        int
 	Status              CardStatus
 	Reps                int
 	Lapses              int
@@ -30,58 +31,176 @@ func NewScheduler(weights [19]float64, cfg Config) *Scheduler {
 
 func (s *Scheduler) Schedule(state CardState, rating Rating, now time.Time, hierarchicalSupport float64) CardState {
 	state.HierarchicalSupport = clamp(hierarchicalSupport, 0, 1)
-	if state.Stability <= 0 || state.LastReview == nil || state.Status == StatusNew || state.Status == StatusLocked {
-		state.Stability = InitialStability(rating, s.weights)
-		state.Difficulty = InitialDifficulty(rating, s.weights)
-		state.EffectiveDifficulty = EffectiveDifficulty(state.Difficulty, state.HierarchicalSupport, s.config.HierarchicalDifficultyPenalty)
-		state.Retrievability = 1
-		state.IntervalDays = NextInterval(state.Stability, state.EffectiveDifficulty, s.config.DesiredRetention)
-		state.LastReview = ptrTime(now)
-		dueDate := now.Add(time.Duration(state.IntervalDays*24) * time.Hour)
-		state.DueDate = &dueDate
-		if rating == RatingAgain {
-			state.Status = StatusRelearning
-		} else if state.Stability >= s.config.ReviewStabilityThresholdDays {
-			state.Status = StatusReview
-			state.Reps++
-		} else {
-			state.Status = StatusLearning
-			state.Reps++
-		}
-		return state
+	state.LearningStep = normalizeStep(state.LearningStep)
+
+	if isInitialState(state) {
+		return s.scheduleInitial(state, rating, now)
 	}
 
-	daysSinceReview := now.Sub(*state.LastReview).Hours() / 24
+	switch state.Status {
+	case StatusLearning:
+		return s.scheduleStepMode(state, rating, now, s.config.LearningSteps, false)
+	case StatusRelearning:
+		return s.scheduleStepMode(state, rating, now, s.config.RelearningSteps, true)
+	default:
+		return s.scheduleReview(state, rating, now)
+	}
+}
+
+func isInitialState(state CardState) bool {
+	return state.Status == StatusNew || state.Status == StatusLocked || state.LastReview == nil
+}
+
+func (s *Scheduler) scheduleInitial(state CardState, rating Rating, now time.Time) CardState {
+	state.LastReview = ptrTime(now)
+	state.Retrievability = 1
+
+	if rating == RatingEasy {
+		state.Reps++
+		return s.graduateFromLearning(state, rating, now)
+	}
+
+	nextStep := 0
+	if rating == RatingGood {
+		state.Reps++
+		nextStep = 1
+	}
+	if rating == RatingHard {
+		state.Reps++
+	}
+
+	if nextStep >= len(s.config.LearningSteps) {
+		return s.graduateFromLearning(state, rating, now)
+	}
+
+	return setStepSchedule(state, StatusLearning, nextStep, now, s.config.LearningSteps[nextStep])
+}
+
+func (s *Scheduler) scheduleStepMode(state CardState, rating Rating, now time.Time, steps []time.Duration, fromRelearning bool) CardState {
+	state.LastReview = ptrTime(now)
+	state.Retrievability = 1
+
+	nextStep, graduated := applyStepTransition(state.LearningStep, rating, len(steps))
+	if rating != RatingAgain {
+		state.Reps++
+	}
+
+	if graduated {
+		if fromRelearning {
+			return s.graduateFromRelearning(state, rating, now)
+		}
+		return s.graduateFromLearning(state, rating, now)
+	}
+
+	status := StatusLearning
+	if fromRelearning {
+		status = StatusRelearning
+	}
+
+	return setStepSchedule(state, status, nextStep, now, steps[nextStep])
+}
+
+func (s *Scheduler) scheduleReview(state CardState, rating Rating, now time.Time) CardState {
+	lastReview := now
+	if state.LastReview != nil {
+		lastReview = *state.LastReview
+	}
+
+	daysSinceReview := now.Sub(lastReview).Hours() / 24
 	retrievability := Retrievability(daysSinceReview, state.Stability)
 
-	var nextStability float64
 	if rating == RatingAgain {
-		nextStability = StabilityAfterForgetting(state.Stability, state.Difficulty, retrievability, s.weights)
+		state.Stability = StabilityAfterForgetting(state.Stability, state.Difficulty, retrievability, s.weights)
 		state.Difficulty = UpdateDifficulty(state.Difficulty, rating, s.weights)
-		if state.Status == StatusReview {
-			state.Lapses++
-		}
-		state.Status = StatusRelearning
-	} else {
-		nextStability = StabilityAfterRecall(state.Stability, state.Difficulty, retrievability, rating, s.weights)
-		state.Difficulty = UpdateDifficulty(state.Difficulty, rating, s.weights)
-		state.Reps++
-		if nextStability >= s.config.ReviewStabilityThresholdDays {
-			state.Status = StatusReview
-		} else {
-			state.Status = StatusLearning
-		}
+		state.EffectiveDifficulty = EffectiveDifficulty(state.Difficulty, state.HierarchicalSupport, s.config.HierarchicalDifficultyPenalty)
+		state.Retrievability = Retrievability(0, state.Stability)
+		state.Lapses++
+		state.LastReview = ptrTime(now)
+
+		return setStepSchedule(state, StatusRelearning, 0, now, s.config.RelearningSteps[0])
 	}
 
+	nextStability := StabilityAfterRecall(state.Stability, state.Difficulty, retrievability, rating, s.weights)
 	state.Stability = nextStability
+	state.Difficulty = UpdateDifficulty(state.Difficulty, rating, s.weights)
 	state.EffectiveDifficulty = EffectiveDifficulty(state.Difficulty, state.HierarchicalSupport, s.config.HierarchicalDifficultyPenalty)
 	state.Retrievability = Retrievability(0, nextStability)
 	state.IntervalDays = NextInterval(nextStability, state.EffectiveDifficulty, s.config.DesiredRetention)
+	state.DueDate = ptrTime(now.Add(daysToDuration(state.IntervalDays)))
+	state.Status = StatusReview
+	state.LearningStep = 0
+	state.Reps++
 	state.LastReview = ptrTime(now)
-	dueDate := now.Add(time.Duration(state.IntervalDays*24) * time.Hour)
-	state.DueDate = &dueDate
 
 	return state
+}
+
+func (s *Scheduler) graduateFromLearning(state CardState, rating Rating, now time.Time) CardState {
+	state.Stability = InitialStability(rating, s.weights)
+	state.Difficulty = InitialDifficulty(rating, s.weights)
+	state.EffectiveDifficulty = EffectiveDifficulty(state.Difficulty, state.HierarchicalSupport, s.config.HierarchicalDifficultyPenalty)
+	state.Retrievability = Retrievability(0, state.Stability)
+	state.IntervalDays = NextInterval(state.Stability, state.EffectiveDifficulty, s.config.DesiredRetention)
+	state.DueDate = ptrTime(now.Add(daysToDuration(state.IntervalDays)))
+	state.Status = StatusReview
+	state.LearningStep = 0
+	return state
+}
+
+func (s *Scheduler) graduateFromRelearning(state CardState, rating Rating, now time.Time) CardState {
+	state.Difficulty = UpdateDifficulty(state.Difficulty, rating, s.weights)
+	state.EffectiveDifficulty = EffectiveDifficulty(state.Difficulty, state.HierarchicalSupport, s.config.HierarchicalDifficultyPenalty)
+	state.Retrievability = Retrievability(0, state.Stability)
+	state.IntervalDays = NextInterval(state.Stability, state.EffectiveDifficulty, s.config.DesiredRetention)
+	state.DueDate = ptrTime(now.Add(daysToDuration(state.IntervalDays)))
+	state.Status = StatusReview
+	state.LearningStep = 0
+	return state
+}
+
+func applyStepTransition(currentStep int, rating Rating, stepCount int) (int, bool) {
+	if stepCount <= 0 {
+		return 0, true
+	}
+
+	step := normalizeStep(currentStep)
+	if step >= stepCount {
+		step = stepCount - 1
+	}
+
+	switch rating {
+	case RatingAgain:
+		return 0, false
+	case RatingHard:
+		return step, false
+	case RatingEasy:
+		return 0, true
+	default:
+		next := step + 1
+		if next >= stepCount {
+			return 0, true
+		}
+		return next, false
+	}
+}
+
+func setStepSchedule(state CardState, status CardStatus, step int, now time.Time, interval time.Duration) CardState {
+	state.Status = status
+	state.LearningStep = normalizeStep(step)
+	state.IntervalDays = interval.Hours() / 24
+	state.DueDate = ptrTime(now.Add(interval))
+	return state
+}
+
+func normalizeStep(step int) int {
+	if step < 0 {
+		return 0
+	}
+	return step
+}
+
+func daysToDuration(days float64) time.Duration {
+	return time.Duration(days * 24 * float64(time.Hour))
 }
 
 func (s *Scheduler) ShouldUnlockStep(stabilities []float64) bool {

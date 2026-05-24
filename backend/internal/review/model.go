@@ -25,17 +25,17 @@ type ReviewRequest struct {
 }
 
 type ReviewCard struct {
-	CardID         uuid.UUID     `json:"cardId"`
-	Front          string        `json:"front"`
+	CardID         uuid.UUID        `json:"cardId"`
+	Front          string           `json:"front"`
 	CardType       cardpkg.CardType `json:"cardType"`
-	CorrectAnswers [][]string    `json:"correctAnswers"`
-	Distractors    []string      `json:"distractors"`
-	Step           int           `json:"step"`
-	Content        string        `json:"content"`
-	ContentType    string        `json:"contentType"`
-	LanguageCode   string        `json:"languageCode"`
-	State          CardStateView `json:"state"`
-	InfoObjectID   uuid.UUID     `json:"infoObjectId"`
+	CorrectAnswers [][]string       `json:"correctAnswers"`
+	Distractors    []string         `json:"distractors"`
+	Step           int              `json:"step"`
+	Content        string           `json:"content"`
+	ContentType    string           `json:"contentType"`
+	LanguageCode   string           `json:"languageCode"`
+	State          CardStateView    `json:"state"`
+	InfoObjectID   uuid.UUID        `json:"infoObjectId"`
 }
 
 type CardStateView struct {
@@ -50,6 +50,7 @@ type CardStateView struct {
 	Reps                int        `json:"reps"`
 	Lapses              int        `json:"lapses"`
 	IntervalDays        float64    `json:"intervalDays"`
+	LearningStep        int        `json:"learningStep"`
 	LastReview          *time.Time `json:"lastReview,omitempty"`
 }
 

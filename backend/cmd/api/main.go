@@ -69,7 +69,7 @@ func main() {
 	router := chi.NewRouter()
 	router.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5173"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: false,
 		MaxAge:           300,
@@ -89,6 +89,8 @@ func main() {
 
 		r.Group(func(r chi.Router) {
 			r.Use(platformmiddleware.Auth(tokenManager))
+			r.Patch("/users/me/language", userHandler.UpdatePreferredLanguage)
+
 			r.Route("/decks", func(r chi.Router) {
 				r.Get("/", deckHandler.List)
 				r.Post("/", deckHandler.Create)

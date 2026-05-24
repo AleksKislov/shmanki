@@ -121,6 +121,7 @@ export default component$(() => {
         reps: 0,
         lapses: 0,
         intervalDays: 0,
+        learningStep: 0,
         lastReview: null,
       },
     };

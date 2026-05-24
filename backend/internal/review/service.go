@@ -90,6 +90,7 @@ func (s *Service) SubmitReview(ctx context.Context, userID uuid.UUID, req Review
 	updatedState.Status = after.Status
 	updatedState.Reps = after.Reps
 	updatedState.Lapses = after.Lapses
+	updatedState.LearningStep = after.LearningStep
 
 	if err := s.store.UpdateCardState(ctx, tx, userID, updatedState); err != nil {
 		return nil, err
@@ -144,6 +145,7 @@ func (s *Service) SubmitReview(ctx context.Context, userID uuid.UUID, req Review
 			Reps:                updatedState.Reps,
 			Lapses:              updatedState.Lapses,
 			IntervalDays:        updatedState.IntervalDays,
+			LearningStep:        updatedState.LearningStep,
 			LastReview:          updatedState.LastReview,
 			EffectiveDifficulty: after.EffectiveDifficulty,
 			HierarchicalSupport: after.HierarchicalSupport,
@@ -191,6 +193,7 @@ func toSchedulerState(state stateRecord) fsrs.CardState {
 		DueDate:        state.DueDate,
 		LastReview:     state.LastReview,
 		IntervalDays:   state.IntervalDays,
+		LearningStep:   state.LearningStep,
 		Status:         state.Status,
 		Reps:           state.Reps,
 		Lapses:         state.Lapses,

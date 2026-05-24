@@ -32,3 +32,21 @@ export function formatStability(stability: number): string {
   if (stability < 1) return `${Math.round(stability * 24)}h`;
   return `${Math.round(stability)}d`;
 }
+
+export function formatInterval(status: CardStatus, intervalDays: number): string {
+  if (status === "learning" || status === "relearning") {
+    const minutes = Math.max(1, Math.round(intervalDays * 24 * 60));
+    if (minutes < 60) {
+      return `${minutes}m`;
+    }
+    const hours = Math.round(minutes / 60);
+    return `${hours}h`;
+  }
+
+  if (intervalDays < 1) {
+    const hours = Math.max(1, Math.round(intervalDays * 24));
+    return `${hours}h`;
+  }
+
+  return `${Math.round(intervalDays)}d`;
+}

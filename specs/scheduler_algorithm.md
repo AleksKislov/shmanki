@@ -22,10 +22,12 @@ const (
 )
 
 type Config struct {
-    DesiredRetention               float64
-    StepUnlockStabilityDays        float64
-    ReviewStabilityThresholdDays   float64
-    HierarchicalDifficultyPenalty  float64
+    DesiredRetention              float64
+    StepUnlockStabilityDays       float64
+    ReviewStabilityThresholdDays  float64
+    HierarchicalDifficultyPenalty float64
+    LearningSteps                 []time.Duration
+    RelearningSteps               []time.Duration
 }
 
 var DefaultConfig = Config{
@@ -33,6 +35,8 @@ var DefaultConfig = Config{
     StepUnlockStabilityDays:       14.0,
     ReviewStabilityThresholdDays:  21.0,
     HierarchicalDifficultyPenalty: 2.0,
+    LearningSteps:                 []time.Duration{1 * time.Minute, 10 * time.Minute, 1 * time.Hour},
+    RelearningSteps:               []time.Duration{10 * time.Minute, 1 * time.Hour},
 }
 ```
 
@@ -100,13 +104,43 @@ The scheduler itself only needs the derived rating.
 type CardStatus string
 
 const (
-    StatusLocked    CardStatus = "locked"     // step prerequisites not met
-    StatusNew       CardStatus = "new"        // never reviewed
-    StatusLearning  CardStatus = "learning"   // S < ReviewStabilityThresholdDays
-    StatusReview    CardStatus = "review"     // S >= ReviewStabilityThresholdDays
+    StatusLocked     CardStatus = "locked"     // step prerequisites not met
+    StatusNew        CardStatus = "new"        // never reviewed
+    StatusLearning   CardStatus = "learning"   // in learning steps (minutes-based)
+    StatusReview     CardStatus = "review"     // graduated, scheduled by day-based FSRS
     StatusRelearning CardStatus = "relearning" // lapsed, being relearned
 )
 ```
+
+---
+
+## Learning And Relearning Steps
+
+This scheduler is a hybrid:
+
+1. **Step mode (minutes-based)** for `new`, `learning`, and `relearning` cards.
+2. **FSRS mode (days-based)** for `review` cards.
+
+### Default Step Lists
+
+- `LearningSteps`: `[1 minute, 10 minutes, 1 hour]`
+- `RelearningSteps`: `[10 minutes, 1 hour]`
+
+### Step Transition Rules
+
+For cards currently in `learning` or `relearning`:
+
+- **Again**: reset to step 0
+- **Hard**: stay on current step
+- **Good**: move to next step (or graduate if at the final step)
+- **Easy**: graduate immediately
+
+### Graduation Rules
+
+- **From learning (new cards):** initialize `Stability` and `Difficulty` from the graduating rating (`InitialStability`, `InitialDifficulty`), then schedule first day-based interval via `NextInterval`.
+- **From relearning (lapsed review cards):** keep the decayed stability created by `StabilityAfterForgetting` at lapse time, then schedule next day-based interval from that decayed stability.
+
+Cards in step mode are still persisted in `card_states` with due times in minutes/hours and `interval_days` stored as fractional days.
 
 ---
 
@@ -312,47 +346,26 @@ Minimum interval is 1 day.
 
 ## Full Review Cycle
 
-```go
-func (sc *Scheduler) Schedule(state CardState, rating Rating, now time.Time, hierarchicalSupport float64) CardState {
-    w := sc.weights
-    t := now.Sub(state.LastReview).Hours() / 24 // days since last review
+At a high level, `Schedule` now branches by status:
 
-    r := Retrievability(t, state.Stability)
+1. **Initial state (`new` / `locked`)**
+   - `Easy`: immediate graduation to `review`
+   - `Again` / `Hard`: start `learning` at step 0
+   - `Good`: step 1 if available, otherwise immediate graduation
 
-    var newS, newD float64
+2. **Learning step mode (`learning`)**
+   - Applies the step transition rules above using `LearningSteps`
+   - Graduation initializes fresh FSRS state from graduating rating
 
-    if rating == RatingAgain {
-        newS = StabilityAfterForgetting(state.Stability, state.Difficulty, r, w)
-        newD = UpdateDifficulty(state.Difficulty, rating, w)
-        if state.Status == StatusReview {
-            state.Lapses++
-        }
-        state.Status = StatusRelearning
-    } else {
-        newS = StabilityAfterRecall(state.Stability, state.Difficulty, r, rating, w)
-        newD = UpdateDifficulty(state.Difficulty, rating, w)
-        state.Reps++
-        if newS >= 21 {
-            state.Status = StatusReview
-        } else {
-            state.Status = StatusLearning
-        }
-    }
+3. **Relearning step mode (`relearning`)**
+   - Applies the step transition rules above using `RelearningSteps`
+   - Graduation reuses the decayed stability from lapse time
 
-    effectiveDifficulty := EffectiveDifficulty(newD, hierarchicalSupport, DefaultConfig.HierarchicalDifficultyPenalty)
+4. **Review mode (`review`)**
+   - `Again`: apply `StabilityAfterForgetting`, increment lapses, move to `relearning` step 0
+   - `Hard` / `Good` / `Easy`: standard day-based FSRS update and next interval
 
-    state.Stability     = newS
-    state.Difficulty    = newD
-    state.EffectiveDifficulty = effectiveDifficulty
-    state.HierarchicalSupport = hierarchicalSupport
-    state.Retrievability = Retrievability(0, newS) // R right after review = ~1.0
-    state.IntervalDays  = NextInterval(newS, effectiveDifficulty, DefaultConfig.DesiredRetention)
-    state.LastReview    = now
-    state.DueDate       = now.Add(time.Duration(state.IntervalDays * 24) * time.Hour)
-
-    return state
-}
-```
+The concrete implementation is in `backend/internal/fsrs/scheduler.go`.
 
 ---
 

@@ -61,7 +61,6 @@ export const ru: Messages = {
   "auth.register.title": "Создать аккаунт",
   "auth.register.email": "Email",
   "auth.register.password": "Пароль",
-  "auth.register.language": "Язык интерфейса",
   "auth.register.submit": "Создать аккаунт",
   "auth.register.hasAccount": "Уже есть аккаунт?",
   "auth.register.login": "Войти",

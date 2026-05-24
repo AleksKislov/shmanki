@@ -1,6 +1,7 @@
 import { $, component$, Slot, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, useNavigate } from "@builder.io/qwik-city";
-import { clearAuth, getLocale, getToken, getUser, setLocale } from "~/lib/auth";
+import { clearAuth, getLocale, getToken, getUser, setLocale, setUser } from "~/lib/auth";
+import { api } from "~/lib/api";
 import { getLocaleLabel, LANGUAGE_OPTIONS, t } from "~/lib/i18n";
 import type { LanguageCode } from "~/lib/types";
 
@@ -45,6 +46,26 @@ export default component$(() => {
     user.value = getUser();
   });
 
+  const handleLanguageChange$ = $(async (next: LanguageCode) => {
+    locale.value = next;
+    setLocale(next);
+
+    if (!isAuthed.value) {
+      return;
+    }
+
+    try {
+      await api.users.updatePreferredLanguage(next);
+      if (user.value) {
+        const updatedUser = { ...user.value, preferredLanguage: next };
+        user.value = updatedUser;
+        setUser(updatedUser);
+      }
+    } catch {
+      // Keep UI language from header selection even if sync fails.
+    }
+  });
+
   return (
     <div class="min-h-screen bg-base-200">
       <header class="border-b border-base-300 bg-base-100 shadow-sm">
@@ -74,11 +95,7 @@ export default component$(() => {
               <select
                 class="select select-sm"
                 value={locale.value}
-                onChange$={(_, el) => {
-                  const next = el.value as LanguageCode;
-                  locale.value = next;
-                  setLocale(next);
-                }}
+                onChange$={(_, el) => handleLanguageChange$(el.value as LanguageCode)}
               >
                 {LANGUAGE_OPTIONS.map((code) => (
                   <option key={code} value={code}>
@@ -135,11 +152,7 @@ export default component$(() => {
                   <select
                     class="select select-sm w-full"
                     value={locale.value}
-                    onChange$={(_, el) => {
-                      const next = el.value as LanguageCode;
-                      locale.value = next;
-                      setLocale(next);
-                    }}
+                    onChange$={(_, el) => handleLanguageChange$(el.value as LanguageCode)}
                   >
                     {LANGUAGE_OPTIONS.map((code) => (
                       <option key={code} value={code}>
