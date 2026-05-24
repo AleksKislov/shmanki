@@ -10,6 +10,7 @@ export const ru: Messages = {
   "header.light": "Светлая",
   "header.dark": "Тёмная",
   "header.menu": "Меню",
+  "header.language": "Язык",
   "header.logout": "Выйти",
   "header.login": "Войти",
 

@@ -10,6 +10,7 @@ export const en: Messages = {
   "header.light": "Light",
   "header.dark": "Dark",
   "header.menu": "Menu",
+  "header.language": "Language",
   "header.logout": "Log out",
   "header.login": "Log in",
 
