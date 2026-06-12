@@ -17,7 +17,9 @@ function shuffle<T>(items: T[]) {
 export const BlockOrderAnswer = component$<Props>(
   ({ correctAnswers, distractors, cardId, locale, onSubmit$ }) => {
     const expected = correctAnswers[0] ?? [];
-    const pool = useSignal(shuffle([...expected, ...distractors]));
+    const expectedSet = new Set(expected);
+    const filteredDistractors = distractors.filter((d) => !expectedSet.has(d));
+    const pool = useSignal(shuffle([...expected, ...filteredDistractors]));
     const selected = useSignal<string[]>([]);
     const failed = useSignal(false);
     const attempts = useSignal<ReviewAttempt[]>([]);
@@ -31,7 +33,7 @@ export const BlockOrderAnswer = component$<Props>(
     });
 
     const resetSelection$ = $(() => {
-      pool.value = shuffle([...expected, ...distractors]);
+      pool.value = shuffle([...expected, ...filteredDistractors]);
       selected.value = [];
       failed.value = false;
     });

@@ -129,6 +129,7 @@ func (s *Service) Suggest(ctx context.Context, userID uuid.UUID, req SuggestRequ
 	if err != nil {
 		return nil, err
 	}
+	deduplicateDistractors(result.Objects)
 	if err := validateSuggestedObjects(result.Objects); err != nil {
 		return nil, err
 	}
@@ -274,6 +275,7 @@ func (s *Service) Save(ctx context.Context, userID uuid.UUID, req SaveRequest) (
 	if err := json.Unmarshal(draft.ObjectsRaw, &objects); err != nil {
 		return nil, fmt.Errorf("decode stored draft: %w", err)
 	}
+	deduplicateDistractors(objects)
 	if err := validateSuggestedObjects(objects); err != nil {
 		return nil, err
 	}
@@ -427,4 +429,25 @@ func defaultString(value string, fallback string) string {
 		return fallback
 	}
 	return strings.TrimSpace(value)
+}
+
+func deduplicateDistractors(objects []SuggestedObject) {
+	for i := range objects {
+		for j := range objects[i].Cards {
+			card := &objects[i].Cards[j]
+			correctSet := make(map[string]struct{})
+			for _, ans := range card.CorrectAnswers {
+				for _, tok := range ans {
+					correctSet[tok] = struct{}{}
+				}
+			}
+			filtered := card.Distractors[:0]
+			for _, d := range card.Distractors {
+				if _, dup := correctSet[d]; !dup {
+					filtered = append(filtered, d)
+				}
+			}
+			card.Distractors = filtered
+		}
+	}
 }

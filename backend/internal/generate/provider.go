@@ -187,7 +187,8 @@ Distractor and answer quality rules — follow these strictly for every card:
   - Distractors must be the same length and style as the correct answer. A user must not be able to identify the correct answer by its length, formatting, or level of detail alone.
   - Distractors must be plausibly wrong: subtly incorrect in a way that requires genuine knowledge to reject. Use the same vocabulary and phrasing as the correct answer but change a key detail — wrong type, inverted condition, off-by-one, incorrect complexity, swapped terms, etc.
   - Never use obviously nonsensical or unrelated distractors.
-  - For trace and signature cards: distractors should be lines or signatures that could plausibly appear in similar code but contain a specific error.`)
+  - For trace and signature cards: distractors should be lines or signatures that could plausibly appear in similar code but contain a specific error.
+  - For line_order cards: distractors must never be identical to any correct answer line. Every distractor must differ from all correct lines (e.g. wrong condition, inverted logic, off-by-one, wrong return value).`)
 }
 
 func generationUserPrompt(req llmCompletionRequest) string {
