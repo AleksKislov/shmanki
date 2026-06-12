@@ -1,4 +1,5 @@
 import type { LanguageCode, User } from "./types";
+import { api } from "./api";
 
 const VALID_LOCALES: LanguageCode[] = ["en", "ru", "es", "de", "fr", "ja", "zh-CN"];
 
@@ -29,6 +30,20 @@ export function getUser(): User | null {
 
 export function setUser(user: User): void {
   localStorage.setItem("user", JSON.stringify(user));
+}
+
+export async function refreshUser(): Promise<User | null> {
+  if (!getToken()) return null;
+  const user = await api.auth.me();
+  setUser(user);
+  if (user.preferredLanguage) {
+    setLocale(user.preferredLanguage);
+  }
+  return user;
+}
+
+export function isAdmin(user: User | null): boolean {
+  return !!user?.isAdmin;
 }
 
 export function getLocale(): LanguageCode {

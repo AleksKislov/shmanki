@@ -18,6 +18,7 @@ export default component$(() => {
   const showObjectForm = useSignal(false);
   const showEditForm = useSignal(false);
   const showGenerateForm = useSignal(false);
+  const publishing = useSignal(false);
 
   const objectForm = useStore({
     title: "",
@@ -140,6 +141,21 @@ export default component$(() => {
     }
   });
 
+  const handlePublish$ = $(async () => {
+	if (!deck.value) return;
+	const category = prompt(t(locale.value, "deck.publish.categoryPrompt"));
+	if (!category) return;
+	publishing.value = true;
+	try {
+	  const result = await api.premade.publishDeck(deck.value.id, category, deck.value.title, deck.value.description);
+	  nav(`/premade/${result.premadeDeckId}`);
+	} catch (e) {
+	  alert(e instanceof Error ? e.message : t(locale.value, "common.error"));
+	} finally {
+	  publishing.value = false;
+	}
+  });
+
   const handleGenerate$ = $(async () => {
     if (!deck.value) return;
     generateForm.error = null;
@@ -241,6 +257,9 @@ export default component$(() => {
             type='button'
           >
             {t(locale.value, "deck.generate")}
+          </button>
+          <button class='btn btn-outline btn-sm' onClick$={handlePublish$} disabled={publishing.value} type='button'>
+            {t(locale.value, "deck.publish.button")}
           </button>
           <button
             class='btn btn-ghost btn-sm'

@@ -6,6 +6,8 @@ export const ru: Messages = {
   "header.home": "Главная",
   "header.decks": "Колоды",
   "header.review": "Повторение",
+  "header.premade": "Готовые",
+  "header.admin": "Админ",
   "header.theme": "Тема",
   "header.light": "Светлая",
   "header.dark": "Тёмная",
@@ -124,6 +126,21 @@ export const ru: Messages = {
   "deck.generate.progression.step1": "Шаг 1: трассировка и важные строки",
   "deck.generate.progression.step2": "Шаг 2: порядок строк",
   "deck.generate.progression.step3": "Шаг 3+: блоки, сниппеты, исправление ошибок",
+  "deck.publish.button": "Опубликовать в сообщество",
+  "deck.publish.categoryPrompt": "Введите категорию",
+
+  // Premade decks
+  "premade.title": "Готовые колоды",
+  "premade.source.all": "Все",
+  "premade.source.official": "Официальные",
+  "premade.source.community": "Сообщество",
+  "premade.allCategories": "Все категории",
+  "premade.allLanguages": "Все языки",
+  "premade.minRating": "Мин. рейтинг",
+  "premade.preview": "Просмотр",
+  "premade.import": "Импорт",
+  "premade.author": "Автор",
+  "premade.empty": "Колоды не найдены",
 
   // Info object detail
   "object.back": "Назад к колоде",

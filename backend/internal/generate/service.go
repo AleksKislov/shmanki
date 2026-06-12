@@ -29,6 +29,7 @@ const (
 	maxTitleLen       = 200
 	maxContentLen     = 20000
 	maxFrontLen       = 2000
+	maxDistractorLen  = 2000
 	maxAnswerTokenLen = 200
 	maxAnswerTokens   = 50
 	maxDistractors    = 20
@@ -360,8 +361,8 @@ func validateSuggestedObjects(items []SuggestedObject) error {
 				return fmt.Errorf("%w: too many distractors (max %d)", ErrInvalidSuggestion, maxDistractors)
 			}
 			for _, d := range card.Distractors {
-				if len(d) > maxAnswerTokenLen {
-					return fmt.Errorf("%w: distractor exceeds %d characters", ErrInvalidSuggestion, maxAnswerTokenLen)
+				if len(d) > maxDistractorLen {
+					return fmt.Errorf("%w: distractor exceeds %d characters", ErrInvalidSuggestion, maxDistractorLen)
 				}
 			}
 			for _, answer := range card.CorrectAnswers {

@@ -30,13 +30,14 @@ func (r *Repository) Create(ctx context.Context, params CreateParams) (*User, er
 	const query = `
 INSERT INTO users (email, password_hash, preferred_language)
 VALUES ($1, $2, $3)
-RETURNING id, email, preferred_language
+RETURNING id, email, COALESCE(display_name, ''), preferred_language
 `
 
 	var user User
 	err := r.db.QueryRow(ctx, query, strings.ToLower(strings.TrimSpace(params.Email)), params.PasswordHash, params.PreferredLanguage).Scan(
 		&user.ID,
 		&user.Email,
+		&user.DisplayName,
 		&user.PreferredLanguage,
 	)
 	if err != nil {
@@ -52,7 +53,7 @@ RETURNING id, email, preferred_language
 
 func (r *Repository) GetByEmail(ctx context.Context, email string) (*User, string, error) {
 	const query = `
-SELECT id, email, password_hash, preferred_language
+SELECT id, email, COALESCE(display_name, ''), password_hash, preferred_language
 FROM users
 WHERE email = $1
 `
@@ -62,6 +63,7 @@ WHERE email = $1
 	err := r.db.QueryRow(ctx, query, strings.ToLower(strings.TrimSpace(email))).Scan(
 		&user.ID,
 		&user.Email,
+		&user.DisplayName,
 		&passwordHash,
 		&user.PreferredLanguage,
 	)
@@ -77,18 +79,43 @@ WHERE email = $1
 
 func (r *Repository) GetByID(ctx context.Context, userID uuid.UUID) (*User, error) {
 	const query = `
-SELECT id, email, preferred_language
+SELECT id, email, COALESCE(display_name, ''), preferred_language
 FROM users
 WHERE id = $1
 `
 
 	var user User
-	err := r.db.QueryRow(ctx, query, userID).Scan(&user.ID, &user.Email, &user.PreferredLanguage)
+	err := r.db.QueryRow(ctx, query, userID).Scan(&user.ID, &user.Email, &user.DisplayName, &user.PreferredLanguage)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
 		return nil, fmt.Errorf("get user by id: %w", err)
+	}
+
+	return &user, nil
+}
+
+func (r *Repository) UpdateProfile(ctx context.Context, userID uuid.UUID, preferredLanguage string, displayName string) (*User, error) {
+	const query = `
+UPDATE users
+SET preferred_language = $2, display_name = $3
+WHERE id = $1
+RETURNING id, email, COALESCE(display_name, ''), preferred_language
+`
+
+	var user User
+	err := r.db.QueryRow(ctx, query, userID, preferredLanguage, strings.TrimSpace(displayName)).Scan(
+		&user.ID,
+		&user.Email,
+		&user.DisplayName,
+		&user.PreferredLanguage,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, fmt.Errorf("update profile: %w", err)
 	}
 
 	return &user, nil

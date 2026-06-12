@@ -65,6 +65,35 @@ func (h *Handler) UpdatePreferredLanguage(w http.ResponseWriter, r *http.Request
 	response.WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
+	userID := platformmiddleware.UserIDFromContext(r.Context())
+	item, err := h.service.GetMe(r.Context(), userID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, item)
+}
+
+func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	userID := platformmiddleware.UserIDFromContext(r.Context())
+
+	var req UpdateProfileRequest
+	if err := response.DecodeJSON(r, &req); err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid request body", "INVALID_REQUEST")
+		return
+	}
+
+	updated, err := h.service.UpdateProfile(r.Context(), userID, req)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, updated)
+}
+
 func handleError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, ErrEmailTaken):

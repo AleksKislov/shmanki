@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	"github.com/google/uuid"
 
 	"shmanki/internal/card"
 	"shmanki/internal/deck"
@@ -21,6 +22,7 @@ import (
 	platformmiddleware "shmanki/internal/platform/middleware"
 	"shmanki/internal/platform/response"
 	"shmanki/internal/platform/token"
+	"shmanki/internal/premade"
 	"shmanki/internal/review"
 	"shmanki/internal/user"
 )
@@ -46,8 +48,15 @@ func main() {
 	scheduler := fsrs.NewScheduler(fsrs.DefaultWeights, fsrs.DefaultConfig)
 
 	userRepo := user.NewRepository(dbPool)
-	userService := user.NewService(userRepo, tokenManager, cfg.DefaultLanguage)
+	userService := user.NewService(userRepo, tokenManager, cfg.DefaultLanguage, cfg.AdminEmails)
 	userHandler := user.NewHandler(userService)
+	getUserEmail := func(ctx context.Context, userID uuid.UUID) (string, error) {
+		item, err := userRepo.GetByID(ctx, userID)
+		if err != nil {
+			return "", err
+		}
+		return item.Email, nil
+	}
 
 	deckRepo := deck.NewRepository(dbPool)
 	deckService := deck.NewService(deckRepo, userRepo, cfg.DefaultLanguage)
@@ -65,6 +74,10 @@ func main() {
 	generateClient := generate.NewClient(cfg.LLMAPIURL, cfg.LLMAPIKey, cfg.LLMModel, cfg.LLMProvider, cfg.LLMTimeoutSeconds, cfg.Env == "development")
 	generateService := generate.NewService(generateRepo, generateClient, cfg.DefaultLanguage)
 	generateHandler := generate.NewHandler(generateService)
+
+	premadeRepo := premade.NewRepository(dbPool)
+	premadeService := premade.NewService(premadeRepo, cfg.AdminEmails, getUserEmail)
+	premadeHandler := premade.NewHandler(premadeService)
 
 	router := chi.NewRouter()
 	router.Use(cors.Handler(cors.Options{
@@ -89,6 +102,8 @@ func main() {
 
 		r.Group(func(r chi.Router) {
 			r.Use(platformmiddleware.Auth(tokenManager))
+			r.Get("/auth/me", userHandler.Me)
+			r.Put("/users/me", userHandler.UpdateProfile)
 			r.Patch("/users/me/language", userHandler.UpdatePreferredLanguage)
 
 			r.Route("/decks", func(r chi.Router) {
@@ -99,6 +114,27 @@ func main() {
 				r.Delete("/{id}", deckHandler.Delete)
 				r.Get("/{deckID}/objects", cardHandler.ListInfoObjects)
 				r.Post("/{deckID}/objects", cardHandler.CreateInfoObject)
+				r.Post("/{deckId}/publish", premadeHandler.Publish)
+			})
+
+			r.Route("/premade-decks", func(r chi.Router) {
+				r.Get("/", premadeHandler.List)
+				r.Get("/categories", premadeHandler.Categories)
+				r.Get("/{id}", premadeHandler.Get)
+				r.Post("/{id}/clone", premadeHandler.Clone)
+				r.Put("/{id}/rating", premadeHandler.Rate)
+				r.Delete("/{id}/rating", premadeHandler.Unrate)
+				r.Delete("/{id}", premadeHandler.Delete)
+			})
+
+			r.Route("/admin", func(r chi.Router) {
+				r.Use(platformmiddleware.RequireAdmin(cfg.AdminEmails, getUserEmail))
+				r.Route("/premade-decks", func(r chi.Router) {
+					r.Get("/", premadeHandler.AdminList)
+					r.Post("/from-deck", premadeHandler.AdminCreateOfficialFromDeck)
+					r.Patch("/{id}/publish", premadeHandler.AdminSetPublished)
+					r.Delete("/{id}", premadeHandler.Delete)
+				})
 			})
 
 			r.Route("/objects", func(r chi.Router) {

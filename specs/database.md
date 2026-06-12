@@ -57,6 +57,8 @@ CREATE TABLE decks (
 CREATE INDEX idx_decks_user_id ON decks(user_id);
 ```
 
+`decks` can be published to the premade catalog exactly once via `premade_decks.source_deck_id`.
+
 ---
 
 ### `info_objects`
@@ -219,6 +221,32 @@ CREATE INDEX idx_card_states_due ON card_states(user_id, due_date)
 
 CREATE INDEX idx_card_states_user_status ON card_states(user_id, status);
 ```
+
+---
+
+### `premade_decks`
+
+Catalog decks visible in the premade page. Two sources are supported:
+
+- `official` (admin-managed)
+- `community` (published from user-owned decks)
+
+Community decks are snapshots and become immutable for non-admin users.
+
+Core columns:
+
+- `user_id` nullable owner (`NULL` for official decks)
+- `source`
+- `source_deck_id` unique nullable link to original user deck (prevents duplicate publishing)
+- `category` free text
+- `is_published` visibility flag
+- `rating_avg`, `rating_count` cached aggregates
+
+Related tables:
+
+- `premade_info_objects`
+- `premade_cards`
+- `premade_deck_ratings` (`score` 1..5, unique `(premade_deck_id, user_id)`)
 
 ---
 

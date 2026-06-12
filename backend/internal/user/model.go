@@ -5,7 +5,9 @@ import "github.com/google/uuid"
 type User struct {
 	ID                uuid.UUID `json:"id"`
 	Email             string    `json:"email"`
+	DisplayName       string    `json:"displayName"`
 	PreferredLanguage string    `json:"preferredLanguage"`
+	IsAdmin           bool      `json:"isAdmin,omitempty"`
 }
 
 type RegisterRequest struct {
@@ -16,6 +18,11 @@ type RegisterRequest struct {
 
 type UpdatePreferredLanguageRequest struct {
 	PreferredLanguage string `json:"preferredLanguage"`
+}
+
+type UpdateProfileRequest struct {
+	PreferredLanguage string `json:"preferredLanguage,omitempty"`
+	DisplayName       string `json:"displayName,omitempty"`
 }
 
 type LoginRequest struct {

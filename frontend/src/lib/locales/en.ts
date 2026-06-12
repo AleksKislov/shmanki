@@ -6,6 +6,8 @@ export const en: Messages = {
   "header.home": "Home",
   "header.decks": "Decks",
   "header.review": "Review",
+  "header.premade": "Premade",
+  "header.admin": "Admin",
   "header.theme": "Theme",
   "header.light": "Light",
   "header.dark": "Dark",
@@ -124,6 +126,21 @@ export const en: Messages = {
   "deck.generate.progression.step1": "Step 1: trace and key lines",
   "deck.generate.progression.step2": "Step 2: line ordering",
   "deck.generate.progression.step3": "Step 3+: blocks, snippets, bug fixes",
+  "deck.publish.button": "Publish to community",
+  "deck.publish.categoryPrompt": "Enter category name",
+
+  // Premade decks
+  "premade.title": "Premade Decks",
+  "premade.source.all": "All",
+  "premade.source.official": "Official",
+  "premade.source.community": "Community",
+  "premade.allCategories": "All categories",
+  "premade.allLanguages": "All languages",
+  "premade.minRating": "Min rating",
+  "premade.preview": "Preview",
+  "premade.import": "Import",
+  "premade.author": "Author",
+  "premade.empty": "No decks found",
 
   // Info object detail
   "object.back": "Back to deck",

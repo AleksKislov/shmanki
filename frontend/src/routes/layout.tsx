@@ -1,6 +1,6 @@
 import { $, component$, Slot, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, useNavigate } from "@builder.io/qwik-city";
-import { clearAuth, getLocale, getToken, getUser, setLocale, setUser } from "~/lib/auth";
+import { clearAuth, getLocale, getToken, getUser, isAdmin, refreshUser, setLocale, setUser } from "~/lib/auth";
 import { api } from "~/lib/api";
 import { getLocaleLabel, LANGUAGE_OPTIONS, t } from "~/lib/i18n";
 import type { LanguageCode } from "~/lib/types";
@@ -42,8 +42,16 @@ export default component$(() => {
 
   const user = useSignal(getUser());
   // Re-read user after hydration
-  useVisibleTask$(() => {
+  useVisibleTask$(async () => {
     user.value = getUser();
+    try {
+      const fresh = await refreshUser();
+      if (fresh) {
+        user.value = fresh;
+      }
+    } catch {
+      // ignore
+    }
   });
 
   const handleLanguageChange$ = $(async (next: LanguageCode) => {
@@ -87,6 +95,14 @@ export default component$(() => {
               <li>
                 <Link href="/review">{t(locale.value, "header.review")}</Link>
               </li>
+              <li>
+                <Link href="/premade">{t(locale.value, "header.premade")}</Link>
+              </li>
+              {isAdmin(user.value) && (
+                <li>
+                  <Link href="/admin/premade">{t(locale.value, "header.admin")}</Link>
+                </li>
+              )}
             </ul>
           </div>
 
@@ -147,6 +163,14 @@ export default component$(() => {
                 <li>
                   <Link href="/review">{t(locale.value, "header.review")}</Link>
                 </li>
+                <li>
+                  <Link href="/premade">{t(locale.value, "header.premade")}</Link>
+                </li>
+                {isAdmin(user.value) && (
+                  <li>
+                    <Link href="/admin/premade">{t(locale.value, "header.admin")}</Link>
+                  </li>
+                )}
                 <li class="menu-title mt-2">{t(locale.value, "header.language") || "Language"}</li>
                 <li>
                   <select

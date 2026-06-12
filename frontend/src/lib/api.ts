@@ -12,6 +12,8 @@ import type {
   InfoObject,
   InfoObjectDetail,
   LanguageCode,
+  PremadeDeck,
+  PremadeDeckDetail,
   ReviewResult,
   ReviewSubmission,
 } from "./types";
@@ -46,12 +48,18 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ email, password, preferredLanguage }),
       }),
+    me: () => request<import("./types").User>("/api/v1/auth/me"),
   },
   users: {
     updatePreferredLanguage: (preferredLanguage: LanguageCode) =>
       request<{ status: string }>("/api/v1/users/me/language", {
         method: "PATCH",
         body: JSON.stringify({ preferredLanguage }),
+      }),
+    updateProfile: (displayName: string, preferredLanguage?: LanguageCode) =>
+      request<import("./types").User>("/api/v1/users/me", {
+        method: "PUT",
+        body: JSON.stringify({ displayName, preferredLanguage }),
       }),
   },
   decks: {
@@ -69,6 +77,58 @@ export const api = {
       }),
     delete: (id: string) => request<{ status: string }>(`/api/v1/decks/${id}`, { method: "DELETE" }),
     stats: (id: string) => request<DeckStats>(`/api/v1/stats/deck/${id}`),
+  },
+  premade: {
+    list: (params?: {
+      source?: "official" | "community" | "all";
+      category?: string;
+      language?: LanguageCode | "";
+      minRating?: number;
+      sort?: "rating" | "newest" | "popular";
+    }) => {
+      const search = new URLSearchParams();
+      if (params?.source && params.source !== "all") search.set("source", params.source);
+      if (params?.category) search.set("category", params.category);
+      if (params?.language) search.set("language", params.language);
+      if (params?.minRating) search.set("min_rating", String(params.minRating));
+      if (params?.sort) search.set("sort", params.sort);
+      const query = search.toString();
+      return request<PremadeDeck[]>(`/api/v1/premade-decks${query ? `?${query}` : ""}`);
+    },
+    categories: () => request<string[]>("/api/v1/premade-decks/categories"),
+    get: (id: string) => request<PremadeDeckDetail>(`/api/v1/premade-decks/${id}`),
+    clone: (id: string) => request<{ deckId: string }>(`/api/v1/premade-decks/${id}/clone`, { method: "POST" }),
+    rate: (id: string, score: number) =>
+      request<{ status: string }>(`/api/v1/premade-decks/${id}/rating`, {
+        method: "PUT",
+        body: JSON.stringify({ score }),
+      }),
+    unrate: (id: string) => request<{ status: string }>(`/api/v1/premade-decks/${id}/rating`, { method: "DELETE" }),
+    publishDeck: (deckId: string, category: string, title?: string, description?: string) =>
+      request<{ premadeDeckId: string }>(`/api/v1/decks/${deckId}/publish`, {
+        method: "POST",
+        body: JSON.stringify({ category, title, description }),
+      }),
+    delete: (id: string) => request<{ status: string }>(`/api/v1/premade-decks/${id}`, { method: "DELETE" }),
+  },
+  admin: {
+    premade: {
+      list: (source?: "official" | "community" | "all") => {
+        const query = source && source !== "all" ? `?source=${source}` : "";
+        return request<PremadeDeck[]>(`/api/v1/admin/premade-decks${query}`);
+      },
+      createOfficialFromDeck: (deckId: string, category: string, title?: string, description?: string) =>
+        request<{ premadeDeckId: string }>("/api/v1/admin/premade-decks/from-deck", {
+          method: "POST",
+          body: JSON.stringify({ deckId, category, title, description }),
+        }),
+      setPublished: (id: string, isPublished: boolean) =>
+        request<{ status: string }>(`/api/v1/admin/premade-decks/${id}/publish`, {
+          method: "PATCH",
+          body: JSON.stringify({ isPublished }),
+        }),
+      delete: (id: string) => request<{ status: string }>(`/api/v1/admin/premade-decks/${id}`, { method: "DELETE" }),
+    },
   },
   objects: {
     list: (deckId: string) => request<InfoObject[]>(`/api/v1/decks/${deckId}/objects`),

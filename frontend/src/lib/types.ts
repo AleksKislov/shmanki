@@ -16,7 +16,9 @@ export type Messages = Record<string, string>;
 export interface User {
   id: string;
   email: string;
+  displayName: string;
   preferredLanguage: LanguageCode;
+  isAdmin?: boolean;
 }
 
 export interface AuthResponse {
@@ -177,4 +179,34 @@ export interface GenerateEditRequest {
 export interface GenerateSaveRequest {
   deckId: string;
   generationId: string;
+}
+
+export interface PremadeDeck {
+  id: string;
+  userId?: string;
+  source: "official" | "community";
+  sourceDeckId?: string;
+  title: string;
+  description: string;
+  languageCode: LanguageCode;
+  category: string;
+  isPublished: boolean;
+  ratingAvg: number;
+  ratingCount: number;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PremadeDeckDetail extends PremadeDeck {
+  infoObjects: {
+    id: string;
+    premadeDeckId: string;
+    title: string;
+    content: string;
+    discipline: string;
+    contentType: string;
+    cards: Card[];
+  }[];
+  myRating?: number;
 }

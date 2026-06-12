@@ -4,22 +4,24 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Port            string
-	Env             string
-	DatabaseURL     string
-	JWTSecret       string
-	JWTTTLHours     int
-	LLMAPIURL       string
-	LLMAPIKey       string
-	LLMModel        string
-	LLMProvider     string
+	Port              string
+	Env               string
+	DatabaseURL       string
+	JWTSecret         string
+	JWTTTLHours       int
+	LLMAPIURL         string
+	LLMAPIKey         string
+	LLMModel          string
+	LLMProvider       string
 	LLMTimeoutSeconds int
-	DefaultLanguage string
+	DefaultLanguage   string
+	AdminEmails       map[string]struct{}
 }
 
 func Load() (Config, error) {
@@ -32,15 +34,15 @@ func Load() (Config, error) {
 	}
 
 	cfg := Config{
-		Port:              getEnv("PORT", "8080"),
-		Env:               getEnv("ENV", "development"),
-		DatabaseURL:       getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/shmanki?sslmode=disable"),
-		JWTSecret:         getEnv("JWT_SECRET", "change-me-change-me-change-me-change-me"),
-		LLMAPIURL:         getEnv("LLM_API_URL", "https://api.openai.com/v1/chat/completions"),
-		LLMAPIKey:         os.Getenv("LLM_API_KEY"),
-		LLMModel:          getEnv("LLM_MODEL", "gpt-4.1-mini"),
-		LLMProvider:       getEnv("LLM_PROVIDER", "openai-compatible"),
-		DefaultLanguage:   getEnv("DEFAULT_LANGUAGE", "en"),
+		Port:            getEnv("PORT", "8080"),
+		Env:             getEnv("ENV", "development"),
+		DatabaseURL:     getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/shmanki?sslmode=disable"),
+		JWTSecret:       getEnv("JWT_SECRET", "change-me-change-me-change-me-change-me"),
+		LLMAPIURL:       getEnv("LLM_API_URL", "https://api.openai.com/v1/chat/completions"),
+		LLMAPIKey:       os.Getenv("LLM_API_KEY"),
+		LLMModel:        getEnv("LLM_MODEL", "gpt-4.1-mini"),
+		LLMProvider:     getEnv("LLM_PROVIDER", "openai-compatible"),
+		DefaultLanguage: getEnv("DEFAULT_LANGUAGE", "en"),
 	}
 
 	jwtTTLHours, err := strconv.Atoi(getEnv("JWT_TTL_HOURS", "168"))
@@ -54,8 +56,22 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("parse LLM_TIMEOUT_SECONDS: %w", err)
 	}
 	cfg.LLMTimeoutSeconds = llmTimeoutSeconds
+	cfg.AdminEmails = parseAdminEmails(os.Getenv("ADMIN_EMAILS"))
 
 	return cfg, nil
+}
+
+func parseAdminEmails(raw string) map[string]struct{} {
+	emails := make(map[string]struct{})
+	for _, item := range strings.Split(raw, ",") {
+		trimmed := strings.ToLower(strings.TrimSpace(item))
+		if trimmed == "" {
+			continue
+		}
+		emails[trimmed] = struct{}{}
+	}
+
+	return emails
 }
 
 func getEnv(key string, fallback string) string {

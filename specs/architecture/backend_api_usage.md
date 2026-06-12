@@ -32,6 +32,11 @@ Auth responses return:
 }
 ```
 
+`user` now includes:
+
+- `displayName`
+- `isAdmin` (computed from `ADMIN_EMAILS` allowlist)
+
 ## Error Format
 
 All errors follow this shape:
@@ -108,6 +113,20 @@ Request:
 {
   "email": "demo@example.com",
   "password": "demo12345"
+}
+```
+
+#### `GET /api/v1/auth/me`
+
+Returns current authenticated user profile:
+
+```json
+{
+  "id": "uuid",
+  "email": "demo@example.com",
+  "displayName": "demo",
+  "preferredLanguage": "en",
+  "isAdmin": false
 }
 ```
 
@@ -209,6 +228,73 @@ Response:
   "status": "deleted"
 }
 ```
+
+#### `POST /api/v1/decks/:deckId/publish`
+
+Publish a user-owned deck to the community premade catalog.
+
+Request:
+
+```json
+{
+  "category": "Algorithms",
+  "title": "Optional override",
+  "description": "Optional override"
+}
+```
+
+Response:
+
+```json
+{ "premadeDeckId": "uuid" }
+```
+
+Publishing the same source deck twice is blocked.
+
+### Premade Decks
+
+#### `GET /api/v1/premade-decks`
+
+List premade decks with optional filters:
+
+- `source=official|community`
+- `category=<text>`
+- `language=<code>`
+- `min_rating=1..5`
+- `sort=rating|newest|popular`
+
+#### `GET /api/v1/premade-decks/categories`
+
+Returns distinct category list.
+
+#### `GET /api/v1/premade-decks/:id`
+
+Returns full premade deck detail (objects + cards + `myRating`).
+
+#### `POST /api/v1/premade-decks/:id/clone`
+
+Clone premade deck into the caller's own `decks`.
+
+#### `PUT /api/v1/premade-decks/:id/rating`
+
+Upsert caller rating:
+
+```json
+{ "score": 1 }
+```
+
+Users cannot rate their own community deck.
+
+#### `DELETE /api/v1/premade-decks/:id/rating`
+
+Removes caller rating.
+
+#### `DELETE /api/v1/premade-decks/:id`
+
+Delete premade deck:
+
+- owner can delete own community deck
+- admins can delete any deck
 
 ### Info Objects
 

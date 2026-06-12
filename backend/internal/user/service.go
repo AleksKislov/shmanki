@@ -25,6 +25,8 @@ var (
 type creator interface {
 	Create(ctx context.Context, params CreateParams) (*User, error)
 	GetByEmail(ctx context.Context, email string) (*User, string, error)
+	GetByID(ctx context.Context, userID uuid.UUID) (*User, error)
+	UpdateProfile(ctx context.Context, userID uuid.UUID, preferredLanguage string, displayName string) (*User, error)
 	UpdatePreferredLanguage(ctx context.Context, userID uuid.UUID, preferredLanguage string) error
 }
 
@@ -32,10 +34,11 @@ type Service struct {
 	users           creator
 	tokens          *token.Manager
 	defaultLanguage string
+	adminEmails     map[string]struct{}
 }
 
-func NewService(users creator, tokens *token.Manager, defaultLanguage string) *Service {
-	return &Service{users: users, tokens: tokens, defaultLanguage: defaultLanguage}
+func NewService(users creator, tokens *token.Manager, defaultLanguage string, adminEmails map[string]struct{}) *Service {
+	return &Service{users: users, tokens: tokens, defaultLanguage: defaultLanguage, adminEmails: adminEmails}
 }
 
 func (s *Service) Register(ctx context.Context, req RegisterRequest) (*AuthResponse, error) {
@@ -109,4 +112,46 @@ func (s *Service) UpdatePreferredLanguage(ctx context.Context, userID uuid.UUID,
 	}
 
 	return nil
+}
+
+func (s *Service) GetMe(ctx context.Context, userID uuid.UUID) (*User, error) {
+	storedUser, err := s.users.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	storedUser.IsAdmin = s.isAdmin(storedUser.Email)
+	return storedUser, nil
+}
+
+func (s *Service) UpdateProfile(ctx context.Context, userID uuid.UUID, req UpdateProfileRequest) (*User, error) {
+	storedUser, err := s.users.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	preferredLanguage := storedUser.PreferredLanguage
+	if req.PreferredLanguage != "" {
+		preferredLanguage, err = language.Normalize(req.PreferredLanguage, s.defaultLanguage)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %w", ErrInvalidLanguage, err)
+		}
+	}
+
+	displayName := storedUser.DisplayName
+	if req.DisplayName != "" {
+		displayName = strings.TrimSpace(req.DisplayName)
+	}
+
+	updatedUser, err := s.users.UpdateProfile(ctx, userID, preferredLanguage, displayName)
+	if err != nil {
+		return nil, err
+	}
+	updatedUser.IsAdmin = s.isAdmin(updatedUser.Email)
+
+	return updatedUser, nil
+}
+
+func (s *Service) isAdmin(email string) bool {
+	_, ok := s.adminEmails[strings.ToLower(strings.TrimSpace(email))]
+	return ok
 }
