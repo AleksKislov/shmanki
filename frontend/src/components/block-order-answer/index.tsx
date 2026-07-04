@@ -72,7 +72,6 @@ export const BlockOrderAnswer = component$<Props>(
       if (!isCorrect) {
         failed.value = true;
         wrongAttemptsCount.value++;
-        await resetSelection$();
         return;
       }
 

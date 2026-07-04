@@ -1,11 +1,10 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
-import type { QRL } from "@builder.io/qwik";
 import { Link, useNavigate, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { CodeBlock } from "~/components/code-block";
 import { CardReview } from "~/components/card-review";
+import { CardRow } from "~/components/card-row";
 import { api } from "~/lib/api";
 import { getLocale } from "~/lib/auth";
-import { getCardTypeLabel, isBlockInteraction } from "~/lib/card-types";
 import { t, getLocaleLabel, LANGUAGE_OPTIONS } from "~/lib/i18n";
 import type { DeckDetail, DeckStats, GeneratedCard, LanguageCode, ReviewCard, ReviewResult, ReviewSubmission } from "~/lib/types";
 
@@ -50,11 +49,11 @@ export default component$(() => {
   const testResult = useSignal<boolean | null>(null);
 
   const mockSubmit$ = $(async (submission: ReviewSubmission): Promise<ReviewResult> => {
-    const wasCorrect = submission.wrongAttemptsCount === 0 && submission.distractorClicksCount === 0;
+    const easy = submission.wrongAttemptsCount === 0 && submission.distractorClicksCount === 0;
     return {
       state: testCard.value!.state,
-      rating: wasCorrect ? 4 : 1,
-      wasCorrect,
+      rating: easy ? 4 : 1,
+      wasCorrect: true,
     };
   });
 
@@ -252,7 +251,7 @@ export default component$(() => {
       {/* Test card modal */}
       {testCard.value && (
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div class="card w-full max-w-2xl border border-base-300 bg-base-100 shadow-xl">
+          <div class="card w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-base-300 bg-base-100 shadow-xl">
             <div class="card-body gap-5">
               <div class="flex items-center justify-between">
                 <span class="text-sm font-medium text-base-content/60">
@@ -487,19 +486,10 @@ export default component$(() => {
                             {t(locale.value, "deck.generate.preview.cards")}
                           </p>
                           {obj.cards.map((card, cardIndex) => (
-                            <GeneratedCardPreview
+                            <CardRow
                               key={cardIndex}
                               card={card}
                               locale={locale.value}
-                              onDelete$={$(() => {
-                                if (!generateForm.result) return;
-                                generateForm.result = {
-                                  ...generateForm.result,
-                                  infoObjects: generateForm.result.infoObjects.map((o, oi) =>
-                                    oi === i ? { ...o, cards: o.cards.filter((_, ci) => ci !== cardIndex) } : o
-                                  ),
-                                };
-                              })}
                               onTest$={$(() => {
                                 testCard.value = {
                                   cardId: "preview",
@@ -529,6 +519,59 @@ export default component$(() => {
                                   },
                                 };
                                 testResult.value = null;
+                              })}
+                              onDelete$={$(() => {
+                                if (!generateForm.result) return;
+                                generateForm.result = {
+                                  ...generateForm.result,
+                                  infoObjects: generateForm.result.infoObjects.map((o, oi) =>
+                                    oi === i ? { ...o, cards: o.cards.filter((_, ci) => ci !== cardIndex) } : o
+                                  ),
+                                };
+                              })}
+                              onEdit$={$(async (updated) => {
+                                if (!generateForm.result) return;
+                                generateForm.result = {
+                                  ...generateForm.result,
+                                  infoObjects: generateForm.result.infoObjects.map((o, oi) =>
+                                    oi === i ? {
+                                      ...o,
+                                      cards: o.cards.map((c, ci) => ci === cardIndex ? { ...c, ...updated } : c),
+                                    } : o
+                                  ),
+                                };
+                              })}
+                              onAddBefore$={$(async (data) => {
+                                if (!generateForm.result) return;
+                                generateForm.result = {
+                                  ...generateForm.result,
+                                  infoObjects: generateForm.result.infoObjects.map((o, oi) => {
+                                    if (oi !== i) return o;
+                                    const cards = [...o.cards];
+                                    cards.splice(cardIndex, 0, data as GeneratedCard);
+                                    return { ...o, cards };
+                                  }),
+                                };
+                              })}
+                              onAddAfter$={$(async (data) => {
+                                if (!generateForm.result) return;
+                                generateForm.result = {
+                                  ...generateForm.result,
+                                  infoObjects: generateForm.result.infoObjects.map((o, oi) => {
+                                    if (oi !== i) return o;
+                                    const cards = [...o.cards];
+                                    cards.splice(cardIndex + 1, 0, data as GeneratedCard);
+                                    return { ...o, cards };
+                                  }),
+                                };
+                              })}
+                              onGenerateCard$={$(async (prompt: string) => {
+                                return await api.generate.suggestCard({
+                                  content: obj.content,
+                                  contentType: obj.contentType,
+                                  discipline: obj.discipline,
+                                  prompt,
+                                });
                               })}
                             />
                           ))}
@@ -722,97 +765,6 @@ export default component$(() => {
     </main>
   );
 });
-
-interface GeneratedCardPreviewProps {
-  card: GeneratedCard;
-  locale: LanguageCode;
-  onDelete$: QRL<() => void>;
-  onTest$: QRL<() => void>;
-}
-
-const GeneratedCardPreview = component$<GeneratedCardPreviewProps>(({ card, locale, onDelete$, onTest$ }) => {
-  return (
-    <div class='rounded-box border border-base-300 bg-base-200/60 p-3'>
-      <div class='flex items-start justify-between gap-3'>
-        <p class='font-medium leading-snug'>{card.front}</p>
-        <div class='flex items-center gap-2'>
-          <div class='flex flex-wrap gap-2 justify-end'>
-            <span class='badge badge-outline badge-sm shrink-0'>
-              {getCardTypeLabel(locale, card.cardType)}
-            </span>
-            <span class='badge badge-ghost badge-sm shrink-0'>
-              {t(locale, "object.card.step")} {card.step}
-            </span>
-          </div>
-          <div class='flex shrink-0 gap-1'>
-            <button class='btn btn-ghost btn-xs' onClick$={onTest$} type='button'>
-              {t(locale, "object.card.test")}
-            </button>
-            <button class='btn btn-ghost btn-xs text-error' onClick$={onDelete$} type='button'>
-              {t(locale, "common.delete")}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {isBlockInteraction(card.cardType) && (
-        <div class='mt-3 flex flex-col gap-2'>
-          <PreviewField
-            label={t(locale, "deck.generate.preview.cardType")}
-            value={getCardTypeLabel(locale, card.cardType)}
-          />
-          <div class='flex flex-col gap-2'>
-            {(card.correctAnswers[0] ?? []).map((unit, index) => (
-              <pre
-                key={index}
-                class='rounded-box border border-base-300 bg-base-100/80 p-2 text-xs whitespace-pre-wrap break-words'
-              >
-                {unit}
-              </pre>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div class='mt-3 grid gap-3 sm:grid-cols-3'>
-        <PreviewField
-          label={t(locale, "deck.generate.preview.cardType")}
-          value={getCardTypeLabel(locale, card.cardType)}
-        />
-        <PreviewField
-          label={t(locale, "deck.generate.preview.correctAnswers")}
-          value={formatAnswerGroups(card.correctAnswers)}
-        />
-        <PreviewField
-          label={t(locale, "deck.generate.preview.distractors")}
-          value={card.distractors.length > 0 ? card.distractors.join(", ") : "-"}
-        />
-      </div>
-    </div>
-  );
-});
-
-interface PreviewFieldProps {
-  label: string;
-  value: string;
-}
-
-const PreviewField = component$<PreviewFieldProps>(({ label, value }) => {
-  return (
-    <div class='flex flex-col gap-1 min-w-0'>
-      <p class='text-xs font-semibold uppercase tracking-wide text-base-content/60'>{label}</p>
-      <p class='text-sm whitespace-pre-wrap break-words'>{value}</p>
-    </div>
-  );
-});
-
-function formatAnswerGroups(answerGroups: GeneratedCard["correctAnswers"]) {
-  if (answerGroups.length === 0) {
-    return "-";
-  }
-
-  return answerGroups.map((group) => group.join(" ")).join("\n");
-}
 
 export const head: DocumentHead = {
   title: "Deck — Shmanki",

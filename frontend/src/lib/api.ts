@@ -209,5 +209,10 @@ export const api = {
         method: "POST",
         body: JSON.stringify(input),
       }),
+    suggestCard: (input: import("./types").SuggestCardRequest) =>
+      request<import("./types").SuggestedCardResponse>("/api/v1/generate/suggest-card", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
   },
 };

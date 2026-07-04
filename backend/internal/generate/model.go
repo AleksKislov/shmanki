@@ -98,12 +98,36 @@ type generationDraft struct {
 	Model        string
 }
 
+type SuggestCardRequest struct {
+	ObjectID    *uuid.UUID `json:"objectId,omitempty"`
+	Content     string     `json:"content,omitempty"`
+	ContentType string     `json:"contentType,omitempty"`
+	Discipline  string     `json:"discipline,omitempty"`
+	Prompt      string     `json:"prompt"`
+}
+
+type SuggestCardResponse struct {
+	Front          string     `json:"front"`
+	CardType       cardpkg.CardType `json:"cardType"`
+	Step           int        `json:"step"`
+	CorrectAnswers [][]string `json:"correctAnswers"`
+	Distractors    []string   `json:"distractors"`
+}
+
+type objectContent struct {
+	Content      string
+	ContentType  string
+	Discipline   string
+	LanguageCode string
+}
+
 type llmCompletionRequest struct {
-	Prompt        string
-	LanguageCode  string
-	Discipline    string
-	ContentType   string
-	ExistingDraft []SuggestedObject
+	Prompt             string
+	LanguageCode       string
+	Discipline         string
+	ContentType        string
+	ExistingDraft      []SuggestedObject
+	SingleCardContent  string // non-empty: generate exactly one card for this content
 }
 
 type llmCompletionResult struct {

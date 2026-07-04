@@ -80,6 +80,23 @@ SET objects_raw = EXCLUDED.objects_raw,
 	return nil
 }
 
+func (r *Repository) GetInfoObjectContent(ctx context.Context, userID uuid.UUID, objectID uuid.UUID) (*objectContent, error) {
+	const query = `
+SELECT io.content, io.content_type, io.discipline, d.language_code
+FROM info_objects io
+JOIN decks d ON d.id = io.deck_id
+WHERE io.id = $1 AND d.user_id = $2
+`
+	var oc objectContent
+	if err := r.db.QueryRow(ctx, query, objectID, userID).Scan(&oc.Content, &oc.ContentType, &oc.Discipline, &oc.LanguageCode); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrInfoObjectNotFound
+		}
+		return nil, fmt.Errorf("get info object content: %w", err)
+	}
+	return &oc, nil
+}
+
 func (r *Repository) GetGenerationDraft(ctx context.Context, tx pgx.Tx, userID uuid.UUID, generationID uuid.UUID) (*generationDraft, error) {
 	const query = `
 SELECT generation_id, user_id, deck_id, objects_raw, model

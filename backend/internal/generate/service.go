@@ -20,6 +20,7 @@ var (
 	ErrInvalidSuggestion     = errors.New("generated content is invalid")
 	ErrDeckNotFound          = errors.New("deck not found")
 	ErrDraftNotFound         = errors.New("generation draft not found")
+	ErrInfoObjectNotFound    = errors.New("info object not found")
 )
 
 const (
@@ -76,6 +77,7 @@ func validateUserInput(prompt, discipline, contentType string) error {
 type store interface {
 	Begin(ctx context.Context) (pgx.Tx, error)
 	GetDeckLanguage(ctx context.Context, tx pgx.Tx, userID uuid.UUID, deckID uuid.UUID) (string, error)
+	GetInfoObjectContent(ctx context.Context, userID uuid.UUID, objectID uuid.UUID) (*objectContent, error)
 	InsertGenerationLog(ctx context.Context, tx pgx.Tx, log generationLog) (*generationLog, error)
 	UpsertGenerationDraft(ctx context.Context, tx pgx.Tx, draft generationDraft) error
 	GetGenerationDraft(ctx context.Context, tx pgx.Tx, userID uuid.UUID, generationID uuid.UUID) (*generationDraft, error)
@@ -429,6 +431,66 @@ func defaultString(value string, fallback string) string {
 		return fallback
 	}
 	return strings.TrimSpace(value)
+}
+
+func (s *Service) SuggestCard(ctx context.Context, userID uuid.UUID, req SuggestCardRequest) (*SuggestCardResponse, error) {
+	if strings.TrimSpace(req.Prompt) == "" {
+		return nil, ErrInvalidRequest
+	}
+	if err := validateUserInput(req.Prompt, req.Discipline, req.ContentType); err != nil {
+		return nil, err
+	}
+	if s.client == nil {
+		return nil, ErrGenerationUnavailable
+	}
+
+	var oc objectContent
+	if req.ObjectID != nil && *req.ObjectID != uuid.Nil {
+		fetched, err := s.store.GetInfoObjectContent(ctx, userID, *req.ObjectID)
+		if err != nil {
+			return nil, err
+		}
+		oc = *fetched
+		lang, err := language.Normalize(oc.LanguageCode, s.defaultLanguage)
+		if err != nil {
+			lang = s.defaultLanguage
+		}
+		oc.LanguageCode = lang
+	} else {
+		oc.Content = strings.TrimSpace(req.Content)
+		oc.ContentType = strings.TrimSpace(req.ContentType)
+		oc.Discipline = strings.TrimSpace(req.Discipline)
+		oc.LanguageCode = s.defaultLanguage
+	}
+
+	if oc.Content == "" {
+		return nil, fmt.Errorf("%w: object content is required", ErrInvalidRequest)
+	}
+
+	result, err := s.client.Complete(ctx, llmCompletionRequest{
+		Prompt:            strings.TrimSpace(req.Prompt),
+		LanguageCode:      oc.LanguageCode,
+		Discipline:        oc.Discipline,
+		ContentType:       oc.ContentType,
+		SingleCardContent: oc.Content,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(result.Objects) == 0 || len(result.Objects[0].Cards) == 0 {
+		return nil, fmt.Errorf("%w: LLM returned no cards", ErrInvalidSuggestion)
+	}
+
+	deduplicateDistractors(result.Objects)
+	card := result.Objects[0].Cards[0]
+
+	return &SuggestCardResponse{
+		Front:          card.Front,
+		CardType:       card.CardType,
+		Step:           card.Step,
+		CorrectAnswers: card.CorrectAnswers,
+		Distractors:    card.Distractors,
+	}, nil
 }
 
 func deduplicateDistractors(objects []SuggestedObject) {

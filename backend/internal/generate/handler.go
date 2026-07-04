@@ -68,6 +68,23 @@ func (h *Handler) Edit(w http.ResponseWriter, r *http.Request) {
 	response.WriteJSON(w, http.StatusOK, result)
 }
 
+func (h *Handler) SuggestCard(w http.ResponseWriter, r *http.Request) {
+	userID := platformmiddleware.UserIDFromContext(r.Context())
+	var req SuggestCardRequest
+	if err := response.DecodeJSON(r, &req); err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid request body", "INVALID_REQUEST")
+		return
+	}
+
+	result, err := h.service.SuggestCard(r.Context(), userID, req)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, result)
+}
+
 func handleError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, ErrGenerationUnavailable):
@@ -79,6 +96,8 @@ func handleError(w http.ResponseWriter, err error) {
 	case errors.Is(err, ErrDeckNotFound):
 		response.WriteError(w, http.StatusNotFound, err.Error(), "NOT_FOUND")
 	case errors.Is(err, ErrDraftNotFound):
+		response.WriteError(w, http.StatusNotFound, err.Error(), "NOT_FOUND")
+	case errors.Is(err, ErrInfoObjectNotFound):
 		response.WriteError(w, http.StatusNotFound, err.Error(), "NOT_FOUND")
 	default:
 		log.Printf("[generate] internal error: %v", err)

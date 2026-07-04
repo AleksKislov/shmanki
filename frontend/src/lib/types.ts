@@ -139,6 +139,16 @@ export interface DeckStats {
   newNow: number;
 }
 
+export interface SuggestCardRequest {
+  objectId?: string;
+  content?: string;
+  contentType?: string;
+  discipline?: string;
+  prompt: string;
+}
+
+export type SuggestedCardResponse = GeneratedCard;
+
 export interface GenerateSuggestRequest {
   deckId: string;
   prompt: string;

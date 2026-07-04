@@ -163,6 +163,7 @@ func main() {
 				generateLimiter := platformmiddleware.NewRateLimiter(20, time.Minute)
 				r.Use(generateLimiter.PerUser())
 				r.Post("/suggest", generateHandler.Suggest)
+				r.Post("/suggest-card", generateHandler.SuggestCard)
 				r.Post("/edit", generateHandler.Edit)
 				r.Post("/save", generateHandler.Save)
 			})
