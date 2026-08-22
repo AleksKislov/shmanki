@@ -1,6 +1,7 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
 import type { QRL } from "@builder.io/qwik";
 import type { ReviewAttempt, ReviewSubmission } from "~/lib/types";
+import { pickRandomVariantIndex } from "~/lib/card-types";
 
 interface Props {
   correctAnswers: string[][];
@@ -16,7 +17,8 @@ function shuffle<T>(items: T[]) {
 
 export const BlockOrderAnswer = component$<Props>(
   ({ correctAnswers, distractors, cardId, locale, onSubmit$ }) => {
-    const expected = correctAnswers[0] ?? [];
+    const variantIndex = useSignal(pickRandomVariantIndex(correctAnswers));
+    const expected = correctAnswers[variantIndex.value] ?? correctAnswers[0] ?? [];
     const expectedSet = new Set(expected);
     const filteredDistractors = distractors.filter((d) => !expectedSet.has(d));
     const pool = useSignal(shuffle([...expected, ...filteredDistractors]));

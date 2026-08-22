@@ -1,6 +1,7 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
 import type { QRL } from "@builder.io/qwik";
 import type { ReviewAttempt, ReviewSubmission } from "~/lib/types";
+import { pickRandomVariantIndex } from "~/lib/card-types";
 
 interface Props {
   correctAnswers: string[][];
@@ -12,7 +13,9 @@ interface Props {
 
 export const TokenAnswer = component$<Props>(
   ({ correctAnswers, distractors, cardId, locale, onSubmit$ }) => {
-    const allTokens = [...(correctAnswers[0] ?? []), ...distractors].sort(() => Math.random() - 0.5);
+    const variantIndex = useSignal(pickRandomVariantIndex(correctAnswers));
+    const expected = correctAnswers[variantIndex.value] ?? correctAnswers[0] ?? [];
+    const allTokens = [...expected, ...distractors].sort(() => Math.random() - 0.5);
 
     const clicked = useSignal<string[]>([]);
     const failed = useSignal(false);
@@ -25,7 +28,6 @@ export const TokenAnswer = component$<Props>(
       const next = [...clicked.value, token];
       clicked.value = next;
 
-      const expected = correctAnswers[0];
       const currentAttemptHasDistractor = next.some((t) => distractors.includes(t));
 
       if (distractors.includes(token)) {

@@ -8,3 +8,7 @@ export function isBlockInteraction(cardType: CardType) {
 export function getCardTypeLabel(locale: LanguageCode, cardType: CardType) {
   return t(locale, `cardType.${cardType}`);
 }
+
+export function pickRandomVariantIndex(correctAnswers: string[][]) {
+  return Math.floor(Math.random() * Math.max(correctAnswers.length, 1));
+}
