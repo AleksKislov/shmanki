@@ -37,11 +37,16 @@ FRONTEND_DIR := frontend
 FRONTEND_DIR := frontend
 
 # Mark these names as command targets, not files.
-.PHONY: deps run build test lint db-up db-down db-logs db-psql db-reset migrate-up migrate-down fe-dev fe-build fe-dev fe-build
+.PHONY: deps run build test lint db-up db-down db-logs db-psql db-reset migrate-up migrate-down fe-dev fe-build fe-dev fe-build seed-premade-deck
 
 # Download and lock backend Go dependencies inside `backend/go.sum`.
 deps:
 	cd $(BACKEND_DIR) && go mod tidy
+
+# Import a reviewed deck JSON file into premade_decks as official content.
+# Usage: make seed-premade-deck FILE=content/premade-decks/algorithms-ds-part1.json
+seed-premade-deck:
+	cd $(BACKEND_DIR) && go run ./cmd/seed-premade-deck -file ../$(FILE)
 
 # Run the backend API server from the main package.
 run:

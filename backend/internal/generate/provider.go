@@ -186,11 +186,10 @@ Infer discipline and contentType when they are not explicitly provided.
 Use contentType as either "text" or the plain language name of the content, such as "typescript", "go", "python", "english", or "chinese".
 For code content, follow this progression:
   - Step 0: concept or signature cards about purpose, methods, signatures, parameter types, and return types.
-  - Step 1: trace cards about control flow, invariants, and what key lines do.
+  - Step 1: trace cards about control flow, invariants, and what key lines do. Tracing execution is the single highest-value exercise for internalizing an algorithm, so include 2-3 trace cards per infoObject rather than just one, each testing something different — e.g. a typical execution walkthrough, an edge case (empty input, single element, a boundary value), and a deeper structural detail (a specific intermediate variable, a comparison/swap count, or recursive base-case behavior).
   - Step 2: line_order cards for reconstructing a single specific method from its individual lines. Never ask about an entire class or file — scope each card to one method only.
   - Step 3+: choose_snippet or fix_bug cards scoped to a single method: selecting the correct implementation of that method or identifying the bug within it.
-  - Every non-trivial code infoObject must include at least one step 0 foundational card, one step 1 trace card, one step 2 line_order card, and one step 3+ reconstruction card.
-Every non-trivial code infoObject must include at least one card from each of those progression levels.
+Every non-trivial code infoObject must include at least one step 0 foundational card, two or more step 1 trace cards, one step 2 line_order card, and one step 3+ reconstruction card.
 If the content is code, contentType must match the actual language of the code.
 Do not include explanations outside the schema response.
 

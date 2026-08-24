@@ -1,0 +1,1071 @@
+{
+  "title": "Algorithms & Data Structures I: Search, Sort, and Linear Structures",
+  "description": "A first course in algorithmic thinking: linear and binary search, the five classic sorting algorithms, and the linear data structures (linked list, stack, queue) every programmer should know — with runnable TypeScript code, execution traces, and bug-fixing exercises.",
+  "languageCode": "en",
+  "category": "algorithms",
+  "infoObjects": [
+    {
+      "title": "Linear Search",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Linear search is the simplest way to find a value: check every element, one by one, until you find it or run out of elements. It makes no assumptions about the data — it works on unsorted arrays just as well as sorted ones — which is exactly why it's slow: it can't skip anything.\n\n```ts\nfunction linearSearch(arr: number[], target: number): number {\n  for (let i = 0; i < arr.length; i++) {\n    if (arr[i] === target) {\n      return i;\n    }\n  }\n  return -1;\n}\n```\n\nWorst case: the target is the last element (or missing entirely), so every element gets checked — O(n) time, O(1) extra space. It's the baseline every other search algorithm tries to beat.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What is the worst-case time complexity of linear search on an array of n elements?",
+          "correctAnswers": [["O(n)"]],
+          "distractors": ["O(log n)", "O(n log n)", "O(1)"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "Complete the function signature: function ______(arr: number[], target: number): number — returns the index of target, or -1.",
+          "correctAnswers": [["linearSearch"]],
+          "distractors": ["search", "findIndex", "binarySearch"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does linearSearch([5, 3, 8, 1], 8) return?",
+          "correctAnswers": [["2"]],
+          "distractors": ["8", "3", "-1"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does linearSearch([], 5) return on an empty array?",
+          "correctAnswers": [["-1"]],
+          "distractors": ["0", "5", "undefined"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "How many comparisons does linearSearch([4, 8, 15, 16, 23], 23) make before returning?",
+          "correctAnswers": [["5"]],
+          "distractors": ["4", "1", "6"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of linearSearch by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "for (let i = 0; i < arr.length; i++) {",
+            "  if (arr[i] === target) {",
+            "    return i;",
+            "  }",
+            "}",
+            "return -1;"
+          ]],
+          "distractors": [
+            "for (let i = arr.length - 1; i >= 0; i--) {",
+            "return arr[i];",
+            "break;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble a linear search written with a while loop instead of a for loop.",
+          "correctAnswers": [[
+            "let i = 0;",
+            "while (i < arr.length) {",
+            "  if (arr[i] === target) {",
+            "    return i;",
+            "  }",
+            "  i++;",
+            "}",
+            "return -1;"
+          ]],
+          "distractors": [
+            "i--;",
+            "return target;",
+            "i += 2;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This linear search reads one element past the end of the array when the target is missing. Assemble the corrected version.",
+          "correctAnswers": [[
+            "for (let i = 0; i < arr.length; i++) {",
+            "  if (arr[i] === target) {",
+            "    return i;",
+            "  }",
+            "}",
+            "return -1;"
+          ]],
+          "distractors": [
+            "for (let i = 0; i <= arr.length; i++) {",
+            "if (arr[i] = target) {",
+            "return arr.length;"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Binary Search",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Binary search finds a value in a **sorted** array by repeatedly cutting the search space in half: compare the target to the middle element, and discard the half that can't contain it. That single assumption — sortedness — is what makes it fast.\n\n```ts\nfunction binarySearch(arr: number[], target: number): number {\n  let low = 0;\n  let high = arr.length - 1;\n  while (low <= high) {\n    const mid = Math.floor((low + high) / 2);\n    if (arr[mid] === target) {\n      return mid;\n    } else if (arr[mid] < target) {\n      low = mid + 1;\n    } else {\n      high = mid - 1;\n    }\n  }\n  return -1;\n}\n```\n\nEach comparison eliminates half of the remaining candidates, giving O(log n) time — for a billion elements, at most ~30 comparisons.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What is the worst-case time complexity of binary search on a sorted array of n elements?",
+          "correctAnswers": [["O(log n)"]],
+          "distractors": ["O(n)", "O(n^2)", "O(1)"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "Binary search only works correctly if the input array is already ______.",
+          "correctAnswers": [["sorted"]],
+          "distractors": ["unique", "reversed", "non-empty"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What index does binarySearch([1, 3, 5, 7, 9, 11], 9) return?",
+          "correctAnswers": [["4"]],
+          "distractors": ["2", "5", "-1"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does binarySearch([], 5) return on an empty array?",
+          "correctAnswers": [["-1"]],
+          "distractors": ["0", "undefined", "5"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "On the very first iteration of binarySearch([2, 4, 6, 8, 10, 12, 14], 14) (low = 0, high = 6), what index does mid hold?",
+          "correctAnswers": [["3"]],
+          "distractors": ["0", "6", "4"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of the while loop by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "const mid = Math.floor((low + high) / 2);",
+            "if (arr[mid] === target) {",
+            "  return mid;",
+            "} else if (arr[mid] < target) {",
+            "  low = mid + 1;",
+            "} else {",
+            "  high = mid - 1;",
+            "}"
+          ]],
+          "distractors": [
+            "return arr[mid];",
+            "high = mid;",
+            "low = mid;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble a recursive binary search's base case and recursive calls.",
+          "correctAnswers": [[
+            "if (low > high) {",
+            "  return -1;",
+            "}",
+            "const mid = Math.floor((low + high) / 2);",
+            "if (arr[mid] === target) return mid;",
+            "if (arr[mid] < target) return binarySearch(arr, target, mid + 1, high);",
+            "return binarySearch(arr, target, low, mid - 1);"
+          ]],
+          "distractors": [
+            "if (low >= high) {",
+            "return binarySearch(arr, target, low, mid);",
+            "return 0;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This version never terminates when the target is missing, because the losing half isn't fully excluded. Assemble the corrected loop.",
+          "correctAnswers": [[
+            "while (low <= high) {",
+            "  const mid = Math.floor((low + high) / 2);",
+            "  if (arr[mid] === target) return mid;",
+            "  if (arr[mid] < target) {",
+            "    low = mid + 1;",
+            "  } else {",
+            "    high = mid - 1;",
+            "  }",
+            "}"
+          ]],
+          "distractors": [
+            "high = mid;",
+            "low = mid;",
+            "while (low < high) {"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Bubble Sort",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Bubble sort repeatedly walks through the array, swapping any two adjacent elements that are out of order. Each full pass \"bubbles\" the largest remaining value to its final position at the end.\n\n```ts\nfunction bubbleSort(arr: number[]): number[] {\n  const n = arr.length;\n  for (let i = 0; i < n - 1; i++) {\n    for (let j = 0; j < n - i - 1; j++) {\n      if (arr[j] > arr[j + 1]) {\n        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];\n      }\n    }\n  }\n  return arr;\n}\n```\n\nIt's O(n^2) in the average and worst case — simple to understand, but rarely used in practice. Its one redeeming feature: it's trivial to make it stop early once a full pass makes no swaps.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What is the average-case and worst-case time complexity of bubble sort?",
+          "correctAnswers": [["O(n^2)"]],
+          "distractors": ["O(n)", "O(n log n)", "O(log n)"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "Bubble sort repeatedly swaps adjacent elements that are in the ______ order.",
+          "correctAnswers": [["wrong"]],
+          "distractors": ["correct", "sorted", "random"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "In bubble sort, after the first full pass over [5, 1, 4, 2], which value has 'bubbled' to its correct final position at the end of the array?",
+          "correctAnswers": [["5"]],
+          "distractors": ["1", "4", "2"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "Ignoring early-exit optimizations, how many full outer-loop passes does bubbleSort make on an array of 6 elements?",
+          "correctAnswers": [["5"]],
+          "distractors": ["6", "4", "3"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "Is [5, 1, 4, 2] already fully sorted after bubble sort's SECOND full pass?",
+          "correctAnswers": [["yes"]],
+          "distractors": ["no"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the inner loop of bubbleSort by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "for (let j = 0; j < n - i - 1; j++) {",
+            "  if (arr[j] > arr[j + 1]) {",
+            "    [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];",
+            "  }",
+            "}"
+          ]],
+          "distractors": [
+            "if (arr[j] < arr[j + 1]) {",
+            "arr[j] = arr[j + 1];",
+            "for (let j = 0; j <= n - i; j++) {"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble an optimized bubble sort that stops early once a full pass makes no swaps.",
+          "correctAnswers": [[
+            "let swapped = false;",
+            "for (let j = 0; j < n - i - 1; j++) {",
+            "  if (arr[j] > arr[j + 1]) {",
+            "    [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];",
+            "    swapped = true;",
+            "  }",
+            "}",
+            "if (!swapped) break;"
+          ]],
+          "distractors": [
+            "if (swapped) break;",
+            "continue;",
+            "let swapped = true;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This inner loop reads one index past the sorted tail, comparing against undefined. Assemble the corrected loop bound.",
+          "correctAnswers": [[
+            "for (let j = 0; j < n - i - 1; j++) {",
+            "  if (arr[j] > arr[j + 1]) {",
+            "    [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];",
+            "  }",
+            "}"
+          ]],
+          "distractors": [
+            "for (let j = 0; j < n - i; j++) {",
+            "for (let j = 0; j <= n - i - 1; j++) {"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Selection Sort",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Selection sort splits the array into a sorted prefix and an unsorted suffix. On each pass it scans the unsorted suffix to find its minimum, then swaps that minimum into place at the front of the suffix.\n\n```ts\nfunction selectionSort(arr: number[]): number[] {\n  const n = arr.length;\n  for (let i = 0; i < n - 1; i++) {\n    let minIndex = i;\n    for (let j = i + 1; j < n; j++) {\n      if (arr[j] < arr[minIndex]) {\n        minIndex = j;\n      }\n    }\n    [arr[i], arr[minIndex]] = [arr[minIndex], arr[i]];\n  }\n  return arr;\n}\n```\n\nLike bubble sort it's O(n^2), but it makes at most n - 1 swaps total (versus potentially O(n^2) swaps for bubble sort) — useful when writes are expensive.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What is the maximum number of swaps selection sort performs while sorting n elements?",
+          "correctAnswers": [["n - 1"]],
+          "distractors": ["n", "n^2", "n log n"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "Complete the function signature: function ______(arr: number[]): number[] — finds the minimum of the unsorted suffix on each pass.",
+          "correctAnswers": [["selectionSort"]],
+          "distractors": ["bubbleSort", "insertionSort", "findMin"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "During pass 1 of selectionSort on [29, 10, 14, 37], what is minIndex after the inner loop finishes?",
+          "correctAnswers": [["1"]],
+          "distractors": ["0", "2", "3"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "After pass 1 of selectionSort on [29, 10, 14, 37], what value is now at index 0?",
+          "correctAnswers": [["10"]],
+          "distractors": ["29", "14", "37"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "In the worst case, how many swaps does selectionSort perform in total when sorting an array of 5 elements?",
+          "correctAnswers": [["4"]],
+          "distractors": ["5", "10", "3"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of one outer-loop pass by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "let minIndex = i;",
+            "for (let j = i + 1; j < n; j++) {",
+            "  if (arr[j] < arr[minIndex]) {",
+            "    minIndex = j;",
+            "  }",
+            "}",
+            "[arr[i], arr[minIndex]] = [arr[minIndex], arr[i]];"
+          ]],
+          "distractors": [
+            "if (arr[j] > arr[minIndex]) {",
+            "arr[minIndex] = arr[j];",
+            "for (let j = i; j < n; j++) {"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble a variant of selection sort that sorts in descending order by finding the maximum on each pass.",
+          "correctAnswers": [[
+            "let maxIndex = i;",
+            "for (let j = i + 1; j < n; j++) {",
+            "  if (arr[j] > arr[maxIndex]) {",
+            "    maxIndex = j;",
+            "  }",
+            "}",
+            "[arr[i], arr[maxIndex]] = [arr[maxIndex], arr[i]];"
+          ]],
+          "distractors": [
+            "if (arr[j] < arr[maxIndex]) {",
+            "let maxIndex = 0;",
+            "[arr[i], arr[maxIndex]] = [arr[i], arr[maxIndex]];"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This inner loop compares against the wrong index, so it never actually tracks the running minimum. Assemble the corrected version.",
+          "correctAnswers": [[
+            "let minIndex = i;",
+            "for (let j = i + 1; j < n; j++) {",
+            "  if (arr[j] < arr[minIndex]) {",
+            "    minIndex = j;",
+            "  }",
+            "}",
+            "[arr[i], arr[minIndex]] = [arr[minIndex], arr[i]];"
+          ]],
+          "distractors": [
+            "if (arr[j] < arr[i]) {",
+            "if (arr[i] < arr[minIndex]) {"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Insertion Sort",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Insertion sort builds a sorted prefix one element at a time: it takes the next unsorted element and shifts every larger element in the sorted prefix one step to the right, until it finds the right spot to insert it — the same technique people use to sort a hand of playing cards.\n\n```ts\nfunction insertionSort(arr: number[]): number[] {\n  for (let i = 1; i < arr.length; i++) {\n    const current = arr[i];\n    let j = i - 1;\n    while (j >= 0 && arr[j] > current) {\n      arr[j + 1] = arr[j];\n      j--;\n    }\n    arr[j + 1] = current;\n  }\n  return arr;\n}\n```\n\nWorst case is O(n^2), same as bubble and selection sort — but its best case, on already-sorted input, is O(n), since the while loop never shifts anything. That adaptiveness makes it a good choice for small or nearly-sorted arrays.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What is the time complexity of insertion sort when the input array is already sorted?",
+          "correctAnswers": [["O(n)"]],
+          "distractors": ["O(n^2)", "O(log n)", "O(n log n)"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "Insertion sort inserts each element into its correct position within the already-______ portion of the array.",
+          "correctAnswers": [["sorted"]],
+          "distractors": ["reversed", "unsorted", "original"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "Trace insertionSort on [2, 4, 6, 8, 5, 9] at i = 4 (current = 5). How many elements get shifted one position to the right before 5 is inserted?",
+          "correctAnswers": [["2"]],
+          "distractors": ["1", "3", "4"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "How many shifts happen during the ENTIRE insertionSort run on an already-sorted array [1, 2, 3, 4, 5]?",
+          "correctAnswers": [["0"]],
+          "distractors": ["4", "5", "10"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "Trace insertionSort on [3, 1, 2] at i = 1 (current = 1). What is arr[0] once this pass completes?",
+          "correctAnswers": [["1"]],
+          "distractors": ["3", "2", "0"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of one outer-loop pass by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "const current = arr[i];",
+            "let j = i - 1;",
+            "while (j >= 0 && arr[j] > current) {",
+            "  arr[j + 1] = arr[j];",
+            "  j--;",
+            "}",
+            "arr[j + 1] = current;"
+          ]],
+          "distractors": [
+            "while (j >= 0 && arr[j] < current) {",
+            "arr[j] = arr[j + 1];",
+            "j++;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble a variant of insertion sort that sorts in descending order.",
+          "correctAnswers": [[
+            "const current = arr[i];",
+            "let j = i - 1;",
+            "while (j >= 0 && arr[j] < current) {",
+            "  arr[j + 1] = arr[j];",
+            "  j--;",
+            "}",
+            "arr[j + 1] = current;"
+          ]],
+          "distractors": [
+            "while (j >= 0 && arr[j] > current) {",
+            "j++;",
+            "arr[j + 1] = arr[j - 1];"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This while loop condition stops one index too early, so the element at index 0 is never compared. Assemble the corrected loop.",
+          "correctAnswers": [[
+            "const current = arr[i];",
+            "let j = i - 1;",
+            "while (j >= 0 && arr[j] > current) {",
+            "  arr[j + 1] = arr[j];",
+            "  j--;",
+            "}",
+            "arr[j + 1] = current;"
+          ]],
+          "distractors": [
+            "while (j > 0 && arr[j] > current) {",
+            "while (j >= 1 && arr[j] > current) {"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Merge Sort",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Merge sort is a divide-and-conquer algorithm: split the array in half, recursively sort each half, then merge the two sorted halves back together. The merge step is the only place any real work happens — walk both halves with two pointers, always taking the smaller front element.\n\n```ts\nfunction mergeSort(arr: number[]): number[] {\n  if (arr.length <= 1) {\n    return arr;\n  }\n  const mid = Math.floor(arr.length / 2);\n  const left = mergeSort(arr.slice(0, mid));\n  const right = mergeSort(arr.slice(mid));\n  return merge(left, right);\n}\n\nfunction merge(left: number[], right: number[]): number[] {\n  const result: number[] = [];\n  let i = 0;\n  let j = 0;\n  while (i < left.length && j < right.length) {\n    if (left[i] <= right[j]) {\n      result.push(left[i]);\n      i++;\n    } else {\n      result.push(right[j]);\n      j++;\n    }\n  }\n  return [...result, ...left.slice(i), ...right.slice(j)];\n}\n```\n\nUnlike the O(n^2) sorts above, merge sort guarantees O(n log n) in every case — best, average, and worst — at the cost of O(n) extra memory for the merged arrays.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What is the time complexity of merge sort in all cases (best, average, and worst)?",
+          "correctAnswers": [["O(n log n)"]],
+          "distractors": ["O(n^2)", "O(n)", "O(log n)"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "Merge sort is a ______-and-conquer algorithm: split the array, recursively sort each half, then merge.",
+          "correctAnswers": [["divide"]],
+          "distractors": ["brute", "greedy", "dynamic"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "While merging left = [3, 8] and right = [1, 5], what is the first value pushed into the result array?",
+          "correctAnswers": [["1"]],
+          "distractors": ["3", "5", "8"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "While merging left = [3, 8] and right = [1, 5], what is the SECOND value pushed into the result array?",
+          "correctAnswers": [["3"]],
+          "distractors": ["8", "5", "1"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does mergeSort([]) return, given the base case checks arr.length <= 1?",
+          "correctAnswers": [["[]"]],
+          "distractors": ["undefined", "null", "[undefined]"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the merge() function body by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "while (i < left.length && j < right.length) {",
+            "  if (left[i] <= right[j]) {",
+            "    result.push(left[i]);",
+            "    i++;",
+            "  } else {",
+            "    result.push(right[j]);",
+            "    j++;",
+            "  }",
+            "}",
+            "return [...result, ...left.slice(i), ...right.slice(j)];"
+          ]],
+          "distractors": [
+            "result.push(left[i] + right[j]);",
+            "i--;",
+            "return result;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the recursive divide step of mergeSort, before the merge happens.",
+          "correctAnswers": [[
+            "if (arr.length <= 1) {",
+            "  return arr;",
+            "}",
+            "const mid = Math.floor(arr.length / 2);",
+            "const left = mergeSort(arr.slice(0, mid));",
+            "const right = mergeSort(arr.slice(mid));",
+            "return merge(left, right);"
+          ]],
+          "distractors": [
+            "if (arr.length === 0) {",
+            "const mid = arr.length / 2;",
+            "return merge(arr, arr);"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This base case causes infinite recursion whenever a sub-array becomes empty. Assemble the corrected divide step.",
+          "correctAnswers": [[
+            "if (arr.length <= 1) {",
+            "  return arr;",
+            "}",
+            "const mid = Math.floor(arr.length / 2);",
+            "const left = mergeSort(arr.slice(0, mid));",
+            "const right = mergeSort(arr.slice(mid));",
+            "return merge(left, right);"
+          ]],
+          "distractors": [
+            "if (arr.length === 1) {",
+            "if (arr.length < 1) {",
+            "return [];"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Quick Sort",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Quicksort is also divide-and-conquer, but it splits differently: pick a pivot, partition the array so everything smaller than the pivot ends up to its left and everything larger ends up to its right, then recursively sort each side. Partitioning is done in place, which is why quicksort typically outperforms merge sort in practice despite having a worse worst case.\n\n```ts\nfunction quickSort(arr: number[], low = 0, high = arr.length - 1): number[] {\n  if (low < high) {\n    const pivotIndex = partition(arr, low, high);\n    quickSort(arr, low, pivotIndex - 1);\n    quickSort(arr, pivotIndex + 1, high);\n  }\n  return arr;\n}\n\nfunction partition(arr: number[], low: number, high: number): number {\n  const pivot = arr[high];\n  let i = low - 1;\n  for (let j = low; j < high; j++) {\n    if (arr[j] < pivot) {\n      i++;\n      [arr[i], arr[j]] = [arr[j], arr[i]];\n    }\n  }\n  [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];\n  return i + 1;\n}\n```\n\nAverage case is O(n log n), but a poor pivot choice (e.g. always picking the last element on already-sorted input) degrades it to O(n^2).",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What is the worst-case time complexity of quicksort with a naive pivot choice (e.g. sorted input, always picking the last element)?",
+          "correctAnswers": [["O(n^2)"]],
+          "distractors": ["O(n log n)", "O(n)", "O(log n)"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "In the Lomuto partition scheme shown above, which element is chosen as the pivot?",
+          "correctAnswers": [["the last element"]],
+          "distractors": ["the first element", "the middle element", "a random element"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What value does partition(arr, 0, 4) return for arr = [4, 2, 7, 1, 3] (pivot = arr[4] = 3)?",
+          "correctAnswers": [["2"]],
+          "distractors": ["0", "1", "4"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "After partition(arr, 0, 4) runs on [4, 2, 7, 1, 3], which value is now sitting at its final, correctly sorted position — the pivot itself?",
+          "correctAnswers": [["3"]],
+          "distractors": ["4", "2", "7"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does quickSort([]) return, given low = 0 and high = arr.length - 1 by default?",
+          "correctAnswers": [["[]"]],
+          "distractors": ["undefined", "null", "[undefined]"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of partition() by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "for (let j = low; j < high; j++) {",
+            "  if (arr[j] < pivot) {",
+            "    i++;",
+            "    [arr[i], arr[j]] = [arr[j], arr[i]];",
+            "  }",
+            "}",
+            "[arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];",
+            "return i + 1;"
+          ]],
+          "distractors": [
+            "if (arr[j] > pivot) {",
+            "i--;",
+            "return i;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the quickSort driver that calls partition and recurses on both sides.",
+          "correctAnswers": [[
+            "if (low < high) {",
+            "  const pivotIndex = partition(arr, low, high);",
+            "  quickSort(arr, low, pivotIndex - 1);",
+            "  quickSort(arr, pivotIndex + 1, high);",
+            "}",
+            "return arr;"
+          ]],
+          "distractors": [
+            "quickSort(arr, low, pivotIndex);",
+            "quickSort(arr, pivotIndex, high);",
+            "if (low <= high) {"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This driver's recursive calls include the pivot's final index, causing infinite recursion. Assemble the corrected version.",
+          "correctAnswers": [[
+            "if (low < high) {",
+            "  const pivotIndex = partition(arr, low, high);",
+            "  quickSort(arr, low, pivotIndex - 1);",
+            "  quickSort(arr, pivotIndex + 1, high);",
+            "}",
+            "return arr;"
+          ]],
+          "distractors": [
+            "quickSort(arr, low, pivotIndex);",
+            "quickSort(arr, pivotIndex, high);"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Linked List",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "A singly linked list stores elements as a chain of nodes, where each node holds a value and a reference to the next node. Unlike an array, elements aren't stored contiguously in memory, so there's no indexing — reaching the k-th element means walking k links from the head.\n\n```ts\nclass ListNode {\n  value: number;\n  next: ListNode | null = null;\n  constructor(value: number) {\n    this.value = value;\n  }\n}\n\nclass LinkedList {\n  head: ListNode | null = null;\n\n  append(value: number): void {\n    const node = new ListNode(value);\n    if (!this.head) {\n      this.head = node;\n      return;\n    }\n    let current = this.head;\n    while (current.next !== null) {\n      current = current.next;\n    }\n    current.next = node;\n  }\n}\n```\n\nThe tradeoff versus an array: O(1) insertion at the head (no shifting needed), but O(n) access to an arbitrary element instead of an array's O(1).",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What is the time complexity of accessing the k-th element of a singly linked list?",
+          "correctAnswers": [["O(n)"]],
+          "distractors": ["O(1)", "O(log n)", "O(n^2)"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "In a singly linked list, each node stores a value and a reference to the ______ node.",
+          "correctAnswers": [["next"]],
+          "distractors": ["previous", "parent", "root"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "After append(1); append(2); append(3) on an empty LinkedList, what is list.head.next.value?",
+          "correctAnswers": [["2"]],
+          "distractors": ["1", "3", "undefined"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What is list.head on a brand-new, empty LinkedList?",
+          "correctAnswers": [["null"]],
+          "distractors": ["undefined", "0", "LinkedList"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "After append(1); append(2); on an empty LinkedList, what is list.head.next.next?",
+          "correctAnswers": [["null"]],
+          "distractors": ["undefined", "2", "1"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of append() by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "const node = new ListNode(value);",
+            "if (!this.head) {",
+            "  this.head = node;",
+            "  return;",
+            "}",
+            "let current = this.head;",
+            "while (current.next !== null) {",
+            "  current = current.next;",
+            "}",
+            "current.next = node;"
+          ]],
+          "distractors": [
+            "current.next = current;",
+            "while (current !== null) {",
+            "this.tail = node;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble a prepend(value) method that inserts a new node at the head of the list.",
+          "correctAnswers": [[
+            "const node = new ListNode(value);",
+            "node.next = this.head;",
+            "this.head = node;"
+          ]],
+          "distractors": [
+            "this.head.next = node;",
+            "node.next = null;",
+            "this.head = this.head.next;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This traversal loop advances one node too far and crashes reading .next off null. Assemble the corrected loop.",
+          "correctAnswers": [[
+            "let current = this.head;",
+            "while (current.next !== null) {",
+            "  current = current.next;",
+            "}",
+            "current.next = node;"
+          ]],
+          "distractors": [
+            "while (current !== null) {",
+            "current = current.next.next;"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Stack",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "A stack is a Last-In-First-Out (LIFO) structure: the most recently added item is the first one removed — like a stack of plates. It only exposes operations at one end, which is what makes it useful for things like undo history, expression evaluation, and function call tracking.\n\n```ts\nclass Stack<T> {\n  private items: T[] = [];\n\n  push(item: T): void {\n    this.items.push(item);\n  }\n\n  pop(): T | undefined {\n    return this.items.pop();\n  }\n\n  peek(): T | undefined {\n    return this.items[this.items.length - 1];\n  }\n\n  isEmpty(): boolean {\n    return this.items.length === 0;\n  }\n}\n```\n\nAll four operations run in O(1), because they only ever touch the end of the underlying array.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "A stack follows which access principle?",
+          "correctAnswers": [["LIFO"]],
+          "distractors": ["FIFO", "LILO", "random access"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "Which Stack method returns the top element WITHOUT removing it?",
+          "correctAnswers": [["peek"]],
+          "distractors": ["pop", "push", "top"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "After push(1); push(2); push(3); pop(); what does peek() return?",
+          "correctAnswers": [["2"]],
+          "distractors": ["3", "1", "undefined"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does pop() return when called on a brand-new, empty Stack?",
+          "correctAnswers": [["undefined"]],
+          "distractors": ["null", "0", "error"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "After push(1); push(2); push(3); what does isEmpty() return?",
+          "correctAnswers": [["false"]],
+          "distractors": ["true", "undefined", "0"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the push() and pop() methods by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "push(item: T): void {",
+            "  this.items.push(item);",
+            "}",
+            "pop(): T | undefined {",
+            "  return this.items.pop();",
+            "}"
+          ]],
+          "distractors": [
+            "return this.items.shift();",
+            "this.items.unshift(item);",
+            "return this.items[0];"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the peek() and isEmpty() methods.",
+          "correctAnswers": [[
+            "peek(): T | undefined {",
+            "  return this.items[this.items.length - 1];",
+            "}",
+            "isEmpty(): boolean {",
+            "  return this.items.length === 0;",
+            "}"
+          ]],
+          "distractors": [
+            "return this.items[0];",
+            "return this.items.length > 0;",
+            "return this.items.length;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This pop() removes from the wrong end, breaking LIFO order. Assemble the corrected method.",
+          "correctAnswers": [[
+            "pop(): T | undefined {",
+            "  return this.items.pop();",
+            "}"
+          ]],
+          "distractors": [
+            "return this.items.shift();",
+            "return this.items[0];"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Queue",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "A queue is a First-In-First-Out (FIFO) structure: the first item added is the first one removed — like people waiting in line. It's the natural fit for anything processed in arrival order: task scheduling, breadth-first search, print jobs.\n\n```ts\nclass Queue<T> {\n  private items: T[] = [];\n\n  enqueue(item: T): void {\n    this.items.push(item);\n  }\n\n  dequeue(): T | undefined {\n    return this.items.shift();\n  }\n\n  front(): T | undefined {\n    return this.items[0];\n  }\n\n  isEmpty(): boolean {\n    return this.items.length === 0;\n  }\n}\n```\n\nNote the asymmetry with Stack: enqueue adds at the back (push) but dequeue removes from the front (shift). Using a plain array, shift() is O(n) in the worst case — real-world queues use a circular buffer or linked list to keep every operation O(1).",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "A queue follows which access principle?",
+          "correctAnswers": [["FIFO"]],
+          "distractors": ["LIFO", "LILO", "random access"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "Which Queue method adds an item to the back of the queue?",
+          "correctAnswers": [["enqueue"]],
+          "distractors": ["dequeue", "push", "add"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "After enqueue(1); enqueue(2); enqueue(3); dequeue(); what does front() return?",
+          "correctAnswers": [["2"]],
+          "distractors": ["1", "3", "undefined"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does dequeue() return when called on a brand-new, empty Queue?",
+          "correctAnswers": [["undefined"]],
+          "distractors": ["null", "0", "error"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "After enqueue(1); enqueue(2); dequeue(); dequeue(); what does isEmpty() return?",
+          "correctAnswers": [["true"]],
+          "distractors": ["false", "undefined", "1"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the enqueue() and dequeue() methods by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "enqueue(item: T): void {",
+            "  this.items.push(item);",
+            "}",
+            "dequeue(): T | undefined {",
+            "  return this.items.shift();",
+            "}"
+          ]],
+          "distractors": [
+            "return this.items.pop();",
+            "this.items.unshift(item);",
+            "return this.items[this.items.length - 1];"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the front() and isEmpty() methods.",
+          "correctAnswers": [[
+            "front(): T | undefined {",
+            "  return this.items[0];",
+            "}",
+            "isEmpty(): boolean {",
+            "  return this.items.length === 0;",
+            "}"
+          ]],
+          "distractors": [
+            "return this.items[this.items.length - 1];",
+            "return this.items.length > 0;",
+            "return this.items.pop();"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This dequeue() removes from the wrong end, breaking FIFO order. Assemble the corrected method.",
+          "correctAnswers": [[
+            "dequeue(): T | undefined {",
+            "  return this.items.shift();",
+            "}"
+          ]],
+          "distractors": [
+            "return this.items.pop();",
+            "return this.items[this.items.length - 1];"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Comparing Search & Sort Algorithms",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "You've now seen two search algorithms and five sorting algorithms. It's worth stepping back and comparing them directly — not just by Big-O, but by two properties intro courses often skip:\n\n- **Stability**: do elements with equal keys keep their original relative order? This matters whenever you sort by one key after already sorting by another (e.g. sort by last name, then by department, and expect last-name order preserved within each department).\n- **In-place vs. extra memory**: does the algorithm rearrange the input array itself, or does it need a separate array to work in?\n\n| Algorithm | Average | Worst | Stable | In-place |\n|---|---|---|---|---|\n| Bubble sort | O(n^2) | O(n^2) | yes | yes |\n| Selection sort | O(n^2) | O(n^2) | no | yes |\n| Insertion sort | O(n^2) | O(n^2) | yes | yes |\n| Merge sort | O(n log n) | O(n log n) | yes | no (O(n) extra) |\n| Quicksort | O(n log n) | O(n^2) | no | yes |\n\nSelection sort's swap moves an element across the whole unsorted region in one jump, which is exactly what breaks stability — it can leapfrog an equal element it should have stayed behind. Merge sort's guaranteed O(n log n) comes at the cost of the extra array it merges into; quicksort avoids that cost by partitioning in place, but pays for it with an O(n^2) worst case on adversarial input.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "Which of these sorts is NOT stable, because its swap can move an element across the entire unsorted region in one jump?",
+          "correctAnswers": [["selection sort"]],
+          "distractors": ["bubble sort", "insertion sort", "merge sort"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "Which sorting algorithm in this deck needs O(n) extra memory instead of sorting in place?",
+          "correctAnswers": [["merge sort"]],
+          "distractors": ["quicksort", "bubble sort", "insertion sort"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "As n grows very large, which grows slower: binary search's O(log n), or linear search's O(n)?",
+          "correctAnswers": [["binary search"]],
+          "distractors": ["linear search", "both equal", "neither"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "For a 10-element array sorted many times inside a hot loop, which O(n^2) sort has the least constant-factor overhead for such a tiny input?",
+          "correctAnswers": [["insertion sort"]],
+          "distractors": ["selection sort", "bubble sort", "merge sort"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Order these operations from fastest to slowest asymptotic growth: binary search, linear search, merge sort, bubble sort.",
+          "correctAnswers": [[
+            "binary search",
+            "linear search",
+            "merge sort",
+            "bubble sort"
+          ]],
+          "distractors": [
+            "selection sort",
+            "insertion sort",
+            "quicksort"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble quicksort's property profile, in this order: in-place, stability, average case, worst case.",
+          "correctAnswers": [[
+            "In-place: yes",
+            "Stable: no",
+            "Average case: O(n log n)",
+            "Worst case: O(n^2)"
+          ]],
+          "distractors": [
+            "Stable: yes",
+            "Average case: O(n)",
+            "In-place: no"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This summary of merge sort's properties contains wrong claims. Assemble the corrected profile, in this order: in-place, stability, average case, worst case.",
+          "correctAnswers": [[
+            "In-place: no (O(n) extra memory)",
+            "Stable: yes",
+            "Average case: O(n log n)",
+            "Worst case: O(n log n)"
+          ]],
+          "distractors": [
+            "In-place: yes",
+            "Stable: no",
+            "Worst case: O(n^2)"
+          ]
+        }
+      ]
+    }
+  ]
+}
