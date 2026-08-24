@@ -1,0 +1,582 @@
+{
+  "title": "LeetCode Fundamentals: Easy Interview Patterns",
+  "description": "Six classic LeetCode-style interview problems in TypeScript, covering the core patterns you'll see over and over: hash maps, stacks, greedy one-pass scans, dynamic programming, and linked-list pointer manipulation.",
+  "languageCode": "en",
+  "category": "leetcode",
+  "infoObjects": [
+    {
+      "title": "Two Sum (LeetCode #1 · Easy · Array, Hash Table)",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Given an array of integers `nums` and an integer `target`, return the indices of the two numbers that add up to `target`. Each input has exactly one solution, and you can't use the same element twice.\n\nThe brute-force approach checks every pair — O(n^2). The trick to O(n) is a hash map: as you scan once, for each number ask \"have I already seen the value that would complete this pair?\" instead of scanning ahead for it.\n\n```ts\nfunction twoSum(nums: number[], target: number): number[] {\n  const seen = new Map<number, number>();\n  for (let i = 0; i < nums.length; i++) {\n    const complement = target - nums[i];\n    if (seen.has(complement)) {\n      return [seen.get(complement)!, i];\n    }\n    seen.set(nums[i], i);\n  }\n  return [];\n}\n```\n\nThis pattern — trade space for time with a hash map to avoid a nested loop — shows up constantly: it's the same idea behind detecting duplicates, grouping anagrams, and counting pairs with a given difference.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What is the time complexity of solving Two Sum with a hash map in one pass, compared to the brute-force nested-loop approach?",
+          "correctAnswers": [["O(n)"]],
+          "distractors": ["O(n^2)", "O(log n)", "O(1)"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "On each iteration, the one-pass hash map solution looks up the ______ needed to reach the target, not nums[i] itself.",
+          "correctAnswers": [["complement"]],
+          "distractors": ["index", "sum", "product"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "twoSum([2, 7, 11, 15], 9) — what index pair does it return?",
+          "correctAnswers": [["[0, 1]"]],
+          "distractors": ["[1, 2]", "[0, 2]", "[2, 3]"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "twoSum([3, 3], 6) — with a repeated value and each element usable only once, what does it return?",
+          "correctAnswers": [["[0, 1]"]],
+          "distractors": ["[]", "[1, 1]", "[0, 0]"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "twoSum([3, 2, 4], 6) — at which index i is the matching pair finally found?",
+          "correctAnswers": [["2"]],
+          "distractors": ["0", "1", "3"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of the loop by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "for (let i = 0; i < nums.length; i++) {",
+            "  const complement = target - nums[i];",
+            "  if (seen.has(complement)) {",
+            "    return [seen.get(complement)!, i];",
+            "  }",
+            "  seen.set(nums[i], i);",
+            "}",
+            "return [];"
+          ]],
+          "distractors": [
+            "if (seen.has(nums[i])) {",
+            "seen.set(complement, i);",
+            "return [i, seen.get(complement)!];"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the brute-force O(n^2) alternative that checks every pair directly.",
+          "correctAnswers": [[
+            "for (let i = 0; i < nums.length; i++) {",
+            "  for (let j = i + 1; j < nums.length; j++) {",
+            "    if (nums[i] + nums[j] === target) {",
+            "      return [i, j];",
+            "    }",
+            "  }",
+            "}"
+          ]],
+          "distractors": [
+            "for (let j = 0; j < nums.length; j++) {",
+            "if (nums[i] + nums[j] === target * 2) {",
+            "return [j, i];"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This version calls seen.set(nums[i], i) BEFORE checking for the complement, so an element can incorrectly pair with itself. Assemble the corrected order.",
+          "correctAnswers": [[
+            "const complement = target - nums[i];",
+            "if (seen.has(complement)) {",
+            "  return [seen.get(complement)!, i];",
+            "}",
+            "seen.set(nums[i], i);"
+          ]],
+          "distractors": [
+            "seen.set(target, i);",
+            "if (seen.has(nums[i])) {",
+            "return [i, i];"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Valid Parentheses (LeetCode #20 · Easy · String, Stack)",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Given a string containing only `()[]{}`, determine whether the brackets are properly matched and nested.\n\nThe key insight: the most recently opened bracket must be the first one closed — that's exactly a stack's Last-In-First-Out behavior. Push every opening bracket; on a closing bracket, pop and check it matches.\n\n```ts\nfunction isValid(s: string): boolean {\n  const stack: string[] = [];\n  const pairs: Record<string, string> = { ')': '(', ']': '[', '}': '{' };\n  for (const char of s) {\n    if (char in pairs) {\n      if (stack.pop() !== pairs[char]) {\n        return false;\n      }\n    } else {\n      stack.push(char);\n    }\n  }\n  return stack.length === 0;\n}\n```\n\nDon't forget the final check: a string like `'(('` never fails inside the loop (nothing closes to mismatch), but it isn't valid — the stack must be empty at the end.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What data structure naturally solves valid-parentheses, since the most recently opened bracket must be the first one closed?",
+          "correctAnswers": [["stack"]],
+          "distractors": ["queue", "linked list", "hash map"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "Complete the function signature: function ______(s: string): boolean",
+          "correctAnswers": [["isValid"]],
+          "distractors": ["isBalanced", "checkParens", "validate"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "isValid('()[]{}') — what does it return?",
+          "correctAnswers": [["true"]],
+          "distractors": ["false"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "isValid('(]') — what does it return?",
+          "correctAnswers": [["false"]],
+          "distractors": ["true"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "isValid('') — what does an empty string return?",
+          "correctAnswers": [["true"]],
+          "distractors": ["false"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of the loop and the final check by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "for (const char of s) {",
+            "  if (char in pairs) {",
+            "    if (stack.pop() !== pairs[char]) {",
+            "      return false;",
+            "    }",
+            "  } else {",
+            "    stack.push(char);",
+            "  }",
+            "}",
+            "return stack.length === 0;"
+          ]],
+          "distractors": [
+            "if (stack.pop() === pairs[char]) {",
+            "stack.push(pairs[char]);",
+            "return stack.length > 0;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the stack declaration and the closing-to-opening bracket lookup map.",
+          "correctAnswers": [[
+            "const stack: string[] = [];",
+            "const pairs: Record<string, string> = { ')': '(', ']': '[', '}': '{' };"
+          ]],
+          "distractors": [
+            "const pairs: Record<string, string> = { '(': ')', '[': ']', '{': '}' };",
+            "const stack: string[] = ['('];",
+            "const pairs: Record<string, string> = {};"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This version uses stack.pop() === pairs[char] to decide when to fail, inverting the logic so mismatches pass. Assemble the corrected check.",
+          "correctAnswers": [[
+            "if (stack.pop() !== pairs[char]) {",
+            "  return false;",
+            "}"
+          ]],
+          "distractors": [
+            "if (stack.pop() === pairs[char]) {",
+            "if (stack.pop() != char) {"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Best Time to Buy and Sell Stock (LeetCode #121 · Easy · Array, Greedy)",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Given `prices[i]` = the stock price on day `i`, find the maximum profit from a single buy followed by a single sell (buy must happen before sell).\n\nA one-pass greedy scan works: walk left to right, tracking the lowest price seen so far. At each day, ask \"if I sold today, having bought at the lowest price so far, what's my profit?\" and keep the best.\n\n```ts\nfunction maxProfit(prices: number[]): number {\n  let minPrice = Infinity;\n  let maxProfit = 0;\n  for (const price of prices) {\n    if (price < minPrice) {\n      minPrice = price;\n    } else if (price - minPrice > maxProfit) {\n      maxProfit = price - minPrice;\n    }\n  }\n  return maxProfit;\n}\n```\n\nIf prices only ever fall, no trade is profitable — the answer is 0, not a negative number, since you're always allowed to simply not trade.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What is the time complexity of the one-pass solution that tracks the minimum price seen so far?",
+          "correctAnswers": [["O(n)"]],
+          "distractors": ["O(n^2)", "O(n log n)", "O(1)"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "The one-pass greedy solution tracks the ______ price seen so far while scanning left to right.",
+          "correctAnswers": [["minimum"]],
+          "distractors": ["maximum", "average", "median"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "maxProfit([7, 1, 5, 3, 6, 4]) — what does it return?",
+          "correctAnswers": [["5"]],
+          "distractors": ["4", "6", "7"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "maxProfit([7, 6, 4, 3, 1]) — prices only ever fall. What does it return?",
+          "correctAnswers": [["0"]],
+          "distractors": ["1", "-6", "7"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "After processing [7, 1, 5, 3, 6, 4] in full, what is the final value of minPrice?",
+          "correctAnswers": [["1"]],
+          "distractors": ["3", "4", "7"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of the loop by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "for (const price of prices) {",
+            "  if (price < minPrice) {",
+            "    minPrice = price;",
+            "  } else if (price - minPrice > maxProfit) {",
+            "    maxProfit = price - minPrice;",
+            "  }",
+            "}"
+          ]],
+          "distractors": [
+            "if (price > minPrice) {",
+            "maxProfit = price + minPrice;",
+            "minPrice = Math.min(minPrice, maxProfit);"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the brute-force O(n^2) alternative that checks every buy/sell day pair.",
+          "correctAnswers": [[
+            "let maxProfit = 0;",
+            "for (let i = 0; i < prices.length; i++) {",
+            "  for (let j = i + 1; j < prices.length; j++) {",
+            "    const profit = prices[j] - prices[i];",
+            "    if (profit > maxProfit) {",
+            "      maxProfit = profit;",
+            "    }",
+            "  }",
+            "}"
+          ]],
+          "distractors": [
+            "const profit = prices[i] - prices[j];",
+            "for (let j = 0; j < prices.length; j++) {",
+            "if (profit < maxProfit) {"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This version initializes minPrice to 0 instead of Infinity, so it never updates and profit is measured against a false floor of zero. Assemble the corrected initialization.",
+          "correctAnswers": [[
+            "let minPrice = Infinity;",
+            "let maxProfit = 0;"
+          ]],
+          "distractors": [
+            "let minPrice = 0;",
+            "let minPrice = -Infinity;",
+            "let maxProfit = -1;"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Maximum Subarray (LeetCode #53 · Medium · Array, Dynamic Programming)",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Find the contiguous subarray with the largest sum. This is the canonical introduction to dynamic programming via Kadane's algorithm: at each element, decide whether extending the current subarray is still worthwhile, or whether starting fresh from this element beats carrying the old sum along.\n\n```ts\nfunction maxSubArray(nums: number[]): number {\n  let currentSum = nums[0];\n  let maxSum = nums[0];\n  for (let i = 1; i < nums.length; i++) {\n    currentSum = Math.max(nums[i], currentSum + nums[i]);\n    maxSum = Math.max(maxSum, currentSum);\n  }\n  return maxSum;\n}\n```\n\nA common mistake is initializing the running sum to 0 instead of `nums[0]` — that silently breaks on all-negative arrays, where the correct answer is the least-negative single element, not zero (the subarray must be non-empty).",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What is the time complexity of Kadane's algorithm for the maximum subarray problem?",
+          "correctAnswers": [["O(n)"]],
+          "distractors": ["O(n^2)", "O(n log n)", "O(2^n)"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "At each step, Kadane's algorithm decides whether to extend the current subarray or ______ a new one at the current element.",
+          "correctAnswers": [["start"]],
+          "distractors": ["discard", "merge", "reverse"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "maxSubArray([-2, 1, -3, 4, -1, 2, 1, -5, 4]) — what does it return?",
+          "correctAnswers": [["6"]],
+          "distractors": ["4", "5", "7"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "maxSubArray([-3, -1, -2]) — every element is negative. What does it return?",
+          "correctAnswers": [["-1"]],
+          "distractors": ["0", "-3", "-6"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "In maxSubArray([-2, 1, -3, 4, -1, 2, 1, -5, 4]), what is currentSum right after processing index 3 (value 4)?",
+          "correctAnswers": [["4"]],
+          "distractors": ["2", "-2", "1"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of the loop by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "for (let i = 1; i < nums.length; i++) {",
+            "  currentSum = Math.max(nums[i], currentSum + nums[i]);",
+            "  maxSum = Math.max(maxSum, currentSum);",
+            "}"
+          ]],
+          "distractors": [
+            "currentSum = Math.min(nums[i], currentSum + nums[i]);",
+            "maxSum = currentSum;",
+            "for (let i = 0; i < nums.length; i++) {"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the brute-force O(n^2) alternative that checks every subarray's sum directly.",
+          "correctAnswers": [[
+            "let maxSum = -Infinity;",
+            "for (let i = 0; i < nums.length; i++) {",
+            "  let sum = 0;",
+            "  for (let j = i; j < nums.length; j++) {",
+            "    sum += nums[j];",
+            "    maxSum = Math.max(maxSum, sum);",
+            "  }",
+            "}"
+          ]],
+          "distractors": [
+            "let maxSum = 0;",
+            "sum += nums[i];",
+            "for (let j = 0; j < nums.length; j++) {"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This version initializes currentSum and maxSum to 0 instead of nums[0], so an all-negative array incorrectly returns 0. Assemble the corrected initialization.",
+          "correctAnswers": [[
+            "let currentSum = nums[0];",
+            "let maxSum = nums[0];"
+          ]],
+          "distractors": [
+            "let currentSum = 0;",
+            "let maxSum = 0;",
+            "let currentSum = -Infinity;"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Climbing Stairs (LeetCode #70 · Easy · Dynamic Programming)",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "You're climbing a staircase of `n` steps, and each move you can climb 1 or 2 steps. How many distinct ways are there to reach the top?\n\nThe number of ways to reach step `n` is the number of ways to reach step `n-1` (then take one more step) plus the number of ways to reach step `n-2` (then take two more) — the exact recurrence behind the Fibonacci sequence. A naive recursive solution recomputes the same sub-answers exponentially many times; tracking just the last two values iteratively gets it down to O(n) time and O(1) space.\n\n```ts\nfunction climbStairs(n: number): number {\n  if (n <= 2) {\n    return n;\n  }\n  let prev = 1;\n  let curr = 2;\n  for (let i = 3; i <= n; i++) {\n    const next = prev + curr;\n    prev = curr;\n    curr = next;\n  }\n  return curr;\n}\n```",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What is the time complexity of the iterative O(1)-space solution to Climbing Stairs?",
+          "correctAnswers": [["O(n)"]],
+          "distractors": ["O(2^n)", "O(n^2)", "O(log n)"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "climbStairs(n) follows the same recurrence as which classic sequence — ways(n) = ways(n-1) + ways(n-2)?",
+          "correctAnswers": [["Fibonacci"]],
+          "distractors": ["factorial", "binary", "geometric"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "climbStairs(5) — what does it return?",
+          "correctAnswers": [["8"]],
+          "distractors": ["5", "13", "6"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "climbStairs(1) — what does it return?",
+          "correctAnswers": [["1"]],
+          "distractors": ["0", "2", "undefined"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "During climbStairs(5), what is the value of prev right after the loop finishes?",
+          "correctAnswers": [["5"]],
+          "distractors": ["3", "8", "2"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the iterative loop by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "let prev = 1;",
+            "let curr = 2;",
+            "for (let i = 3; i <= n; i++) {",
+            "  const next = prev + curr;",
+            "  prev = curr;",
+            "  curr = next;",
+            "}",
+            "return curr;"
+          ]],
+          "distractors": [
+            "const next = prev - curr;",
+            "prev = next;",
+            "for (let i = 3; i < n; i++) {"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the naive exponential-time recursive version, for contrast with the iterative one above.",
+          "correctAnswers": [[
+            "if (n <= 2) {",
+            "  return n;",
+            "}",
+            "return climbStairs(n - 1) + climbStairs(n - 2);"
+          ]],
+          "distractors": [
+            "return climbStairs(n - 1) * climbStairs(n - 2);",
+            "if (n <= 1) {",
+            "return climbStairs(n) + climbStairs(n - 1);"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This version updates curr before prev, so prev picks up the wrong value on the next iteration. Assemble the corrected update order.",
+          "correctAnswers": [[
+            "const next = prev + curr;",
+            "prev = curr;",
+            "curr = next;"
+          ]],
+          "distractors": [
+            "prev = next;",
+            "curr = prev;",
+            "const next = curr + curr;"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Reverse Linked List (LeetCode #206 · Easy · Linked List)",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Reverse a singly linked list in place. The classic iterative technique walks the list once, flipping each node's `next` pointer to point backward instead of forward, while keeping track of the previous node.\n\n```ts\nclass ListNode {\n  value: number;\n  next: ListNode | null = null;\n  constructor(value: number) {\n    this.value = value;\n  }\n}\n\nfunction reverseList(head: ListNode | null): ListNode | null {\n  let prev: ListNode | null = null;\n  let current = head;\n  while (current !== null) {\n    const next = current.next;\n    current.next = prev;\n    prev = current;\n    current = next;\n  }\n  return prev;\n}\n```\n\nThe critical detail: you must save `current.next` into a temporary variable *before* overwriting it — otherwise you lose your only reference to the rest of the list.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What is the time complexity of iteratively reversing a singly linked list of n nodes?",
+          "correctAnswers": [["O(n)"]],
+          "distractors": ["O(n^2)", "O(log n)", "O(1)"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "Complete the function signature: function ______(head: ListNode | null): ListNode | null",
+          "correctAnswers": [["reverseList"]],
+          "distractors": ["reverse", "flipList", "invertList"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "After reversing the list 1 -> 2 -> 3 -> null, what is the new head's value?",
+          "correctAnswers": [["3"]],
+          "distractors": ["1", "2", "null"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does reverseList(null) return for an empty list?",
+          "correctAnswers": [["null"]],
+          "distractors": ["undefined", "0", "head"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "While reversing 1 -> 2 -> 3 -> null, what is current.next set to during the FIRST iteration (current is the node with value 1)?",
+          "correctAnswers": [["null"]],
+          "distractors": ["node2", "node3", "undefined"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of the while loop by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "while (current !== null) {",
+            "  const next = current.next;",
+            "  current.next = prev;",
+            "  prev = current;",
+            "  current = next;",
+            "}"
+          ]],
+          "distractors": [
+            "current.next = next;",
+            "prev = next;",
+            "while (current !== prev) {"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the recursive version of reverseList.",
+          "correctAnswers": [[
+            "if (head === null || head.next === null) {",
+            "  return head;",
+            "}",
+            "const newHead = reverseList(head.next);",
+            "head.next.next = head;",
+            "head.next = null;",
+            "return newHead;"
+          ]],
+          "distractors": [
+            "head.next = head;",
+            "return head.next;",
+            "if (head === null) return null.next;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This version overwrites current.next before saving a reference to the rest of the list, orphaning every node after it. Assemble the corrected loop.",
+          "correctAnswers": [[
+            "while (current !== null) {",
+            "  const next = current.next;",
+            "  current.next = prev;",
+            "  prev = current;",
+            "  current = next;",
+            "}"
+          ]],
+          "distractors": [
+            "current = current.next;",
+            "prev = current.next;",
+            "const next = prev.next;"
+          ]
+        }
+      ]
+    }
+  ]
+}
