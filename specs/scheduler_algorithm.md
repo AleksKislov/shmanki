@@ -26,6 +26,7 @@ type Config struct {
     StepUnlockStabilityDays       float64
     ReviewStabilityThresholdDays  float64
     HierarchicalDifficultyPenalty float64
+    MaximumIntervalDays           float64
     LearningSteps                 []time.Duration
     RelearningSteps               []time.Duration
 }
@@ -35,10 +36,17 @@ var DefaultConfig = Config{
     StepUnlockStabilityDays:       14.0,
     ReviewStabilityThresholdDays:  21.0,
     HierarchicalDifficultyPenalty: 2.0,
+    MaximumIntervalDays:           180.0,
     LearningSteps:                 []time.Duration{1 * time.Minute, 10 * time.Minute, 1 * time.Hour},
     RelearningSteps:               []time.Duration{10 * time.Minute, 1 * time.Hour},
 }
 ```
+
+`MaximumIntervalDays` caps how far into the future a review-mode card can be scheduled,
+regardless of how high its stability climbs. Without a cap, a long streak of `Easy` ratings
+on a low-difficulty card can drift the interval out to years — technically consistent with
+the model, but not a useful scheduling decision for a learning app. 180 days is a reasonable
+default ceiling; raise or lower it per deployment.
 
 ---
 
@@ -213,11 +221,21 @@ func UpdateDifficulty(d float64, rating Rating, w [19]float64) float64 {
 ### Stability After Successful Review (SInc)
 
 ```
-SInc = S × e^(W[17] × (11 - D) × S^(-W[18]) × (e^(W[18]×(1-R)) - 1) + 1)
+S' = S × (1 + e^W[8] × (11 - D) × S^(-W[9]) × (e^(W[10]×(1-R)) - 1) × hardPenalty × easyBonus)
 ```
 
-Note: the project uses a 19-element weight array `w[0]..w[18]`.
-In code, the final multiplier term uses `w[18]`; there is no `w[19]`.
+`W[8]`, `W[9]`, and `W[10]` are the weights the FSRS optimizer fits specifically for this
+term — matched against the reference FSRS-4.5 formula. `W[17]`/`W[18]` belong to a separate
+same-day/short-term stability adjustment that this scheduler does not need (same-day
+granularity is already handled by the minutes-based learning/relearning steps above), so
+they are intentionally unused.
+
+> **Fixed 2026-08-24:** an earlier version of this formula read from `w[17]`/`w[18]` instead
+> of `w[8]`/`w[9]`/`w[10]`, and wrapped the whole expression in `exp(x + 1)` instead of
+> `1 + x`. That meant the pretrained FSRS weights were being fed into the wrong slots —
+> `w[7]` through `w[10]` were dead code — so stability growth for every `review`-mode card
+> did not match what those weights were tuned to produce. Fixed to use the correct indices
+> and the correct additive form.
 
 ```go
 func StabilityAfterRecall(s, d, r float64, rating Rating, w [19]float64) float64 {
@@ -229,8 +247,8 @@ func StabilityAfterRecall(s, d, r float64, rating Rating, w [19]float64) float64
     if rating == RatingEasy {
         easyBonus = w[16]
     }
-    sinc := math.Exp(w[17]*(11-d)*math.Pow(s, -w[18])*(math.Exp((1-r)*w[18])-1)+1)
-    return s * sinc * hardPenalty * easyBonus
+    growth := math.Exp(w[8]) * (11 - d) * math.Pow(s, -w[9]) * (math.Exp((1-r)*w[10]) - 1) * hardPenalty * easyBonus
+    return math.Max(s*(1+growth), MinStability)
 }
 ```
 
@@ -341,6 +359,38 @@ func NextInterval(s float64, effectiveDifficulty float64, desiredRetention float
 ```
 
 Minimum interval is 1 day.
+
+### Fuzz And Maximum Interval
+
+Every interval computed by `NextInterval` (on graduation and on ordinary review) is passed
+through `Scheduler.finalizeInterval` before being stored:
+
+```go
+const (
+    FuzzMinIntervalDays = 3.0
+    FuzzFactor          = 0.05
+)
+
+func (s *Scheduler) finalizeInterval(days float64) float64 {
+    if days >= FuzzMinIntervalDays {
+        spread := days * FuzzFactor
+        days += (s.fuzz()*2 - 1) * spread
+    }
+    if days > s.config.MaximumIntervalDays {
+        days = s.config.MaximumIntervalDays
+    }
+    return math.Max(math.Round(days), MinIntervalDays)
+}
+```
+
+- **Fuzz** randomizes intervals of 3+ days by up to ±5%, so cards learned in the same session
+  don't all become due on the exact same future date. Intervals shorter than 3 days are left
+  exact, since learning/relearning steps already provide fine-grained timing there.
+- **Maximum interval** hard-caps the result at `MaximumIntervalDays` (180 by default) so a long
+  streak of high ratings can't push a card's next review years into the future.
+
+`Scheduler.fuzz` is `rand.Float64` by default and is overridden with a fixed function in tests
+for deterministic assertions.
 
 ---
 

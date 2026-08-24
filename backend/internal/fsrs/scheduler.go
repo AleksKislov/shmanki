@@ -1,6 +1,19 @@
 package fsrs
 
-import "time"
+import (
+	"math"
+	"math/rand"
+	"time"
+)
+
+const (
+	// FuzzMinIntervalDays is the shortest review-mode interval that gets randomized.
+	// Shorter intervals are left exact so short-term scheduling stays predictable.
+	FuzzMinIntervalDays = 3.0
+	// FuzzFactor is the maximum fractional deviation (+/-) applied to a review interval,
+	// spreading out cards that would otherwise all come due on the same day.
+	FuzzFactor = 0.05
+)
 
 type CardState struct {
 	Stability           float64
@@ -20,13 +33,31 @@ type CardState struct {
 type Scheduler struct {
 	weights [19]float64
 	config  Config
+	// fuzz returns a value in [0, 1) used to randomize review intervals.
+	// Overridden in tests for deterministic assertions.
+	fuzz func() float64
 }
 
 func NewScheduler(weights [19]float64, cfg Config) *Scheduler {
 	return &Scheduler{
 		weights: weights,
 		config:  cfg.withDefaults(),
+		fuzz:    rand.Float64,
 	}
+}
+
+// finalizeInterval randomizes an interval by up to +/-FuzzFactor (to avoid cards
+// scheduled together from clumping on the same due date) and caps it at
+// MaximumIntervalDays, before re-clamping to the minimum interval.
+func (s *Scheduler) finalizeInterval(days float64) float64 {
+	if days >= FuzzMinIntervalDays {
+		spread := days * FuzzFactor
+		days += (s.fuzz()*2 - 1) * spread
+	}
+	if days > s.config.MaximumIntervalDays {
+		days = s.config.MaximumIntervalDays
+	}
+	return math.Max(math.Round(days), MinIntervalDays)
 }
 
 func (s *Scheduler) Schedule(state CardState, rating Rating, now time.Time, hierarchicalSupport float64) CardState {
@@ -125,7 +156,7 @@ func (s *Scheduler) scheduleReview(state CardState, rating Rating, now time.Time
 	state.Difficulty = UpdateDifficulty(state.Difficulty, rating, s.weights)
 	state.EffectiveDifficulty = EffectiveDifficulty(state.Difficulty, state.HierarchicalSupport, s.config.HierarchicalDifficultyPenalty)
 	state.Retrievability = Retrievability(0, nextStability)
-	state.IntervalDays = NextInterval(nextStability, state.EffectiveDifficulty, s.config.DesiredRetention)
+	state.IntervalDays = s.finalizeInterval(NextInterval(nextStability, state.EffectiveDifficulty, s.config.DesiredRetention))
 	state.DueDate = ptrTime(now.Add(daysToDuration(state.IntervalDays)))
 	state.Status = StatusReview
 	state.LearningStep = 0
@@ -140,7 +171,7 @@ func (s *Scheduler) graduateFromLearning(state CardState, rating Rating, now tim
 	state.Difficulty = InitialDifficulty(rating, s.weights)
 	state.EffectiveDifficulty = EffectiveDifficulty(state.Difficulty, state.HierarchicalSupport, s.config.HierarchicalDifficultyPenalty)
 	state.Retrievability = Retrievability(0, state.Stability)
-	state.IntervalDays = NextInterval(state.Stability, state.EffectiveDifficulty, s.config.DesiredRetention)
+	state.IntervalDays = s.finalizeInterval(NextInterval(state.Stability, state.EffectiveDifficulty, s.config.DesiredRetention))
 	state.DueDate = ptrTime(now.Add(daysToDuration(state.IntervalDays)))
 	state.Status = StatusReview
 	state.LearningStep = 0
@@ -151,7 +182,7 @@ func (s *Scheduler) graduateFromRelearning(state CardState, rating Rating, now t
 	state.Difficulty = UpdateDifficulty(state.Difficulty, rating, s.weights)
 	state.EffectiveDifficulty = EffectiveDifficulty(state.Difficulty, state.HierarchicalSupport, s.config.HierarchicalDifficultyPenalty)
 	state.Retrievability = Retrievability(0, state.Stability)
-	state.IntervalDays = NextInterval(state.Stability, state.EffectiveDifficulty, s.config.DesiredRetention)
+	state.IntervalDays = s.finalizeInterval(NextInterval(state.Stability, state.EffectiveDifficulty, s.config.DesiredRetention))
 	state.DueDate = ptrTime(now.Add(daysToDuration(state.IntervalDays)))
 	state.Status = StatusReview
 	state.LearningStep = 0

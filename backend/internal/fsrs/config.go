@@ -7,6 +7,7 @@ type Config struct {
 	StepUnlockStabilityDays       float64
 	ReviewStabilityThresholdDays  float64
 	HierarchicalDifficultyPenalty float64
+	MaximumIntervalDays           float64
 	LearningSteps                 []time.Duration
 	RelearningSteps               []time.Duration
 }
@@ -16,6 +17,7 @@ var DefaultConfig = Config{
 	StepUnlockStabilityDays:       14.0,
 	ReviewStabilityThresholdDays:  21.0,
 	HierarchicalDifficultyPenalty: 2.0,
+	MaximumIntervalDays:           180.0,
 	LearningSteps:                 []time.Duration{1 * time.Minute, 10 * time.Minute, 1 * time.Hour},
 	RelearningSteps:               []time.Duration{10 * time.Minute, 1 * time.Hour},
 }
@@ -33,6 +35,9 @@ func (c Config) withDefaults() Config {
 	}
 	if resolved.HierarchicalDifficultyPenalty < 0 {
 		resolved.HierarchicalDifficultyPenalty = DefaultConfig.HierarchicalDifficultyPenalty
+	}
+	if resolved.MaximumIntervalDays <= 0 {
+		resolved.MaximumIntervalDays = DefaultConfig.MaximumIntervalDays
 	}
 	if len(resolved.LearningSteps) == 0 {
 		resolved.LearningSteps = append([]time.Duration(nil), DefaultConfig.LearningSteps...)

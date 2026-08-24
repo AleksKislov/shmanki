@@ -51,7 +51,7 @@ func TestHierarchicalSupportAverageMastery(t *testing.T) {
 }
 
 func TestScheduleReducesIntervalWhenSupportWeak(t *testing.T) {
-	scheduler := NewScheduler(DefaultWeights, DefaultConfig)
+	scheduler := newDeterministicScheduler(DefaultWeights, DefaultConfig)
 	now := time.Now().UTC()
 	lastReview := now.Add(-24 * time.Hour)
 	base := CardState{
@@ -274,6 +274,166 @@ func TestDefaultConfigHasStepIntervals(t *testing.T) {
 	}
 	if DefaultConfig.RelearningSteps[0] != 10*time.Minute {
 		t.Fatalf("expected first relearning step 10 minutes, got %s", DefaultConfig.RelearningSteps[0])
+	}
+}
+
+func newDeterministicScheduler(weights [19]float64, cfg Config) *Scheduler {
+	s := NewScheduler(weights, cfg)
+	s.fuzz = func() float64 { return 0.5 } // midpoint => no net perturbation
+	return s
+}
+
+func TestStabilityAfterRecallUsesMainFormulaWeights(t *testing.T) {
+	base := StabilityAfterRecall(10, 5, 0.8, RatingGood, DefaultWeights)
+
+	changedCore := DefaultWeights
+	changedCore[8] += 1.0
+	if got := StabilityAfterRecall(10, 5, 0.8, RatingGood, changedCore); got == base {
+		t.Fatalf("expected weights[8] to affect stability growth, got identical result %f", got)
+	}
+
+	changedUnused := DefaultWeights
+	changedUnused[17] += 5.0
+	changedUnused[18] += 5.0
+	if got := StabilityAfterRecall(10, 5, 0.8, RatingGood, changedUnused); got != base {
+		t.Fatalf("expected weights[17]/weights[18] to be unused by the main recall formula: base=%f changed=%f", base, got)
+	}
+}
+
+func TestFinalizeIntervalAppliesFuzz(t *testing.T) {
+	scheduler := NewScheduler(DefaultWeights, DefaultConfig)
+
+	scheduler.fuzz = func() float64 { return 0 }
+	low := scheduler.finalizeInterval(100)
+	scheduler.fuzz = func() float64 { return 1 }
+	high := scheduler.finalizeInterval(100)
+
+	if !(low < 100 && high > 100) {
+		t.Fatalf("expected fuzz to spread a 100-day interval below and above baseline, got low=%f high=%f", low, high)
+	}
+	if spread := high - low; spread > 2*100*FuzzFactor+1 {
+		t.Fatalf("expected fuzz spread within +/-%.0f%%, got low=%f high=%f", FuzzFactor*100, low, high)
+	}
+}
+
+func TestFinalizeIntervalSkipsFuzzBelowThreshold(t *testing.T) {
+	scheduler := NewScheduler(DefaultWeights, DefaultConfig)
+	scheduler.fuzz = func() float64 { return 1 }
+
+	if result := scheduler.finalizeInterval(FuzzMinIntervalDays - 1); result != FuzzMinIntervalDays-1 {
+		t.Fatalf("expected short intervals to skip fuzz, got %f", result)
+	}
+}
+
+func TestFinalizeIntervalCapsAtMaximum(t *testing.T) {
+	cfg := DefaultConfig
+	cfg.MaximumIntervalDays = 30
+	scheduler := newDeterministicScheduler(DefaultWeights, cfg)
+
+	if result := scheduler.finalizeInterval(500); result != 30 {
+		t.Fatalf("expected interval capped at 30, got %f", result)
+	}
+}
+
+func TestGraduationFirstIntervalMatchesHandComputedFormula(t *testing.T) {
+	scheduler := newDeterministicScheduler(DefaultWeights, DefaultConfig)
+	now := time.Now().UTC()
+
+	state := scheduler.Schedule(CardState{Status: StatusNew}, RatingEasy, now, 1)
+
+	// At DesiredRetention = 0.9, baseInterval = S / Factor * (0.9^-2 - 1) reduces to
+	// exactly S, since 0.9^-2 - 1 = 19/81 = Factor by construction. So the first
+	// interval is fully determined by algebra, no exp/pow approximation needed.
+	expectedStability := DefaultWeights[3]                      // InitialStability(Easy) = w[3]
+	expectedDifficulty := DefaultWeights[4] - DefaultWeights[5] // InitialDifficulty(Easy) = w[4] - w[5]*(4-3)
+	difficultyFactor := (11 - expectedDifficulty) / 10
+	expectedInterval := math.Round(expectedStability * difficultyFactor)
+
+	if math.Abs(state.Stability-expectedStability) > 1e-9 {
+		t.Fatalf("stability: got %f want %f", state.Stability, expectedStability)
+	}
+	if math.Abs(state.EffectiveDifficulty-expectedDifficulty) > 1e-9 {
+		t.Fatalf("effective difficulty: got %f want %f", state.EffectiveDifficulty, expectedDifficulty)
+	}
+	if state.IntervalDays != expectedInterval {
+		t.Fatalf("first interval: got %f want %f", state.IntervalDays, expectedInterval)
+	}
+}
+
+func TestConsequentReviewComposesPrimitivesDirectly(t *testing.T) {
+	scheduler := newDeterministicScheduler(DefaultWeights, DefaultConfig)
+	now := time.Now().UTC()
+	lastReview := now.Add(-10 * 24 * time.Hour)
+
+	state := CardState{
+		Stability:  10,
+		Difficulty: 5,
+		LastReview: &lastReview,
+		Status:     StatusReview,
+	}
+
+	daysSince := now.Sub(lastReview).Hours() / 24
+	retrievability := Retrievability(daysSince, state.Stability)
+	expectedStability := StabilityAfterRecall(state.Stability, state.Difficulty, retrievability, RatingGood, DefaultWeights)
+	expectedDifficulty := UpdateDifficulty(state.Difficulty, RatingGood, DefaultWeights)
+	expectedEffectiveDifficulty := EffectiveDifficulty(expectedDifficulty, 1, scheduler.HierarchicalPenalty())
+	expectedInterval := scheduler.finalizeInterval(NextInterval(expectedStability, expectedEffectiveDifficulty, DefaultConfig.DesiredRetention))
+
+	got := scheduler.Schedule(state, RatingGood, now, 1)
+
+	if math.Abs(got.Stability-expectedStability) > 1e-9 {
+		t.Fatalf("stability: got %f want %f", got.Stability, expectedStability)
+	}
+	if math.Abs(got.EffectiveDifficulty-expectedEffectiveDifficulty) > 1e-9 {
+		t.Fatalf("effective difficulty: got %f want %f", got.EffectiveDifficulty, expectedEffectiveDifficulty)
+	}
+	if got.IntervalDays != expectedInterval {
+		t.Fatalf("consequent interval: got %f want %f", got.IntervalDays, expectedInterval)
+	}
+}
+
+func TestConsequentReviewIntervalsGrowWithRepeatedSuccess(t *testing.T) {
+	scheduler := newDeterministicScheduler(DefaultWeights, DefaultConfig)
+	now := time.Now().UTC()
+
+	state := scheduler.Schedule(CardState{Status: StatusNew}, RatingEasy, now, 1)
+	if state.Status != StatusReview {
+		t.Fatalf("expected immediate graduation, got %s", state.Status)
+	}
+
+	reviewTime := now
+	for i := 0; i < 3; i++ {
+		reviewTime = reviewTime.Add(daysToDuration(state.IntervalDays))
+		next := scheduler.Schedule(state, RatingGood, reviewTime, 1)
+
+		if next.IntervalDays <= state.IntervalDays {
+			t.Fatalf("review %d: expected interval to grow, got %f after previous %f", i, next.IntervalDays, state.IntervalDays)
+		}
+		if next.Stability <= state.Stability {
+			t.Fatalf("review %d: expected stability to grow, got %f after previous %f", i, next.Stability, state.Stability)
+		}
+
+		state = next
+	}
+}
+
+func TestScheduleReviewRespectsMaximumInterval(t *testing.T) {
+	cfg := DefaultConfig
+	cfg.MaximumIntervalDays = 10
+	scheduler := newDeterministicScheduler(DefaultWeights, cfg)
+	now := time.Now().UTC()
+	lastReview := now.Add(-24 * time.Hour)
+
+	state := CardState{
+		Stability:  400,
+		Difficulty: 1,
+		LastReview: &lastReview,
+		Status:     StatusReview,
+	}
+
+	next := scheduler.Schedule(state, RatingEasy, now, 1)
+	if next.IntervalDays > 10 {
+		t.Fatalf("expected interval capped at 10 days, got %f", next.IntervalDays)
 	}
 }
 

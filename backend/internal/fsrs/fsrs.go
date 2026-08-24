@@ -70,8 +70,8 @@ func StabilityAfterRecall(stability float64, difficulty float64, retrievability 
 		easyBonus = weights[16]
 	}
 
-	stabilityIncrease := math.Exp(weights[17]*(11-difficulty)*math.Pow(stability, -weights[18])*(math.Exp((1-retrievability)*weights[18])-1) + 1)
-	return math.Max(stability*stabilityIncrease*hardPenalty*easyBonus, MinStability)
+	growth := math.Exp(weights[8]) * (11 - difficulty) * math.Pow(stability, -weights[9]) * (math.Exp((1-retrievability)*weights[10]) - 1) * hardPenalty * easyBonus
+	return math.Max(stability*(1+growth), MinStability)
 }
 
 func StabilityAfterForgetting(stability float64, difficulty float64, retrievability float64, weights [19]float64) float64 {
