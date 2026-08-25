@@ -1,6 +1,12 @@
 // Command seed-premade-deck imports a hand-reviewed deck JSON file directly into the
 // premade_decks / premade_info_objects / premade_cards tables as official content.
 //
+// Re-running it for a deck with the same title replaces that deck: any existing
+// 'official' premade_decks row with a matching title is deleted (cascading to its
+// info objects, cards, and ratings) before the new version is inserted, atomically
+// within one transaction. Community-published decks are never touched, since the
+// match is scoped to source = 'official'.
+//
 // Usage (from backend/):
 //
 //	go run ./cmd/seed-premade-deck -file ../content/premade-decks/algorithms-ds-part1.json
@@ -82,20 +88,30 @@ func main() {
 	}
 	defer dbPool.Close()
 
-	deckID, err := importDeck(ctx, dbPool, deck, *publish)
+	deckID, replaced, err := importDeck(ctx, dbPool, deck, *publish)
 	if err != nil {
 		log.Fatalf("import deck: %v", err)
 	}
 
-	fmt.Printf("imported premade deck %q (%s) with %d info objects\n", deck.Title, deckID, len(deck.InfoObjects))
+	verb := "imported"
+	if replaced {
+		verb = "replaced and re-imported"
+	}
+	fmt.Printf("%s premade deck %q (%s) with %d info objects\n", verb, deck.Title, deckID, len(deck.InfoObjects))
 }
 
-func importDeck(ctx context.Context, pool *pgxpool.Pool, deck deckFile, publish bool) (uuid.UUID, error) {
+func importDeck(ctx context.Context, pool *pgxpool.Pool, deck deckFile, publish bool) (uuid.UUID, bool, error) {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("begin tx: %w", err)
+		return uuid.Nil, false, fmt.Errorf("begin tx: %w", err)
 	}
 	defer tx.Rollback(ctx)
+
+	deleted, err := tx.Exec(ctx, `DELETE FROM premade_decks WHERE title = $1 AND source = 'official'`, deck.Title)
+	if err != nil {
+		return uuid.Nil, false, fmt.Errorf("delete existing official deck %q: %w", deck.Title, err)
+	}
+	replaced := deleted.RowsAffected() > 0
 
 	languageCode := strings.TrimSpace(deck.LanguageCode)
 	if languageCode == "" {
@@ -108,7 +124,7 @@ INSERT INTO premade_decks (user_id, source, source_deck_id, title, description, 
 VALUES (NULL, 'official', NULL, $1, $2, $3, $4, $5)
 RETURNING id`, deck.Title, deck.Description, languageCode, deck.Category, publish).Scan(&deckID)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("insert premade deck: %w", err)
+		return uuid.Nil, false, fmt.Errorf("insert premade deck: %w", err)
 	}
 
 	for _, obj := range deck.InfoObjects {
@@ -118,32 +134,32 @@ INSERT INTO premade_info_objects (premade_deck_id, title, content, discipline, c
 VALUES ($1, $2, $3, $4, $5)
 RETURNING id`, deckID, obj.Title, obj.Content, obj.Discipline, obj.ContentType).Scan(&objectID)
 		if err != nil {
-			return uuid.Nil, fmt.Errorf("insert info object %q: %w", obj.Title, err)
+			return uuid.Nil, false, fmt.Errorf("insert info object %q: %w", obj.Title, err)
 		}
 
 		for _, c := range obj.Cards {
 			answersJSON, err := json.Marshal(c.CorrectAnswers)
 			if err != nil {
-				return uuid.Nil, fmt.Errorf("marshal correct answers (%s, step %d) for %q: %w", c.CardType, c.Step, obj.Title, err)
+				return uuid.Nil, false, fmt.Errorf("marshal correct answers (%s, step %d) for %q: %w", c.CardType, c.Step, obj.Title, err)
 			}
 			distractorsJSON, err := json.Marshal(c.Distractors)
 			if err != nil {
-				return uuid.Nil, fmt.Errorf("marshal distractors (%s, step %d) for %q: %w", c.CardType, c.Step, obj.Title, err)
+				return uuid.Nil, false, fmt.Errorf("marshal distractors (%s, step %d) for %q: %w", c.CardType, c.Step, obj.Title, err)
 			}
 
 			if _, err := tx.Exec(ctx, `
 INSERT INTO premade_cards (premade_info_object_id, front, step, correct_answers, distractors, card_type)
 VALUES ($1, $2, $3, $4, $5, $6)`, objectID, c.Front, c.Step, answersJSON, distractorsJSON, c.CardType); err != nil {
-				return uuid.Nil, fmt.Errorf("insert card (%s, step %d) for %q: %w", c.CardType, c.Step, obj.Title, err)
+				return uuid.Nil, false, fmt.Errorf("insert card (%s, step %d) for %q: %w", c.CardType, c.Step, obj.Title, err)
 			}
 		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return uuid.Nil, fmt.Errorf("commit tx: %w", err)
+		return uuid.Nil, false, fmt.Errorf("commit tx: %w", err)
 	}
 
-	return deckID, nil
+	return deckID, replaced, nil
 }
 
 func validateDeck(deck deckFile) error {

@@ -20,9 +20,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "Complete the function signature: function ______(arr: number[], target: number): number — returns the index of target, or -1.",
-          "correctAnswers": [["linearSearch"]],
-          "distractors": ["search", "findIndex", "binarySearch"]
+          "front": "Does linearSearch(arr, target) mutate the input array, or leave it unchanged?",
+          "correctAnswers": [["leave it unchanged"]],
+          "distractors": ["mutate it", "sort it", "reverse it"]
         },
         {
           "step": 1,
@@ -222,9 +222,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "Bubble sort repeatedly swaps adjacent elements that are in the ______ order.",
-          "correctAnswers": [["wrong"]],
-          "distractors": ["correct", "sorted", "random"]
+          "front": "Does bubbleSort(arr) sort the array in place (mutating the input), or return a new array leaving the input untouched?",
+          "correctAnswers": [["in place"]],
+          "distractors": ["returns a new array", "returns a copy", "neither — it only checks if the array is sorted"]
         },
         {
           "step": 1,
@@ -318,9 +318,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "Complete the function signature: function ______(arr: number[]): number[] — finds the minimum of the unsorted suffix on each pass.",
-          "correctAnswers": [["selectionSort"]],
-          "distractors": ["bubbleSort", "insertionSort", "findMin"]
+          "front": "Does selectionSort(arr) sort the array in place (mutating the input), or return a new array leaving the input untouched?",
+          "correctAnswers": [["in place"]],
+          "distractors": ["returns a new array", "returns a copy", "neither — it only checks if the array is sorted"]
         },
         {
           "step": 1,
@@ -417,9 +417,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "Insertion sort inserts each element into its correct position within the already-______ portion of the array.",
-          "correctAnswers": [["sorted"]],
-          "distractors": ["reversed", "unsorted", "original"]
+          "front": "Does insertionSort(arr) sort the array in place (mutating the input), or return a new array leaving the input untouched?",
+          "correctAnswers": [["in place"]],
+          "distractors": ["returns a new array", "returns a copy", "neither — it only checks if the array is sorted"]
         },
         {
           "step": 1,
@@ -516,9 +516,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "Merge sort is a ______-and-conquer algorithm: split the array, recursively sort each half, then merge.",
-          "correctAnswers": [["divide"]],
-          "distractors": ["brute", "greedy", "dynamic"]
+          "front": "Unlike bubble, selection, and insertion sort, does mergeSort(arr) sort the array in place, or does it return a brand-new array leaving the input untouched?",
+          "correctAnswers": [["returns a new array"]],
+          "distractors": ["in place, like bubble sort", "in place, but only for arrays under length 2", "depends on whether the array is already sorted"]
         },
         {
           "step": 1,
@@ -717,9 +717,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "In a singly linked list, each node stores a value and a reference to the ______ node.",
-          "correctAnswers": [["next"]],
-          "distractors": ["previous", "parent", "root"]
+          "front": "LinkedList.head is typed as ListNode | null rather than always ListNode. Why does the type need to include null?",
+          "correctAnswers": [["because the list can be empty"]],
+          "distractors": ["for performance", "to support multiple lists", "because ListNode is generic"]
         },
         {
           "step": 1,
@@ -813,9 +813,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "Which Stack method returns the top element WITHOUT removing it?",
-          "correctAnswers": [["peek"]],
-          "distractors": ["pop", "push", "top"]
+          "front": "pop(): T | undefined — why is the return type a union with undefined instead of just T?",
+          "correctAnswers": [["because pop() can fail on an empty stack"]],
+          "distractors": ["for performance", "to support async operations", "because T is a generic type parameter"]
         },
         {
           "step": 1,
@@ -906,9 +906,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "Which Queue method adds an item to the back of the queue?",
-          "correctAnswers": [["enqueue"]],
-          "distractors": ["dequeue", "push", "add"]
+          "front": "dequeue(): T | undefined — why is the return type a union with undefined instead of just T?",
+          "correctAnswers": [["because dequeue() can fail on an empty queue"]],
+          "distractors": ["for performance", "to support async operations", "because T is a generic type parameter"]
         },
         {
           "step": 1,

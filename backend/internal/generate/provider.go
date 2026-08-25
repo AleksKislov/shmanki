@@ -186,6 +186,15 @@ Infer discipline and contentType when they are not explicitly provided.
 Use contentType as either "text" or the plain language name of the content, such as "typescript", "go", "python", "english", or "chinese".
 For code content, follow this progression:
   - Step 0: concept or signature cards about purpose, methods, signatures, parameter types, and return types.
+    Signature cards must test the type CONTRACT, not the function's own name — never ask the learner to fill in
+    or recall an identifier when the rest of the signature already gives it away (e.g. "function ______(arr:
+    number[]): number" is too easy to guess from the option list and tests naming, not comprehension). Good
+    signature questions probe things a reader could get wrong from the type alone: what sentinel value a
+    non-union return type encodes for a failure/not-found case (e.g. why return -1 typed as number instead of
+    widening to number | undefined), whether a function mutates its input in place or returns a new value,
+    why a return type is a union (e.g. T | undefined) or includes null, or a real precondition the type system
+    can't express (e.g. requiring a sorted input). If nothing non-obvious exists about the type contract for a
+    given method, use a concept card instead of forcing a weak signature question.
   - Step 1: trace cards about control flow, invariants, and what key lines do. Tracing execution is the single highest-value exercise for internalizing an algorithm, so include 2-3 trace cards per infoObject rather than just one, each testing something different — e.g. a typical execution walkthrough, an edge case (empty input, single element, a boundary value), and a deeper structural detail (a specific intermediate variable, a comparison/swap count, or recursive base-case behavior).
   - Step 2: line_order cards for reconstructing a single specific method from its individual lines. Never ask about an entire class or file — scope each card to one method only.
   - Step 3+: choose_snippet or fix_bug cards scoped to a single method: selecting the correct implementation of that method or identifying the bug within it.
