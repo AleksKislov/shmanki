@@ -4,6 +4,9 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 COPY . .
+# Empty: nginx proxies /api/ to the backend on the same origin, so relative paths work everywhere this is deployed.
+ARG PUBLIC_API_URL=""
+ENV PUBLIC_API_URL=$PUBLIC_API_URL
 RUN npm run build
 RUN npm run build.server
 
