@@ -80,7 +80,7 @@ services:
     volumes:
       - ./content:/content:ro
     working_dir: /src
-    entrypoint: ["go", "run", "./cmd/seed-premade-deck"]
+    entrypoint: ["sh", "-c", "touch .env && exec go run ./cmd/seed-premade-deck \"$@\"", "sh"]
     profiles:
       - tools
 
