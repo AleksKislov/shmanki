@@ -1,6 +1,5 @@
 import { $, component$, useSignal, useStore } from "@builder.io/qwik";
 import type { QRL } from "@builder.io/qwik";
-import { api } from "~/lib/api";
 import { getCardTypeLabel, isBlockInteraction } from "~/lib/card-types";
 import { t } from "~/lib/i18n";
 import type { CardType, LanguageCode } from "~/lib/types";
