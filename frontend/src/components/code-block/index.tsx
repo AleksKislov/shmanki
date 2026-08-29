@@ -1,31 +1,10 @@
 import { component$, useSignal, useTask$ } from "@builder.io/qwik";
-import { codeToHtml } from "shiki";
 import type { ContentType } from "~/lib/types";
+import { renderContentMarkdown } from "~/lib/markdown";
 
 interface Props {
   code: string;
   contentType: ContentType;
-}
-
-const langAliases: Record<string, string> = {
-  plaintext: "text",
-  plain: "text",
-  txt: "text",
-  js: "javascript",
-  ts: "typescript",
-  py: "python",
-  golang: "go",
-  csharp: "c#",
-  cpp: "c++",
-  md: "markdown",
-};
-
-function normalizeLanguage(contentType: ContentType) {
-  const normalized = contentType.trim().toLowerCase();
-  if (!normalized) {
-    return "text";
-  }
-  return langAliases[normalized] ?? normalized;
 }
 
 export const CodeBlock = component$<Props>(({ code, contentType }) => {
@@ -35,11 +14,13 @@ export const CodeBlock = component$<Props>(({ code, contentType }) => {
     const trackedCode = track(() => code);
     const trackedContentType = track(() => contentType);
 
-    html.value = await codeToHtml(trackedCode, {
-      lang: normalizeLanguage(trackedContentType),
-      theme: "github-dark",
-    });
+    html.value = await renderContentMarkdown(trackedCode, trackedContentType);
   });
 
-  return <div class="code-block overflow-x-auto text-sm" dangerouslySetInnerHTML={html.value} />;
+  return (
+    <div
+      class="code-block prose prose-invert prose-sm max-w-none overflow-x-auto px-4 py-3 text-sm"
+      dangerouslySetInnerHTML={html.value}
+    />
+  );
 });

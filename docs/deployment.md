@@ -1,82 +1,87 @@
-# Deploying Shmanki on Yandex Cloud VM
+# Deploying Shmanki on DigitalOcean
 
-## VM Requirements (test/approbation)
+## Droplet Requirements (test/approbation)
 
-| Resource  | Value                 |
-| --------- | --------------------- |
-| Platform  | standard-v3           |
-| vCPU      | 2 (core fraction 20%) |
-| RAM       | 4 GB                  |
-| Disk      | 20 GB network-ssd     |
-| OS        | Ubuntu 24.04 LTS      |
-| Public IP | Ephemeral (or static) |
+| Resource  | Value                     |
+| --------- | ------------------------- |
+| Plan      | Basic (Regular, shared)   |
+| vCPU      | 1                         |
+| RAM       | 1 GB                      |
+| Disk      | 25 GB SSD                 |
+| OS        | Ubuntu 24.04 LTS          |
+| Public IP | Included                  |
 
-Estimated cost: ~1000–1500 RUB/month.
+Estimated cost: **$6/month** (or free for ~2 months if you use DigitalOcean's new-account signup credit).
+
+1 GB of RAM is tight for four containers (Postgres, Go backend, Node SSR frontend, nginx) running side by side, especially during `docker compose build`. Step 4 below adds a swap file to cover the gap — don't skip it. If you'd rather have headroom and not think about it, size up to the $12/mo 2 GB droplet instead and skip the swap step.
 
 ---
 
-## 1. Create the VM
+## 1. Create the Droplet
 
-### Option A: Yandex Cloud Console
+### Option A: DigitalOcean Console
 
-1. Go to **Compute Cloud → Create VM**
-2. Pick Ubuntu 24.04 LTS, standard-v3, 2 vCPU (20%), 4 GB RAM, 20 GB SSD
-3. Add your SSH key
-4. Under **Network**, check "Public IPv4 address"
-5. Create
+1. Go to **Droplets → Create Droplet**
+2. Choose a region close to you
+3. Image: **Ubuntu 24.04 LTS**
+4. Size: **Basic → Regular → $6/mo (1 GB / 1 vCPU / 25 GB SSD)**
+5. Authentication: add your SSH key
+6. Create Droplet
 
-### Option B: `yc` CLI
+### Option B: `doctl` CLI
 
 ```bash
-# Install yc if you haven't
-curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
+# Install doctl if you haven't
+brew install doctl   # macOS
+# or: snap install doctl
 
-# Init (first time)
-yc init
+# Authenticate (creates an API token in the DO console)
+doctl auth init
 
-# Create VM
-yc compute instance create \
-  --name shmanki-test \
-  --zone ru-central1-b \
-  --platform standard-v3 \
-  --cores 2 \
-  --core-fraction 20 \
-  --memory 4 \
-  --create-boot-disk image-folder-id=standard-images,image-family=ubuntu-2404-lts-oslogin,size=20,type=network-ssd \
-  --network-interface subnet-name=default-ru-central1-b,nat-ip-version=ipv4 \
-  --ssh-key ~/.ssh/id_rsa.pub
+# Find your SSH key fingerprint
+doctl compute ssh-key list
+
+# Create the droplet
+doctl compute droplet create shmanki-test \
+  --region nyc1 \
+  --image ubuntu-24-04-x64 \
+  --size s-1vcpu-1gb \
+  --ssh-keys <YOUR_SSH_KEY_FINGERPRINT>
 ```
 
-Get the external IP:
+Get the public IP:
 
 ```bash
-yc compute instance list
+doctl compute droplet list
 ```
 
 ---
 
 ## 2. Open Firewall Ports
 
-### Yandex Cloud Security Group (cloud-level)
+### DigitalOcean Cloud Firewall
 
-In the console: **Virtual Private Cloud → Security Groups → your group → Add rule**
+In the console: **Networking → Firewalls → Create Firewall**
 
 Add inbound rules for:
 
 - TCP port 22 (SSH)
 - TCP port 80 (HTTP)
 
+Apply it to your droplet.
+
 Or via CLI:
 
 ```bash
-yc vpc security-group update-rules <SECURITY_GROUP_ID> \
-  --add-rule "direction=ingress,port=22,protocol=tcp,v4-cidr-blocks=0.0.0.0/0" \
-  --add-rule "direction=ingress,port=80,protocol=tcp,v4-cidr-blocks=0.0.0.0/0"
+doctl compute firewall create \
+  --name shmanki-fw \
+  --inbound-rules "protocol:tcp,ports:22,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:80,address:0.0.0.0/0,address:::/0" \
+  --droplet-ids <DROPLET_ID>
 ```
 
 ### VM-level firewall (ufw)
 
-SSH into the VM first, then:
+SSH into the droplet first, then:
 
 ```bash
 sudo ufw allow 22/tcp
@@ -88,17 +93,42 @@ sudo ufw enable
 
 ---
 
-## 3. SSH Into the VM
+## 3. SSH Into the Droplet
 
 ```bash
-ssh -i ~/.ssh/<YOUR_KEY> yc-user@<VM_IP>
+ssh -i ~/.ssh/<YOUR_KEY> root@<DROPLET_IP>
 ```
 
-`yc-user` is the default username for Yandex Cloud Ubuntu images.
+DigitalOcean's Ubuntu images log you in as `root` by default.
 
 ---
 
-## 4. Install Docker
+## 4. Add Swap (Recommended for 1 GB Droplets)
+
+A 1 GB droplet has no swap by default. Without it, `docker compose build` or a Postgres+backend+frontend burst can trigger the OOM killer. Add a 2 GB swapfile (2× RAM is the standard rule of thumb below 2 GB):
+
+```bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+
+# Persist across reboots
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+# Prefer RAM over swap when both are available (swap is just a safety net here)
+echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.conf
+sudo sysctl vm.swappiness=10
+
+# Verify
+free -h
+```
+
+If you sized up to the 2 GB droplet instead, you can skip this step.
+
+---
+
+## 5. Install Docker
 
 ```bash
 # Update system
@@ -120,18 +150,16 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.
 sudo apt update
 sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-# Allow running docker without sudo
-sudo usermod -aG docker $USER
-newgrp docker
-
 # Verify
 docker --version
 docker compose version
 ```
 
+You're already `root`, so there's no need for `usermod -aG docker` / `newgrp docker` here — skip that if you're following along from memory of other guides.
+
 ---
 
-## 5. Clone the Repository
+## 6. Clone the Repository
 
 ```bash
 cd ~
@@ -141,9 +169,9 @@ cd shmanki
 
 ---
 
-## 6. Configure Environment
+## 7. Configure Environment
 
-Create `.env.prod` in the project root. **This file is never committed — create it manually on the VM.**
+Create `.env.prod` in the project root. **This file is never committed — create it manually on the droplet.**
 
 ```bash
 cat > .env.prod << 'EOF'
@@ -191,7 +219,7 @@ nano .env.prod
 
 ---
 
-## 7. First Deploy
+## 8. First Deploy
 
 ```bash
 cd ~/shmanki
@@ -206,7 +234,7 @@ docker compose -f compose.prod.yaml --env-file .env.prod --profile tools run --r
 docker compose -f compose.prod.yaml ps
 ```
 
-The app is now available at `http://<VM_IP>`.
+The app is now available at `http://<DROPLET_IP>`.
 
 Check logs if something is wrong:
 
@@ -216,7 +244,7 @@ docker compose -f compose.prod.yaml logs -f
 
 ---
 
-## 8. Redeployment
+## 9. Redeployment
 
 After pushing new code to GitHub:
 
@@ -240,7 +268,7 @@ docker image prune -f
 
 ### One-command redeploy script
 
-Save this to `~/redeploy.sh` on the VM (run once):
+Save this to `~/redeploy.sh` on the droplet (run once):
 
 ```bash
 cat > ~/redeploy.sh << 'EOF'
@@ -264,7 +292,7 @@ bash ~/redeploy.sh
 
 ---
 
-## 9. Useful Commands
+## 10. Useful Commands
 
 ```bash
 # View live logs
@@ -278,6 +306,9 @@ docker compose -f compose.prod.yaml restart backend
 # Open a DB shell
 docker compose -f compose.prod.yaml exec db psql -U postgres -d shmanki
 
+# Check memory / swap usage
+free -h
+
 # Stop everything (keeps data)
 docker compose -f compose.prod.yaml down
 
@@ -287,7 +318,7 @@ docker compose -f compose.prod.yaml down -v
 
 ---
 
-## 10. Project Files Relevant to Deployment
+## 11. Project Files Relevant to Deployment
 
 These files are in the repo and used during deployment:
 
@@ -310,11 +341,12 @@ shmanki/
 
 ## Troubleshooting
 
-| Issue                            | Fix                                                                                            |
-| -------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Can't SSH after `ufw enable`     | Use Yandex Cloud serial console to access the VM: **Compute Cloud → VM → Serial console**      |
-| Port 80 unreachable              | Check Yandex Cloud Security Group has inbound TCP 80 rule                                      |
-| Backend crashes on start         | Check `.env.prod` exists and `DATABASE_URL` uses `db` as hostname, not `localhost`             |
-| `migrate` fails                  | Ensure db container is healthy: `docker compose -f compose.prod.yaml ps`                       |
-| `build.server` fails in frontend | Run `npm install` locally, commit updated `package-lock.json`                                  |
-| DB password mismatch             | `POSTGRES_PASSWORD` in `.env.prod` must be identical in both the db section and `DATABASE_URL` |
+| Issue                             | Fix                                                                                            |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Can't SSH after `ufw enable`       | Use the DigitalOcean web console to access the droplet: **Droplet → Access → Launch Droplet Console** |
+| Port 80 unreachable                | Check the DigitalOcean Cloud Firewall has an inbound TCP 80 rule and is applied to the droplet |
+| Build/deploy killed unexpectedly   | Likely OOM on the 1 GB droplet — confirm swap is active with `free -h`, or resize to 2 GB      |
+| Backend crashes on start           | Check `.env.prod` exists and `DATABASE_URL` uses `db` as hostname, not `localhost`             |
+| `migrate` fails                    | Ensure db container is healthy: `docker compose -f compose.prod.yaml ps`                       |
+| `build.server` fails in frontend   | Run `npm install` locally, commit updated `package-lock.json`                                  |
+| DB password mismatch               | `POSTGRES_PASSWORD` in `.env.prod` must be identical in both the db section and `DATABASE_URL` |
