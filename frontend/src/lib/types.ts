@@ -77,7 +77,7 @@ export interface CardState {
   cardId: string;
   stability: number;
   difficulty: number;
-  effectiveDifficulty: number;
+  intervalModifier: number;
   hierarchicalSupport: number;
   retrievability: number;
   dueDate: string | null;
@@ -116,6 +116,10 @@ export interface ReviewSubmission {
   wrongAttemptsCount: number;
   distractorClicksCount: number;
   incorrectTokensClicked: string[];
+  /** Time from card shown to answer submitted. Stamped by CardReview. */
+  durationMs?: number;
+  /** Reviewer's IANA zone, used to bucket history into local days. */
+  timezone?: string;
 }
 
 export interface ReviewResult {

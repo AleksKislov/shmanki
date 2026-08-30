@@ -54,6 +54,10 @@ type reviewLogParams struct {
 	DistractorClicksCount  int
 	IncorrectTokensClicked []string
 	Attempts               []ReviewAttempt
+	ParamsVersion          string
+	ElapsedDays            float64
+	ReviewDurationMs       *int
+	UserTimezone           *string
 }
 
 func NewRepository(db *pgxpool.Pool) *Repository {
@@ -282,14 +286,16 @@ INSERT INTO review_logs (
     stability_before, difficulty_before, retrievability_before, interval_before, status_before,
     stability_after, difficulty_after, interval_after, status_after,
     rating, answered_tokens, was_correct, wrong_attempts_count,
-    distractor_clicks_count, incorrect_tokens_clicked, attempts
+    distractor_clicks_count, incorrect_tokens_clicked, attempts,
+    params_version, elapsed_days, review_duration_ms, user_timezone
 )
 VALUES (
     $1, $2,
     $3, $4, $5, $6, $7,
     $8, $9, $10, $11,
     $12, $13, $14, $15,
-    $16, $17, $18
+    $16, $17, $18,
+    $19, $20, $21, $22
 )
 `
 
@@ -312,6 +318,10 @@ VALUES (
 		params.DistractorClicksCount,
 		incorrectTokens,
 		attempts,
+		params.ParamsVersion,
+		params.ElapsedDays,
+		params.ReviewDurationMs,
+		params.UserTimezone,
 	)
 	if err != nil {
 		return fmt.Errorf("insert review log: %w", err)
@@ -507,7 +517,7 @@ func scanReviewCard(rows pgx.Rows) (ReviewCard, error) {
 		return ReviewCard{}, fmt.Errorf("scan review card: %w", err)
 	}
 	item.State.CardID = item.CardID
-	item.State.EffectiveDifficulty = item.State.Difficulty
+	item.State.IntervalModifier = 1
 	item.State.HierarchicalSupport = 1
 	if err := json.Unmarshal(rawAnswers, &item.CorrectAnswers); err != nil {
 		return ReviewCard{}, fmt.Errorf("decode review card answers: %w", err)

@@ -1,4 +1,4 @@
-import { $, component$ } from "@builder.io/qwik";
+import { $, component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import type { QRL } from "@builder.io/qwik";
 import type { ReviewCard, ReviewResult, ReviewSubmission, LanguageCode } from "~/lib/types";
 import { CodeBlock } from "~/components/code-block";
@@ -21,13 +21,29 @@ interface Props {
 }
 
 export const CardReview = component$<Props>(({ card, index, total, locale, onAnswer$, onSubmit$, showContent = true }) => {
+  // Answer latency and local timezone are stamped here rather than in each
+  // answer component, so every submission path records them identically.
+  // Neither can be reconstructed after the fact, which is why they are captured
+  // now even though nothing reads them yet.
+  const shownAt = useSignal(0);
+
+  useVisibleTask$(({ track }) => {
+    track(() => card.cardId);
+    shownAt.value = Date.now();
+  });
+
   const handleSubmit$ = $(async (submission: ReviewSubmission) => {
+    const stamped: ReviewSubmission = {
+      ...submission,
+      durationMs: shownAt.value > 0 ? Date.now() - shownAt.value : undefined,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
     let result: ReviewResult;
     if (onSubmit$) {
-      result = await onSubmit$(submission);
+      result = await onSubmit$(stamped);
     } else {
       const { api } = await import("~/lib/api");
-      result = await api.review.submit(submission);
+      result = await api.review.submit(stamped);
     }
     onAnswer$(result);
   });

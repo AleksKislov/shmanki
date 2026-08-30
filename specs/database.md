@@ -12,6 +12,7 @@ Related specs:
 - `specs/architecture/backend.md`
 - `specs/architecture/frontend.md`
 - `specs/scheduler_algorithm.md`
+- `specs/fsrs_optimization.md`
 - `specs/i18n.md`
 
 ---
@@ -172,9 +173,9 @@ CREATE TABLE card_states (
     -- 0 means card has never been reviewed.
 
     difficulty      FLOAT NOT NULL DEFAULT 5,
-    -- D_base: persisted base FSRS difficulty for this user, range 1.0–10.0.
-    -- Effective difficulty D_eff is derived at scheduling time from D_base and H_c,
-    -- so no separate column is required in the base schema.
+    -- D: persisted FSRS difficulty for this user, range 1.0–10.0.
+    -- The hierarchical interval modifier M_c is derived at scheduling time from
+    -- H_c, so no separate column is required in the base schema.
 
     retrievability  FLOAT NOT NULL DEFAULT 0,
     -- R: recall probability at last_review moment (stored for quick stats queries).
@@ -305,7 +306,35 @@ CREATE TABLE review_logs (
     --   {"tokens": ["go", "myFunc()"], "had_distractor": false, "was_correct": true}
     -- ]
 
-    reviewed_at     TIMESTAMP NOT NULL DEFAULT NOW()
+    reviewed_at     TIMESTAMP NOT NULL DEFAULT NOW(),
+
+    -- === Weight-optimization fields (migration 000016) ===
+    -- None of these can be backfilled, which is why they were added before
+    -- review volume accumulated. See specs/fsrs_optimization.md.
+
+    params_version  VARCHAR(64) NOT NULL,
+    -- Model + parameter set that produced this schedule, e.g. "fsrs-4.5-default-v2".
+    -- Rows written before migration 000016 carry 'legacy-pre-canonical' and came
+    -- from the pre-canonical difficulty/interval formulas; they must never be
+    -- pooled with later rows when fitting weights or comparing parameter sets.
+    -- Becomes the id of a stored parameter row once per-user weights land.
+
+    elapsed_days    FLOAT NOT NULL DEFAULT 0,
+    -- Actual days since the previous review of this card. Distinct from
+    -- interval_before, which is what was *scheduled*. The gap between the two is
+    -- the signal weight fitting learns from, so they must not be conflated.
+    -- 0 for a card's first review.
+
+    review_duration_ms INT,
+    -- Time from card shown to answer submitted, reported by the client.
+    -- NULL when not reported or implausible (>10 min is a tab left open, not
+    -- thinking time, and is dropped server-side).
+
+    user_timezone   VARCHAR(64)
+    -- Reviewer's IANA zone at review time, snapshotted rather than joined so day
+    -- bucketing stays correct after a user relocates. Weight optimizers
+    -- deduplicate to one review per card per *local* day, which is impossible
+    -- without this. NULL when not reported or rejected by validation.
 );
 
 CREATE INDEX idx_review_logs_card_user ON review_logs(card_id, user_id, reviewed_at DESC);
@@ -410,7 +439,7 @@ ORDER BY cs.due_date ASC
 LIMIT $2;
 ```
 
-The response layer may additionally expose derived fields such as `effectiveDifficulty`
+The response layer may additionally expose derived fields such as `intervalModifier`
 and `hierarchicalSupport`, but those are calculated in the review service and are not read directly from SQL.
 
 ### Check if step N should be unlocked for a user
@@ -467,18 +496,21 @@ The hierarchical-support algorithm itself still does not require additional pers
 The only recent schema addition is `card_states.learning_step`, introduced for
 minutes-based learning/relearning step scheduling.
 
-- `card_states.difficulty` already stores the persisted base difficulty `D_base`.
+- `card_states.difficulty` already stores the persisted FSRS difficulty `D`.
 - `H_c` is derived from predecessor cards' current `stability` values.
-- `D_eff` is a transient scheduling value derived from `D_base` and `H_c`.
+- `M_c` (the interval modifier) is a transient scheduling value derived from `H_c`.
 - Because both values are reproducible from current state, storing them in `card_states` would duplicate data and risk drift.
 
 Schema changes would only be justified if the product later needs one of these:
 
-- SQL-only analytics over historical `H_c` / `D_eff`
+- SQL-only analytics over historical `H_c` / `M_c`
 - offline debugging without recomputing from historical predecessor states
 - model training that requires exact persisted derived features per review event
 
 If that becomes necessary, prefer adding optional columns to `review_logs` rather than mutating `card_states` semantics.
+
+Migration 000016 followed exactly this rule: the four weight-optimization fields
+were added to `review_logs`, and `card_states` was left untouched.
 
 ---
 

@@ -14,7 +14,7 @@ func TestInitialDifficultyRange(t *testing.T) {
 }
 
 func TestNextIntervalMinimum(t *testing.T) {
-	interval := NextInterval(0.1, 10, 0.9)
+	interval := NextInterval(0.1, 0.9)
 	if interval < 1 {
 		t.Fatalf("expected minimum interval >= 1, got %f", interval)
 	}
@@ -64,8 +64,11 @@ func TestScheduleReducesIntervalWhenSupportWeak(t *testing.T) {
 	strong := scheduler.Schedule(base, RatingGood, now, 1)
 	weak := scheduler.Schedule(base, RatingGood, now, 0)
 
-	if weak.EffectiveDifficulty <= strong.EffectiveDifficulty {
-		t.Fatalf("expected weaker support to increase effective difficulty: weak=%f strong=%f", weak.EffectiveDifficulty, strong.EffectiveDifficulty)
+	if weak.IntervalModifier >= strong.IntervalModifier {
+		t.Fatalf("expected weaker support to shrink the interval modifier: weak=%f strong=%f", weak.IntervalModifier, strong.IntervalModifier)
+	}
+	if strong.IntervalModifier != 1 {
+		t.Fatalf("expected full support to leave the FSRS interval untouched, got modifier %f", strong.IntervalModifier)
 	}
 	if weak.IntervalDays >= strong.IntervalDays {
 		t.Fatalf("expected weaker support to shorten interval: weak=%f strong=%f", weak.IntervalDays, strong.IntervalDays)
@@ -346,14 +349,18 @@ func TestGraduationFirstIntervalMatchesHandComputedFormula(t *testing.T) {
 	// interval is fully determined by algebra, no exp/pow approximation needed.
 	expectedStability := DefaultWeights[3]                      // InitialStability(Easy) = w[3]
 	expectedDifficulty := DefaultWeights[4] - DefaultWeights[5] // InitialDifficulty(Easy) = w[4] - w[5]*(4-3)
-	difficultyFactor := (11 - expectedDifficulty) / 10
-	expectedInterval := math.Round(expectedStability * difficultyFactor)
+	// Full hierarchical support leaves the modifier at 1, so the interval is the
+	// canonical FSRS interval, which at DR=0.9 is exactly S.
+	expectedInterval := math.Round(expectedStability)
 
 	if math.Abs(state.Stability-expectedStability) > 1e-9 {
 		t.Fatalf("stability: got %f want %f", state.Stability, expectedStability)
 	}
-	if math.Abs(state.EffectiveDifficulty-expectedDifficulty) > 1e-9 {
-		t.Fatalf("effective difficulty: got %f want %f", state.EffectiveDifficulty, expectedDifficulty)
+	if math.Abs(state.Difficulty-expectedDifficulty) > 1e-9 {
+		t.Fatalf("difficulty: got %f want %f", state.Difficulty, expectedDifficulty)
+	}
+	if state.IntervalModifier != 1 {
+		t.Fatalf("interval modifier: got %f want 1", state.IntervalModifier)
 	}
 	if state.IntervalDays != expectedInterval {
 		t.Fatalf("first interval: got %f want %f", state.IntervalDays, expectedInterval)
@@ -376,16 +383,19 @@ func TestConsequentReviewComposesPrimitivesDirectly(t *testing.T) {
 	retrievability := Retrievability(daysSince, state.Stability)
 	expectedStability := StabilityAfterRecall(state.Stability, state.Difficulty, retrievability, RatingGood, DefaultWeights)
 	expectedDifficulty := UpdateDifficulty(state.Difficulty, RatingGood, DefaultWeights)
-	expectedEffectiveDifficulty := EffectiveDifficulty(expectedDifficulty, 1, scheduler.HierarchicalPenalty())
-	expectedInterval := scheduler.finalizeInterval(NextInterval(expectedStability, expectedEffectiveDifficulty, DefaultConfig.DesiredRetention))
+	expectedModifier := IntervalModifier(1, scheduler.HierarchicalPenalty())
+	expectedInterval := scheduler.finalizeInterval(NextInterval(expectedStability, DefaultConfig.DesiredRetention) * expectedModifier)
 
 	got := scheduler.Schedule(state, RatingGood, now, 1)
 
 	if math.Abs(got.Stability-expectedStability) > 1e-9 {
 		t.Fatalf("stability: got %f want %f", got.Stability, expectedStability)
 	}
-	if math.Abs(got.EffectiveDifficulty-expectedEffectiveDifficulty) > 1e-9 {
-		t.Fatalf("effective difficulty: got %f want %f", got.EffectiveDifficulty, expectedEffectiveDifficulty)
+	if math.Abs(got.Difficulty-expectedDifficulty) > 1e-9 {
+		t.Fatalf("difficulty: got %f want %f", got.Difficulty, expectedDifficulty)
+	}
+	if math.Abs(got.IntervalModifier-expectedModifier) > 1e-9 {
+		t.Fatalf("interval modifier: got %f want %f", got.IntervalModifier, expectedModifier)
 	}
 	if got.IntervalDays != expectedInterval {
 		t.Fatalf("consequent interval: got %f want %f", got.IntervalDays, expectedInterval)
@@ -446,5 +456,90 @@ func assertDueWithinDuration(t *testing.T, dueDate *time.Time, now time.Time, ex
 	actual := dueDate.Sub(now)
 	if actual < expected-2*time.Second || actual > expected+2*time.Second {
 		t.Fatalf("expected due date offset %s, got %s", expected, actual)
+	}
+}
+
+func TestUpdateDifficultyRespondsToRatings(t *testing.T) {
+	const start = 5.0
+
+	again := UpdateDifficulty(start, RatingAgain, DefaultWeights)
+	hard := UpdateDifficulty(start, RatingHard, DefaultWeights)
+	good := UpdateDifficulty(start, RatingGood, DefaultWeights)
+	easy := UpdateDifficulty(start, RatingEasy, DefaultWeights)
+
+	if !(again > hard && hard > good && good > easy) {
+		t.Fatalf("expected difficulty to fall monotonically from Again to Easy: again=%f hard=%f good=%f easy=%f", again, hard, good, easy)
+	}
+	if again <= start {
+		t.Fatalf("expected Again to raise difficulty above %f, got %f", start, again)
+	}
+	if easy >= start {
+		t.Fatalf("expected Easy to lower difficulty below %f, got %f", start, easy)
+	}
+}
+
+func TestUpdateDifficultyUsesCanonicalWeightIndices(t *testing.T) {
+	const start = 6.0
+
+	// w[6] scales the per-rating delta, w[7] the mean reversion toward D0(Easy).
+	// w[5] belongs to InitialDifficulty only. Swapping these indices pins
+	// difficulty near a constant and inverts its response to ratings.
+	target := DefaultWeights[4] - DefaultWeights[5]
+	delta := start - DefaultWeights[6]*(float64(RatingAgain)-3)
+	want := DefaultWeights[7]*target + (1-DefaultWeights[7])*delta
+
+	if got := UpdateDifficulty(start, RatingAgain, DefaultWeights); math.Abs(got-want) > 1e-9 {
+		t.Fatalf("difficulty: got %f want %f", got, want)
+	}
+}
+
+func TestRepeatedLapsesDriveDifficultyToMaximum(t *testing.T) {
+	difficulty := 5.0
+	for i := 0; i < 10; i++ {
+		difficulty = UpdateDifficulty(difficulty, RatingAgain, DefaultWeights)
+	}
+
+	if difficulty < 9 {
+		t.Fatalf("expected repeated lapses to accumulate toward max difficulty, got %f", difficulty)
+	}
+}
+
+func TestNextIntervalLandsOnDesiredRetention(t *testing.T) {
+	// The defining property of the FSRS interval: retrievability at the due date
+	// equals the desired retention. A difficulty term in the interval formula
+	// breaks this, which is what silently detaches DesiredRetention from the
+	// retention users actually experience.
+	for _, retention := range []float64{0.80, 0.85, 0.90, 0.95} {
+		for _, stability := range []float64{5, 30, 200} {
+			interval := NextInterval(stability, retention)
+			got := Retrievability(interval, stability)
+			if math.Abs(got-retention) > 0.01 {
+				t.Fatalf("S=%f DR=%f: retrievability at due date was %f", stability, retention, got)
+			}
+		}
+	}
+}
+
+func TestIntervalModifierBounds(t *testing.T) {
+	if got := IntervalModifier(1, 0.3); got != 1 {
+		t.Fatalf("full support: got %f want 1", got)
+	}
+	if got := IntervalModifier(0, 0.3); math.Abs(got-0.7) > 1e-9 {
+		t.Fatalf("zero support: got %f want 0.7", got)
+	}
+	if got := IntervalModifier(0, 5); got < 1-MaxSupportPenalty-1e-9 {
+		t.Fatalf("expected penalty clamped at %f, got modifier %f", MaxSupportPenalty, got)
+	}
+	if got := IntervalModifier(-3, 0.3); math.Abs(got-0.7) > 1e-9 {
+		t.Fatalf("out-of-range support should clamp to 0: got %f", got)
+	}
+}
+
+func TestSchedulerReportsParamsVersion(t *testing.T) {
+	if got := NewScheduler(DefaultWeights, Config{}).ParamsVersion(); got != DefaultParamsVersion {
+		t.Fatalf("params version: got %q want %q", got, DefaultParamsVersion)
+	}
+	if got := NewScheduler(DefaultWeights, Config{ParamsVersion: "user-42-fit-7"}).ParamsVersion(); got != "user-42-fit-7" {
+		t.Fatalf("expected configured params version, got %q", got)
 	}
 }

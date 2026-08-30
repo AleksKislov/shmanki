@@ -506,7 +506,7 @@ export default component$(() => {
                                     cardId: "preview",
                                     stability: 0,
                                     difficulty: 5,
-                                    effectiveDifficulty: 5,
+                                    intervalModifier: 1,
                                     hierarchicalSupport: 1,
                                     retrievability: 0,
                                     dueDate: null,

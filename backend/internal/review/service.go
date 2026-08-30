@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -79,6 +80,7 @@ func (s *Service) SubmitReview(ctx context.Context, userID uuid.UUID, req Review
 
 	before := toSchedulerState(*currentState)
 	after := s.scheduler.Schedule(before, rating, now, hierarchicalSupport)
+	elapsedDays := elapsedDaysSince(currentState.LastReview, now)
 
 	updatedState := *currentState
 	updatedState.Stability = after.Stability
@@ -115,6 +117,10 @@ func (s *Service) SubmitReview(ctx context.Context, userID uuid.UUID, req Review
 		DistractorClicksCount:  req.DistractorClicksCount,
 		IncorrectTokensClicked: req.IncorrectTokensClicked,
 		Attempts:               req.Attempts,
+		ParamsVersion:          s.scheduler.ParamsVersion(),
+		ElapsedDays:            elapsedDays,
+		ReviewDurationMs:       sanitizeDuration(req.DurationMs),
+		UserTimezone:           sanitizeTimezone(req.Timezone),
 	}); err != nil {
 		return nil, err
 	}
@@ -147,7 +153,7 @@ func (s *Service) SubmitReview(ctx context.Context, userID uuid.UUID, req Review
 			IntervalDays:        updatedState.IntervalDays,
 			LearningStep:        updatedState.LearningStep,
 			LastReview:          updatedState.LastReview,
-			EffectiveDifficulty: after.EffectiveDifficulty,
+			IntervalModifier:    after.IntervalModifier,
 			HierarchicalSupport: after.HierarchicalSupport,
 		},
 		Rating:     rating,
@@ -161,6 +167,49 @@ func (s *Service) GetDeckStats(ctx context.Context, userID uuid.UUID, deckID uui
 
 func (s *Service) GetCardHistory(ctx context.Context, userID uuid.UUID, cardID uuid.UUID) ([]CardHistoryEntry, error) {
 	return s.store.GetCardHistory(ctx, userID, cardID)
+}
+
+// maxReviewDurationMs bounds a reported answer time. Anything longer is a tab
+// left open, not thinking time, and would poison latency-based analysis.
+const maxReviewDurationMs = 10 * 60 * 1000
+
+func elapsedDaysSince(lastReview *time.Time, now time.Time) float64 {
+	if lastReview == nil {
+		return 0
+	}
+
+	elapsed := now.Sub(*lastReview).Hours() / 24
+	if elapsed < 0 {
+		return 0
+	}
+
+	return elapsed
+}
+
+func sanitizeDuration(durationMs *int) *int {
+	if durationMs == nil || *durationMs <= 0 || *durationMs > maxReviewDurationMs {
+		return nil
+	}
+
+	return durationMs
+}
+
+// sanitizeTimezone accepts IANA-shaped zone names only. The value is
+// client-supplied and lands in an analytics column, so it is filtered rather
+// than trusted.
+func sanitizeTimezone(timezone string) *string {
+	if timezone == "" || len(timezone) > 64 {
+		return nil
+	}
+	for _, r := range timezone {
+		valid := r == '/' || r == '_' || r == '-' || r == '+' ||
+			(r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')
+		if !valid {
+			return nil
+		}
+	}
+
+	return &timezone
 }
 
 func deriveRating(wasCorrect bool, wrongAttemptsCount int, distractorClicksCount int) fsrs.Rating {

@@ -22,25 +22,33 @@ const (
 )
 
 type Config struct {
-    DesiredRetention              float64
-    StepUnlockStabilityDays       float64
-    ReviewStabilityThresholdDays  float64
-    HierarchicalDifficultyPenalty float64
-    MaximumIntervalDays           float64
-    LearningSteps                 []time.Duration
-    RelearningSteps               []time.Duration
+    DesiredRetention             float64
+    StepUnlockStabilityDays      float64
+    ReviewStabilityThresholdDays float64
+    HierarchicalSupportPenalty   float64
+    MaximumIntervalDays          float64
+    LearningSteps                []time.Duration
+    RelearningSteps              []time.Duration
+    ParamsVersion                string
 }
 
 var DefaultConfig = Config{
-    DesiredRetention:              0.90,
-    StepUnlockStabilityDays:       14.0,
-    ReviewStabilityThresholdDays:  21.0,
-    HierarchicalDifficultyPenalty: 2.0,
-    MaximumIntervalDays:           180.0,
-    LearningSteps:                 []time.Duration{1 * time.Minute, 10 * time.Minute, 1 * time.Hour},
-    RelearningSteps:               []time.Duration{10 * time.Minute, 1 * time.Hour},
+    DesiredRetention:             0.90,
+    StepUnlockStabilityDays:      14.0,
+    ReviewStabilityThresholdDays: 21.0,
+    HierarchicalSupportPenalty:   0.30,
+    MaximumIntervalDays:          180.0,
+    LearningSteps:                []time.Duration{1 * time.Minute, 10 * time.Minute, 1 * time.Hour},
+    RelearningSteps:              []time.Duration{10 * time.Minute, 1 * time.Hour},
+    ParamsVersion:                DefaultParamsVersion, // "fsrs-4.5-default-v2"
 }
 ```
+
+`ParamsVersion` identifies the model and parameter set this scheduler is running. It is
+written to every `review_logs` row so an outcome can later be attributed to the parameters
+that scheduled it. Bump it whenever weights, config defaults, or the update formulas change;
+without it, optimizer runs and A/B comparisons cannot separate one parameter set from
+another. See `specs/fsrs_optimization.md`.
 
 `MaximumIntervalDays` caps how far into the future a review-mode card can be scheduled,
 regardless of how high its stability climbs. Without a cap, a long streak of `Easy` ratings
@@ -103,6 +111,11 @@ and distractor_clicks_count = 0                                      → RatingE
 
 `attempts` is stored primarily for replay, debugging, and analytics.
 The scheduler itself only needs the derived rating.
+
+These thresholds are hand-picked, and a bad rating mapping corrupts every downstream weight
+fit — the pretrained weights were tuned against self-graded Anki reviews, not auto-derived
+ones. They are therefore treated as tunable hyperparameters rather than fixed constants; see
+`specs/fsrs_optimization.md`.
 
 ---
 
@@ -203,20 +216,35 @@ func InitialStability(rating Rating, w [19]float64) float64 {
 After each review:
 
 ```
-D' = W[6] × D₀(3) + (1 - W[6]) × (D - W[5] × (rating - 3))
+D' = W[7] × D₀(4) + (1 - W[7]) × (D - W[6] × (rating - 3))
 D' = clamp(D', 1.0, 10.0)
 ```
 
-Mean reversion pulls D back toward the baseline (D₀ for rating=3)
-to prevent extreme values from random answers.
+`W[6]` scales the per-rating delta; `W[7]` is the mean-reversion coefficient, pulling D back
+toward the D₀(Easy) baseline so extreme values from random answers do not persist. `W[5]`
+belongs to `InitialDifficulty` only and must not appear here.
 
 ```go
-func UpdateDifficulty(d float64, rating Rating, w [19]float64) float64 {
-    baseline := InitialDifficulty(RatingGood, w)
-    d2 := w[6]*baseline + (1-w[6])*(d-w[5]*(float64(rating)-3))
-    return clamp(d2, 1.0, 10.0)
+func UpdateDifficulty(difficulty float64, rating Rating, weights [19]float64) float64 {
+    target := InitialDifficulty(RatingEasy, weights)
+    delta := difficulty - weights[6]*(float64(rating)-3)
+    updated := weights[7]*target + (1-weights[7])*delta
+    return clamp(updated, MinDifficulty, MaxDifficulty)
 }
 ```
+
+> **Fixed 2026-08-30:** this formula was off by one weight index — it used `w[5]` for the
+> delta and `w[6]` for mean reversion, leaving `w[7]` (0.0589) dead code. Because the default
+> `w[6]` is **1.0651**, the mean-reversion coefficient exceeded 1, which made the weight on
+> accumulated difficulty negative (−0.0651). Two consequences: difficulty was pinned in a
+> ~7.1–7.6 band regardless of review history, and it moved in the *wrong direction* —
+> `Again` lowered difficulty, `Easy` raised it. Measured before the fix, from D=5.0:
+> `Again → 7.28`, `Easy → 7.39`; five consecutive lapses landed on 7.15 instead of 10.0.
+> Difficulty was effectively noise, and since the old `NextInterval` multiplied by
+> `(11 - D)/10`, every interval was scaled by a near-constant ≈0.37.
+>
+> Regression tests now assert monotonicity across ratings, that repeated lapses accumulate
+> toward max difficulty, and that the formula matches the canonical indices exactly.
 
 ### Stability After Successful Review (SInc)
 
@@ -235,7 +263,8 @@ they are intentionally unused.
 > `1 + x`. That meant the pretrained FSRS weights were being fed into the wrong slots —
 > `w[7]` through `w[10]` were dead code — so stability growth for every `review`-mode card
 > did not match what those weights were tuned to produce. Fixed to use the correct indices
-> and the correct additive form.
+> and the correct additive form. (`w[7]` remained unused until the difficulty-update fix on
+> 2026-08-30; see **Difficulty Update** above.)
 
 ```go
 func StabilityAfterRecall(s, d, r float64, rating Rating, w [19]float64) float64 {
@@ -270,7 +299,7 @@ func StabilityAfterForgetting(s, d, r float64, w [19]float64) float64 {
 
 ---
 
-## Hierarchical Support And Effective Difficulty
+## Hierarchical Support And The Interval Modifier
 
 For cards with prerequisites, the scheduler computes a support coefficient from the previous step.
 In the current step-based info-graph model, `Pred(c)` is approximated as all cards from step `N-1`.
@@ -319,46 +348,98 @@ func HierarchicalSupport(stabilities []float64, referenceDays float64) float64 {
 If a card has no prerequisites, `H_c = 1`.
 The current implementation reuses `DefaultConfig.ReviewStabilityThresholdDays` as the named constant for `S_ref`.
 
-### Effective Difficulty
+### Interval Modifier
 
-The stored `difficulty` field remains the card's base FSRS difficulty `D_base`.
-The scheduler derives effective difficulty only for the current scheduling decision:
+A card whose prerequisite steps are still weak should come back before the scaffolding
+underneath it decays. That adjustment is applied as a **separate multiplier on the interval**,
+not as an addition to difficulty:
 
 ```
-D_eff = clamp(D_base + λ × (1 - H_c), 1.0, 10.0)
-λ = HierarchicalDifficultyPenalty = 2.0
+M_c = 1 - λ × (1 - H_c)
+λ = HierarchicalSupportPenalty = 0.30, clamped to [0, MaxSupportPenalty = 0.9]
 ```
 
 ```go
-func EffectiveDifficulty(baseDifficulty float64, hierarchicalSupport float64, penalty float64) float64 {
-    return clamp(baseDifficulty+penalty*(1-clamp(hierarchicalSupport, 0, 1)), 1.0, 10.0)
+func IntervalModifier(hierarchicalSupport float64, penalty float64) float64 {
+    penalty = clamp(penalty, 0, MaxSupportPenalty)
+    return 1 - penalty*(1-clamp(hierarchicalSupport, 0, 1))
 }
 ```
 
-`D_eff` is returned to the client for transparency/debugging, but it is not persisted in `card_states`.
+`M_c` is 1 at full support and `1 - λ` at zero support. It is returned to the client as
+`intervalModifier` for transparency/debugging, but it is not persisted in `card_states`.
+
+**Why this is a separate multiplier and not part of difficulty.** Difficulty already feeds
+stability growth in `StabilityAfterRecall`. Folding hierarchical support into difficulty and
+then letting difficulty scale the interval counts it twice, and — more importantly — detaches
+`DesiredRetention` from the retention users actually experience. Keeping the two layers apart
+means the 19 weights stay a standard FSRS vector that an off-the-shelf optimizer can fit,
+while λ becomes a single product knob that can be tuned on its own against replayed review
+logs. See `specs/fsrs_optimization.md`.
+
+> **Changed 2026-08-30:** this was previously `EffectiveDifficulty`, adding
+> `HierarchicalDifficultyPenalty = 2.0` difficulty points to `D_base` and feeding the result
+> into a `(11 - D_eff)/10` factor inside `NextInterval`. λ = 0.30 was chosen because it
+> reproduces roughly the support effect the old form intended at a nominal difficulty of 5.
+> The API field `state.effectiveDifficulty` became `state.intervalModifier`.
 
 ---
 
 ## Next Interval Calculation
 
-The scheduler first computes the standard FSRS interval from stability and desired retention,
-then scales it by effective difficulty so weaker prerequisite support produces shorter intervals.
+`NextInterval` is the canonical FSRS interval: the number of days after which retrievability
+decays to `DesiredRetention`. Difficulty is deliberately absent — it already acts through
+stability growth.
 
 ```
-baseInterval = S / Factor × (DesiredRetention^(1/Decay) - 1)
-difficultyFactor = (11 - D_eff) / 10
-interval = round(baseInterval × difficultyFactor)
+interval = round(S / Factor × (DesiredRetention^(1/Decay) - 1))
 ```
 
 ```go
-func NextInterval(s float64, effectiveDifficulty float64, desiredRetention float64) float64 {
-    baseInterval := s / Factor * (math.Pow(desiredRetention, 1/Decay) - 1)
-    difficultyFactor := (11 - clamp(effectiveDifficulty, 1.0, 10.0)) / 10
-    return math.Max(math.Round(baseInterval*difficultyFactor), 1)
+func NextInterval(stability float64, desiredRetention float64) float64 {
+    interval := stability / Factor * (math.Pow(desiredRetention, 1/Decay) - 1)
+    return math.Max(math.Round(interval), MinIntervalDays)
 }
 ```
 
-Minimum interval is 1 day.
+Minimum interval is 1 day. The scheduler then applies the product layer and the fuzz/cap:
+
+```go
+state.IntervalDays = s.finalizeInterval(
+    NextInterval(stability, s.config.DesiredRetention) * state.IntervalModifier,
+)
+```
+
+The defining property, asserted in tests across a grid of S and DR:
+`Retrievability(NextInterval(S, DR), S) == DR`. Any extra factor inside `NextInterval` breaks
+this, which is exactly how `DesiredRetention` silently stops meaning what it says.
+
+> **Fixed 2026-08-30:** `NextInterval` previously multiplied the FSRS interval by
+> `(11 - D_eff)/10`, which is not part of FSRS. Combined with the difficulty bug above (which
+> pinned D near 7.2), every interval was scaled by a near-constant **≈0.37** — so users
+> reviewed roughly 2.6× more often than `DesiredRetention: 0.90` asked for. Retention actually
+> delivered at the due date, measured before the fix:
+>
+> | D_eff | interval | R at due date | configured |
+> |-------|----------|---------------|------------|
+> | 3.0   | 16d      | 0.918         | 0.900      |
+> | 5.0   | 12d      | 0.936         | 0.900      |
+> | 7.2   | 7d       | 0.961         | 0.900      |
+> | 9.0   | 4d       | 0.977         | 0.900      |
+>
+> Because a shorter interval means a higher R at review time, which in turn means a smaller
+> stability gain, the error compounded. An all-`Good` sequence from graduation:
+>
+> | rep | old interval | old S | new interval | new S |
+> |-----|--------------|-------|--------------|-------|
+> | 1   | 1d           | 3.13  | 3d           | 3.13  |
+> | 4   | 5d           | 12.24 | 42d          | 41.52 |
+> | 8   | 22d          | 57.67 | 180d (capped)| 569.51|
+>
+> **Two constants are now miscalibrated as a result** and should be revisited: stability
+> climbs far faster than before, so `StepUnlockStabilityDays = 14` unlocks steps much sooner,
+> and the `MasteryLevel` thresholds (7 / 21 / 90 / 365) inflate. Both were implicitly tuned
+> against intervals that were ~2.6× too short.
 
 ### Fuzz And Maximum Interval
 
@@ -444,7 +525,12 @@ computes `H_c`, and passes it into the pure scheduler.
 
 ## Mastery Levels
 
-Used for UI display only — not stored in DB, computed on the fly:
+Used for UI display only — not stored in DB, computed on the fly.
+
+> **Recalibration pending:** these thresholds were chosen while intervals were ~2.6× shorter
+> than the model intended (see **Next Interval Calculation**). Stability now grows much
+> faster, so cards reach `learned` / `mastered` sooner than they used to. The same applies to
+> `StepUnlockStabilityDays = 14`.
 
 ```go
 func MasteryLevel(s float64) string {

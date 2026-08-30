@@ -22,6 +22,13 @@ type ReviewRequest struct {
 	WrongAttemptsCount     int             `json:"wrongAttemptsCount"`
 	DistractorClicksCount  int             `json:"distractorClicksCount"`
 	IncorrectTokensClicked []string        `json:"incorrectTokensClicked"`
+	// DurationMs is the time from card shown to answer submitted, reported by
+	// the client. Optional: a missing or implausible value is logged as null
+	// rather than rejecting the review.
+	DurationMs *int `json:"durationMs,omitempty"`
+	// Timezone is the client's IANA zone, used to bucket reviews into local
+	// days when exporting history for weight fitting.
+	Timezone string `json:"timezone,omitempty"`
 }
 
 type ReviewCard struct {
@@ -42,7 +49,7 @@ type CardStateView struct {
 	CardID              uuid.UUID  `json:"cardId"`
 	Stability           float64    `json:"stability"`
 	Difficulty          float64    `json:"difficulty"`
-	EffectiveDifficulty float64    `json:"effectiveDifficulty"`
+	IntervalModifier    float64    `json:"intervalModifier"`
 	HierarchicalSupport float64    `json:"hierarchicalSupport"`
 	Retrievability      float64    `json:"retrievability"`
 	DueDate             *time.Time `json:"dueDate"`

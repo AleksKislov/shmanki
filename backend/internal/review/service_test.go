@@ -2,6 +2,7 @@ package review
 
 import (
 	"context"
+	"math"
 	"testing"
 	"time"
 
@@ -109,6 +110,7 @@ func TestSubmitReviewPersistsLearningStepForRelearning(t *testing.T) {
 type stubStore struct {
 	state     stateRecord
 	updated   *stateRecord
+	logged    *reviewLogParams
 	committed bool
 }
 
@@ -137,7 +139,11 @@ func (s *stubStore) UpdateCardState(_ context.Context, _ pgx.Tx, _ uuid.UUID, st
 	return nil
 }
 
-func (s *stubStore) InsertReviewLog(_ context.Context, _ pgx.Tx, _ reviewLogParams) error { return nil }
+func (s *stubStore) InsertReviewLog(_ context.Context, _ pgx.Tx, params reviewLogParams) error {
+	copy := params
+	s.logged = &copy
+	return nil
+}
 
 func (s *stubStore) ShouldUnlockStep(_ context.Context, _ pgx.Tx, _ uuid.UUID, _ uuid.UUID, _ int, _ float64) (bool, error) {
 	return false, nil
@@ -191,3 +197,93 @@ func (t *stubTx) Query(context.Context, string, ...any) (pgx.Rows, error) { retu
 func (t *stubTx) QueryRow(context.Context, string, ...any) pgx.Row { return nil }
 
 func (t *stubTx) Conn() *pgx.Conn { return nil }
+
+func TestSubmitReviewLogsOptimizerFields(t *testing.T) {
+	userID := uuid.New()
+	cardID := uuid.New()
+	lastReview := time.Now().UTC().Add(-72 * time.Hour)
+	duration := 4200
+
+	store := &stubStore{
+		state: stateRecord{
+			CardID:         cardID,
+			InfoObjectID:   uuid.New(),
+			Step:           0,
+			CorrectAnswers: [][]string{{"go", "worker()"}},
+			Status:         fsrs.StatusReview,
+			Stability:      12,
+			Difficulty:     5,
+			IntervalDays:   10,
+			LastReview:     &lastReview,
+		},
+	}
+
+	svc := NewService(store, fsrs.NewScheduler(fsrs.DefaultWeights, fsrs.DefaultConfig))
+	if _, err := svc.SubmitReview(context.Background(), userID, ReviewRequest{
+		CardID:         cardID,
+		AnsweredTokens: []string{"go", "worker()"},
+		DurationMs:     &duration,
+		Timezone:       "Europe/Belgrade",
+	}); err != nil {
+		t.Fatalf("submit review: %v", err)
+	}
+
+	if store.logged == nil {
+		t.Fatal("expected a review log to be written")
+	}
+	if store.logged.ParamsVersion != fsrs.DefaultParamsVersion {
+		t.Fatalf("params version: got %q want %q", store.logged.ParamsVersion, fsrs.DefaultParamsVersion)
+	}
+	// Elapsed is what actually happened; interval_before is what was scheduled.
+	// The optimizer learns from the gap, so they must not be conflated.
+	if math.Abs(store.logged.ElapsedDays-3) > 0.01 {
+		t.Fatalf("elapsed days: got %f want ~3", store.logged.ElapsedDays)
+	}
+	if store.logged.IntervalBefore != 10 {
+		t.Fatalf("interval before: got %f want 10", store.logged.IntervalBefore)
+	}
+	if store.logged.ReviewDurationMs == nil || *store.logged.ReviewDurationMs != duration {
+		t.Fatalf("review duration: got %v want %d", store.logged.ReviewDurationMs, duration)
+	}
+	if store.logged.UserTimezone == nil || *store.logged.UserTimezone != "Europe/Belgrade" {
+		t.Fatalf("timezone: got %v want Europe/Belgrade", store.logged.UserTimezone)
+	}
+}
+
+func TestSubmitReviewDropsImplausibleClientTelemetry(t *testing.T) {
+	tooLong := maxReviewDurationMs + 1
+	negative := -5
+
+	if got := sanitizeDuration(&tooLong); got != nil {
+		t.Fatalf("expected a tab-left-open duration to be dropped, got %d", *got)
+	}
+	if got := sanitizeDuration(&negative); got != nil {
+		t.Fatalf("expected a negative duration to be dropped, got %d", *got)
+	}
+	if got := sanitizeDuration(nil); got != nil {
+		t.Fatal("expected nil duration to stay nil")
+	}
+	for _, tz := range []string{"", "Europe/Belgrade'; DROP TABLE review_logs--", "Zone With Spaces"} {
+		if got := sanitizeTimezone(tz); got != nil {
+			t.Fatalf("expected timezone %q to be rejected, got %q", tz, *got)
+		}
+	}
+	if got := sanitizeTimezone("America/Argentina/Buenos_Aires"); got == nil {
+		t.Fatal("expected a valid IANA zone to be accepted")
+	}
+	if got := sanitizeTimezone("UTC"); got == nil {
+		t.Fatal("expected UTC to be accepted")
+	}
+}
+
+func TestElapsedDaysForFirstReviewIsZero(t *testing.T) {
+	if got := elapsedDaysSince(nil, time.Now()); got != 0 {
+		t.Fatalf("expected 0 elapsed days for a first review, got %f", got)
+	}
+
+	// Clock skew or a backdated client must not produce negative elapsed time.
+	future := time.Now().Add(time.Hour)
+	if got := elapsedDaysSince(&future, time.Now()); got != 0 {
+		t.Fatalf("expected negative elapsed time to floor at 0, got %f", got)
+	}
+}

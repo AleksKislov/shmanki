@@ -16,9 +16,11 @@ const (
 )
 
 type CardState struct {
-	Stability           float64
-	Difficulty          float64
-	EffectiveDifficulty float64
+	Stability  float64
+	Difficulty float64
+	// IntervalModifier is the product-layer multiplier applied to the FSRS
+	// interval for this review. Recorded for observability; not persisted state.
+	IntervalModifier    float64
 	HierarchicalSupport float64
 	Retrievability      float64
 	DueDate             *time.Time
@@ -143,7 +145,7 @@ func (s *Scheduler) scheduleReview(state CardState, rating Rating, now time.Time
 	if rating == RatingAgain {
 		state.Stability = StabilityAfterForgetting(state.Stability, state.Difficulty, retrievability, s.weights)
 		state.Difficulty = UpdateDifficulty(state.Difficulty, rating, s.weights)
-		state.EffectiveDifficulty = EffectiveDifficulty(state.Difficulty, state.HierarchicalSupport, s.config.HierarchicalDifficultyPenalty)
+		state.IntervalModifier = s.intervalModifier(state)
 		state.Retrievability = Retrievability(0, state.Stability)
 		state.Lapses++
 		state.LastReview = ptrTime(now)
@@ -154,9 +156,9 @@ func (s *Scheduler) scheduleReview(state CardState, rating Rating, now time.Time
 	nextStability := StabilityAfterRecall(state.Stability, state.Difficulty, retrievability, rating, s.weights)
 	state.Stability = nextStability
 	state.Difficulty = UpdateDifficulty(state.Difficulty, rating, s.weights)
-	state.EffectiveDifficulty = EffectiveDifficulty(state.Difficulty, state.HierarchicalSupport, s.config.HierarchicalDifficultyPenalty)
+	state.IntervalModifier = s.intervalModifier(state)
 	state.Retrievability = Retrievability(0, nextStability)
-	state.IntervalDays = s.finalizeInterval(NextInterval(nextStability, state.EffectiveDifficulty, s.config.DesiredRetention))
+	state.IntervalDays = s.finalizeInterval(NextInterval(nextStability, s.config.DesiredRetention) * state.IntervalModifier)
 	state.DueDate = ptrTime(now.Add(daysToDuration(state.IntervalDays)))
 	state.Status = StatusReview
 	state.LearningStep = 0
@@ -169,9 +171,9 @@ func (s *Scheduler) scheduleReview(state CardState, rating Rating, now time.Time
 func (s *Scheduler) graduateFromLearning(state CardState, rating Rating, now time.Time) CardState {
 	state.Stability = InitialStability(rating, s.weights)
 	state.Difficulty = InitialDifficulty(rating, s.weights)
-	state.EffectiveDifficulty = EffectiveDifficulty(state.Difficulty, state.HierarchicalSupport, s.config.HierarchicalDifficultyPenalty)
+	state.IntervalModifier = s.intervalModifier(state)
 	state.Retrievability = Retrievability(0, state.Stability)
-	state.IntervalDays = s.finalizeInterval(NextInterval(state.Stability, state.EffectiveDifficulty, s.config.DesiredRetention))
+	state.IntervalDays = s.finalizeInterval(NextInterval(state.Stability, s.config.DesiredRetention) * state.IntervalModifier)
 	state.DueDate = ptrTime(now.Add(daysToDuration(state.IntervalDays)))
 	state.Status = StatusReview
 	state.LearningStep = 0
@@ -180,9 +182,9 @@ func (s *Scheduler) graduateFromLearning(state CardState, rating Rating, now tim
 
 func (s *Scheduler) graduateFromRelearning(state CardState, rating Rating, now time.Time) CardState {
 	state.Difficulty = UpdateDifficulty(state.Difficulty, rating, s.weights)
-	state.EffectiveDifficulty = EffectiveDifficulty(state.Difficulty, state.HierarchicalSupport, s.config.HierarchicalDifficultyPenalty)
+	state.IntervalModifier = s.intervalModifier(state)
 	state.Retrievability = Retrievability(0, state.Stability)
-	state.IntervalDays = s.finalizeInterval(NextInterval(state.Stability, state.EffectiveDifficulty, s.config.DesiredRetention))
+	state.IntervalDays = s.finalizeInterval(NextInterval(state.Stability, s.config.DesiredRetention) * state.IntervalModifier)
 	state.DueDate = ptrTime(now.Add(daysToDuration(state.IntervalDays)))
 	state.Status = StatusReview
 	state.LearningStep = 0
@@ -249,7 +251,17 @@ func (s *Scheduler) StepUnlockDays() float64 {
 }
 
 func (s *Scheduler) HierarchicalPenalty() float64 {
-	return s.config.HierarchicalDifficultyPenalty
+	return s.config.HierarchicalSupportPenalty
+}
+
+// ParamsVersion identifies the parameter set this scheduler is running, for
+// attribution in review logs.
+func (s *Scheduler) ParamsVersion() string {
+	return s.config.ParamsVersion
+}
+
+func (s *Scheduler) intervalModifier(state CardState) float64 {
+	return IntervalModifier(state.HierarchicalSupport, s.config.HierarchicalSupportPenalty)
 }
 
 func (s *Scheduler) SupportReferenceDays() float64 {

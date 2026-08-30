@@ -9,6 +9,9 @@ const (
 	MaxDifficulty   = 10.0
 	MinStability    = 0.1
 	MinIntervalDays = 1.0
+	// MaxSupportPenalty bounds the hierarchical interval modifier so a card can
+	// never be scheduled at less than 10% of its FSRS interval.
+	MaxSupportPenalty = 0.9
 )
 
 var DefaultWeights = [19]float64{
@@ -54,9 +57,18 @@ func InitialStability(rating Rating, weights [19]float64) float64 {
 	return math.Max(weights[int(rating)-1], MinStability)
 }
 
+// UpdateDifficulty applies the FSRS difficulty update: a per-rating delta scaled
+// by w[6], followed by mean reversion toward D0(Easy) scaled by w[7].
+//
+// The weight indices matter. w[5] is the D0 slope and belongs only to
+// InitialDifficulty; w[6] is the update delta and w[7] is the mean-reversion
+// coefficient. Using w[6] (1.0651 in the defaults) as the reversion coefficient
+// makes the weight on accumulated difficulty negative, which pins difficulty near
+// D0(Good) and inverts the response to ratings.
 func UpdateDifficulty(difficulty float64, rating Rating, weights [19]float64) float64 {
-	baseline := InitialDifficulty(RatingGood, weights)
-	updated := weights[6]*baseline + (1-weights[6])*(difficulty-weights[5]*(float64(rating)-3))
+	target := InitialDifficulty(RatingEasy, weights)
+	delta := difficulty - weights[6]*(float64(rating)-3)
+	updated := weights[7]*target + (1-weights[7])*delta
 	return clamp(updated, MinDifficulty, MaxDifficulty)
 }
 
@@ -103,19 +115,29 @@ func HierarchicalSupport(stabilities []float64, referenceDays float64) float64 {
 	return clamp(total/float64(len(stabilities)), 0, 1)
 }
 
-func EffectiveDifficulty(baseDifficulty float64, hierarchicalSupport float64, penalty float64) float64 {
-	if penalty < 0 {
-		penalty = 0
-	}
-
-	return clamp(baseDifficulty+penalty*(1-clamp(hierarchicalSupport, 0, 1)), MinDifficulty, MaxDifficulty)
+// IntervalModifier is the product layer sitting on top of FSRS, not part of it.
+// A card whose prerequisite steps are still weak gets a shortened interval so it
+// comes back before the scaffolding underneath it decays.
+//
+// It is deliberately a separate multiplier rather than an addition to difficulty:
+// difficulty already feeds stability growth, so folding support into it double
+// counts and detaches DesiredRetention from the retention users actually get.
+// Keeping it separate leaves the 19 weights a standard FSRS vector that an
+// off-the-shelf optimizer can fit, and makes this knob measurable on its own.
+//
+// Returns 1 at full support and 1-penalty at zero support.
+func IntervalModifier(hierarchicalSupport float64, penalty float64) float64 {
+	penalty = clamp(penalty, 0, MaxSupportPenalty)
+	return 1 - penalty*(1-clamp(hierarchicalSupport, 0, 1))
 }
 
-func NextInterval(stability float64, effectiveDifficulty float64, desiredRetention float64) float64 {
-	baseInterval := stability / Factor * (math.Pow(desiredRetention, 1/Decay) - 1)
-	difficultyFactor := (11 - clamp(effectiveDifficulty, MinDifficulty, MaxDifficulty)) / 10
-	interval := math.Round(baseInterval * difficultyFactor)
-	return math.Max(interval, MinIntervalDays)
+// NextInterval is the canonical FSRS interval: the number of days after which
+// retrievability decays to desiredRetention. Difficulty is deliberately absent --
+// it already acts through stability growth in StabilityAfterRecall. Product-level
+// adjustments belong in IntervalModifier.
+func NextInterval(stability float64, desiredRetention float64) float64 {
+	interval := stability / Factor * (math.Pow(desiredRetention, 1/Decay) - 1)
+	return math.Max(math.Round(interval), MinIntervalDays)
 }
 
 func MasteryLevel(stability float64) string {
