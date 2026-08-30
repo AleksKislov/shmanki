@@ -1,0 +1,655 @@
+{
+  "title": "LeetCode Fundamentals II: Sets, Two Pointers, and Trees",
+  "description": "Seven more classic easy interview problems in TypeScript, extending the patterns from part one: hash sets and frequency maps, two-pointer scans, fast-and-slow pointers, linked-list splicing, in-place array compaction, and recursive tree traversal.",
+  "languageCode": "en",
+  "category": "leetcode",
+  "infoObjects": [
+    {
+      "title": "Contains Duplicate (LeetCode #217 · Easy · Array, Hash Set)",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Given an integer array `nums`, return `true` if any value appears at least twice.\n\n```ts\nfunction containsDuplicate(nums: number[]): boolean {\n  const seen = new Set<number>();\n  for (const num of nums) {\n    if (seen.has(num)) {\n      return true;\n    }\n    seen.add(num);\n  }\n  return false;\n}\n```\n\nThe naive answer compares every pair — O(n^2). A `Set` collapses that to a single pass: each value is checked against everything seen so far in O(1), so the whole scan is O(n) time at the cost of O(n) memory.\n\nThere is a third option worth knowing for interviews: sort first, then check adjacent pairs. That is O(n log n) time but only O(1) extra space — the classic time-for-memory trade.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What extra space does the Set-based containsDuplicate use, in the worst case where every value is distinct?",
+          "correctAnswers": [["O(n)"]],
+          "distractors": ["O(1)", "O(log n)", "O(n^2)"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "containsDuplicate returns as soon as seen.has(num) is true. What does that early return cost in the worst case?",
+          "correctAnswers": [["nothing — the worst case is an all-distinct array, which scans everything anyway"]],
+          "distractors": ["it forces a second pass to confirm the duplicate", "it makes the average case O(n^2)", "it skips the remaining elements, so the result can be wrong"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does containsDuplicate([1, 2, 3, 1]) return?",
+          "correctAnswers": [["true"]],
+          "distractors": ["false", "1", "undefined"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "How many values are in seen at the moment containsDuplicate([1, 2, 3, 1]) returns?",
+          "correctAnswers": [["3"]],
+          "distractors": ["4", "2", "1"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does containsDuplicate([]) return for an empty array?",
+          "correctAnswers": [["false"]],
+          "distractors": ["true", "undefined", "it throws"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of containsDuplicate's loop by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "for (const num of nums) {",
+            "  if (seen.has(num)) {",
+            "    return true;",
+            "  }",
+            "  seen.add(num);",
+            "}",
+            "return false;"
+          ]],
+          "distractors": [
+            "  if (!seen.has(num)) {",
+            "    return false;",
+            "  seen.delete(num);"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the O(1)-extra-space alternative that sorts first and then compares neighbours.",
+          "correctAnswers": [[
+            "nums.sort((x, y) => x - y);",
+            "for (let i = 1; i < nums.length; i++) {",
+            "  if (nums[i] === nums[i - 1]) {",
+            "    return true;",
+            "  }",
+            "}",
+            "return false;"
+          ]],
+          "distractors": [
+            "for (let i = 0; i < nums.length; i++) {",
+            "  if (nums[i] === nums[i + 1]) {",
+            "nums.sort();"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This containsDuplicate returns true for [1, 2, 3], which has no duplicates at all. Assemble the corrected check and the line that records the value.",
+          "correctAnswers": [[
+            "if (seen.has(num)) {",
+            "  return true;",
+            "}",
+            "seen.add(num);"
+          ]],
+          "distractors": [
+            "seen.add(num);  // recorded before the check",
+            "if (!seen.has(num)) {",
+            "  return false;"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Valid Anagram (LeetCode #242 · Easy · String, Hash Map)",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Given two strings, decide whether `t` is a rearrangement of `s`.\n\n```ts\nfunction isAnagram(s: string, t: string): boolean {\n  if (s.length !== t.length) {\n    return false;\n  }\n  const counts = new Map<string, number>();\n  for (const char of s) {\n    counts.set(char, (counts.get(char) ?? 0) + 1);\n  }\n  for (const char of t) {\n    const remaining = counts.get(char) ?? 0;\n    if (remaining === 0) {\n      return false;\n    }\n    counts.set(char, remaining - 1);\n  }\n  return true;\n}\n```\n\nCount every character of `s`, then spend those counts down as you walk `t`. If `t` ever needs a character whose count has already hit zero, it is not an anagram.\n\nThe length guard at the top is doing real work: without it, `s = \"aab\"` and `t = \"aa\"` would drain the counts without ever hitting zero and wrongly return `true`. With equal lengths guaranteed, a single decrementing pass is enough — no second check that every count returned to zero.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "Why is the s.length !== t.length guard required rather than merely an optimisation?",
+          "correctAnswers": [["without it, a shorter t drains the counts without ever hitting zero and returns true"]],
+          "distractors": ["without it, counts.get would return undefined and throw", "it avoids allocating the Map for inputs that cannot match", "it keeps the algorithm at O(n) instead of O(n log n)"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "isAnagram decrements counts while scanning t and never re-checks that every count reached zero at the end. What makes that safe?",
+          "correctAnswers": [["equal lengths mean draining without shortfall can only end at all zeros"]],
+          "distractors": ["the Map throws automatically if a count goes negative", "the counts are re-sorted before the final return", "every character of t is guaranteed to appear in s"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does isAnagram(\"anagram\", \"nagaram\") return?",
+          "correctAnswers": [["true"]],
+          "distractors": ["false", "undefined", "it throws"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does isAnagram(\"rat\", \"car\") return?",
+          "correctAnswers": [["false"]],
+          "distractors": ["true", "undefined", "it throws"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "After the first loop of isAnagram(\"aab\", \"aab\") finishes, what is counts.get(\"a\")?",
+          "correctAnswers": [["2"]],
+          "distractors": ["1", "3", "0"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of isAnagram's second loop, the one that walks t, by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "for (const char of t) {",
+            "  const remaining = counts.get(char) ?? 0;",
+            "  if (remaining === 0) {",
+            "    return false;",
+            "  }",
+            "  counts.set(char, remaining - 1);",
+            "}",
+            "return true;"
+          ]],
+          "distractors": [
+            "  if (remaining > 0) {",
+            "    return true;",
+            "  counts.set(char, remaining + 1);"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the sorting-based alternative to isAnagram, which compares the two strings once normalised.",
+          "correctAnswers": [[
+            "const sortedS = s.split('').sort().join('');",
+            "const sortedT = t.split('').sort().join('');",
+            "return sortedS === sortedT;"
+          ]],
+          "distractors": [
+            "return s.sort() === t.sort();",
+            "const sortedT = t.split('').join('');",
+            "return sortedS.length === sortedT.length;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This isAnagram returns true for s = \"aab\" and t = \"aa\". Assemble the corrected guard that must run first.",
+          "correctAnswers": [[
+            "if (s.length !== t.length) {",
+            "  return false;",
+            "}"
+          ]],
+          "distractors": [
+            "if (s.length === t.length) {",
+            "  return true;",
+            "if (s.length < t.length) {"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Valid Palindrome (LeetCode #125 · Easy · Two Pointers, String)",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Decide whether a string reads the same forwards and backwards, ignoring case and every non-alphanumeric character.\n\n```ts\nfunction isPalindrome(s: string): boolean {\n  const cleaned = s.toLowerCase().replace(/[^a-z0-9]/g, '');\n  let left = 0;\n  let right = cleaned.length - 1;\n  while (left < right) {\n    if (cleaned[left] !== cleaned[right]) {\n      return false;\n    }\n    left++;\n    right--;\n  }\n  return true;\n}\n```\n\nTwo pointers walk inward from both ends, comparing as they go. The loop condition is `left < right`, not `left <= right`: once the pointers meet they are looking at the same character, and comparing it with itself proves nothing. On an odd-length string that middle character is simply never examined, which is correct — a single character is always a palindrome of itself.\n\nThis is O(n) time and, apart from the cleaned copy, O(1) working space.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "Why is the loop condition left < right rather than left <= right?",
+          "correctAnswers": [["when the pointers meet they reference the same character, so the comparison is vacuous"]],
+          "distractors": ["left <= right would read past the end of the string", "left <= right would skip the final character pair", "the pointers can never actually become equal"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "isPalindrome cleans the input into a new string before scanning. What does that make its true space cost?",
+          "correctAnswers": [["O(n), because of the cleaned copy"]],
+          "distractors": ["O(1), because only two index variables are kept", "O(n^2), because replace runs per character", "O(log n), proportional to the pointer distance"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does isPalindrome(\"A man, a plan, a canal: Panama\") return?",
+          "correctAnswers": [["true"]],
+          "distractors": ["false", "undefined", "it throws"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does isPalindrome(\"race a car\") return?",
+          "correctAnswers": [["false"]],
+          "distractors": ["true", "undefined", "it throws"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does isPalindrome(\" ,\") return, given that cleaning strips it to an empty string?",
+          "correctAnswers": [["true"]],
+          "distractors": ["false", "undefined", "it throws"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of isPalindrome's while loop by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "while (left < right) {",
+            "  if (cleaned[left] !== cleaned[right]) {",
+            "    return false;",
+            "  }",
+            "  left++;",
+            "  right--;",
+            "}",
+            "return true;"
+          ]],
+          "distractors": [
+            "while (left <= right) {",
+            "  if (cleaned[left] === cleaned[right]) {",
+            "  right++;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the reverse-and-compare alternative to the two-pointer scan.",
+          "correctAnswers": [[
+            "const cleaned = s.toLowerCase().replace(/[^a-z0-9]/g, '');",
+            "const reversed = cleaned.split('').reverse().join('');",
+            "return cleaned === reversed;"
+          ]],
+          "distractors": [
+            "return s === s.split('').reverse().join('');",
+            "const reversed = cleaned.reverse();",
+            "return cleaned.length === reversed.length;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This isPalindrome loops forever on any input. Assemble the corrected pair of pointer updates.",
+          "correctAnswers": [[
+            "  left++;",
+            "  right--;"
+          ]],
+          "distractors": [
+            "  left++;  // right is never moved",
+            "  right++;",
+            "  left--;"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Merge Two Sorted Lists (LeetCode #21 · Easy · Linked List)",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Given the heads of two sorted linked lists, splice them into one sorted list.\n\n```ts\nfunction mergeTwoLists(a: ListNode | null, b: ListNode | null): ListNode | null {\n  const dummy = new ListNode(0);\n  let tail = dummy;\n  while (a !== null && b !== null) {\n    if (a.value <= b.value) {\n      tail.next = a;\n      a = a.next;\n    } else {\n      tail.next = b;\n      b = b.next;\n    }\n    tail = tail.next;\n  }\n  tail.next = a ?? b;\n  return dummy.next;\n}\n```\n\nTwo things make this short. First, the **dummy head**: without it every append would need an \"is the result still empty?\" branch to decide between setting the head and setting `tail.next`. The dummy gives `tail` something to point at from the very first iteration, and the real answer is just `dummy.next`.\n\nSecond, `tail.next = a ?? b` after the loop. The loop only exits when one list is exhausted, and whatever remains of the other is already sorted and already linked — so it gets attached wholesale rather than copied node by node.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What does the dummy head node eliminate from mergeTwoLists?",
+          "correctAnswers": [["the special case for appending the very first node"]],
+          "distractors": ["the need to compare values on the first iteration", "the possibility of returning null for two empty lists", "the need to advance the tail pointer each step"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "After the while loop, mergeTwoLists does tail.next = a ?? b in a single statement rather than looping over the remainder. Why is that enough?",
+          "correctAnswers": [["whatever is left is already sorted and already linked together"]],
+          "distractors": ["at most one node can ever remain unprocessed", "the remaining nodes are copied by the ?? operator", "both a and b are guaranteed to be null at that point"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "Merging the lists 1 -> 2 -> 4 and 1 -> 3 -> 4, what is the value sequence of the merged result?",
+          "correctAnswers": [["1 -> 1 -> 2 -> 3 -> 4 -> 4"]],
+          "distractors": ["1 -> 2 -> 4 -> 1 -> 3 -> 4", "1 -> 1 -> 2 -> 3 -> 4", "1 -> 2 -> 3 -> 4"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does mergeTwoLists(null, null) return?",
+          "correctAnswers": [["null"]],
+          "distractors": ["a node holding 0", "undefined", "an empty list object"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "Merging null with the list 5 -> 7, how many iterations does the while loop run?",
+          "correctAnswers": [["0"]],
+          "distractors": ["1", "2", "3"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of mergeTwoLists's while loop by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "if (a.value <= b.value) {",
+            "  tail.next = a;",
+            "  a = a.next;",
+            "} else {",
+            "  tail.next = b;",
+            "  b = b.next;",
+            "}",
+            "tail = tail.next;"
+          ]],
+          "distractors": [
+            "if (a.value >= b.value) {",
+            "  tail = a;",
+            "  tail.next = tail.next.next;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the setup and the final return of mergeTwoLists, the parts that surround the while loop.",
+          "correctAnswers": [[
+            "const dummy = new ListNode(0);",
+            "let tail = dummy;",
+            "tail.next = a ?? b;",
+            "return dummy.next;"
+          ]],
+          "distractors": [
+            "return dummy;",
+            "let tail = dummy.next;",
+            "tail.next = a;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This mergeTwoLists returns a list whose first value is always 0. Assemble the corrected return statement.",
+          "correctAnswers": [["return dummy.next;"]],
+          "distractors": [
+            "return dummy;",
+            "return tail;",
+            "return tail.next;"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Linked List Cycle (LeetCode #141 · Easy · Fast and Slow Pointers)",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Decide whether a linked list loops back on itself.\n\n```ts\nfunction hasCycle(head: ListNode | null): boolean {\n  let slow = head;\n  let fast = head;\n  while (fast !== null && fast.next !== null) {\n    slow = slow!.next;\n    fast = fast.next.next;\n    if (slow === fast) {\n      return true;\n    }\n  }\n  return false;\n}\n```\n\nThe obvious solution keeps a `Set` of visited nodes — correct, but O(n) memory. **Floyd's tortoise and hare** gets the same answer in O(1): move one pointer a single step and the other two steps per iteration. On a straight list the fast pointer simply runs off the end. Inside a cycle it cannot — it keeps looping, closing the gap on the slow pointer by exactly one node each iteration, so it is guaranteed to land on it eventually.\n\nThe loop condition checks both `fast` and `fast.next`, because the next line dereferences `fast.next.next` and either being null would throw.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What is the memory cost of Floyd's cycle detection, compared with the visited-Set approach?",
+          "correctAnswers": [["O(1) instead of O(n)"]],
+          "distractors": ["O(n) instead of O(n^2)", "O(log n) instead of O(n)", "the same O(n), but with a smaller constant"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "The loop condition tests both fast !== null and fast.next !== null. Why are both needed?",
+          "correctAnswers": [["the body dereferences fast.next.next, so either being null would throw"]],
+          "distractors": ["the two pointers must be compared before either advances", "it guarantees the list length is even", "it stops slow from overtaking fast"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "For the straight list 1 -> 2 -> 3 -> null, what does hasCycle return?",
+          "correctAnswers": [["false"]],
+          "distractors": ["true", "null", "it throws"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "For a two-node list whose second node points back at the first, what does hasCycle return?",
+          "correctAnswers": [["true"]],
+          "distractors": ["false", "null", "it loops forever"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "Inside a cycle, by how many nodes does the gap between fast and slow shrink on each iteration?",
+          "correctAnswers": [["1"]],
+          "distractors": ["2", "3", "it stays the same"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of hasCycle's while loop by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "slow = slow!.next;",
+            "fast = fast.next.next;",
+            "if (slow === fast) {",
+            "  return true;",
+            "}"
+          ]],
+          "distractors": [
+            "fast = fast.next;",
+            "slow = slow!.next.next;",
+            "  return false;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the while-loop body of the O(n)-memory alternative that tracks visited nodes in a Set.",
+          "correctAnswers": [[
+            "if (seen.has(node)) {",
+            "  return true;",
+            "}",
+            "seen.add(node);",
+            "node = node.next;"
+          ]],
+          "distractors": [
+            "if (!seen.has(node)) {",
+            "seen.add(node.value);",
+            "node = node.next.next;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This hasCycle throws \"Cannot read properties of null\" on the straight list 1 -> 2 -> 3 -> null. Assemble the corrected loop header.",
+          "correctAnswers": [["while (fast !== null && fast.next !== null) {"]],
+          "distractors": [
+            "while (fast !== null) {",
+            "while (fast.next !== null) {",
+            "while (slow !== null && fast !== null) {"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Maximum Depth of Binary Tree (LeetCode #104 · Easy · Tree, DFS)",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Return the number of nodes along the longest path from the root down to a leaf.\n\n```ts\nfunction maxDepth(root: TreeNode | null): number {\n  if (root === null) {\n    return 0;\n  }\n  return 1 + Math.max(maxDepth(root.left), maxDepth(root.right));\n}\n```\n\nFour lines, and every recursive tree problem looks like this: handle the empty case, then combine the answers from both subtrees.\n\nWatch the base case though — it returns **0**, not -1. This problem counts *nodes*, so a single leaf has depth 1 and the empty tree has depth 0. That is a different convention from the classic `height()` function, which counts *edges* and therefore returns -1 for null and 0 for a leaf. The code is otherwise identical; only the base value moves. Interviewers ask which one you meant, so say it out loud.\n\nThe recursion visits every node once: O(n) time, and O(h) stack space where h is the height.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "maxDepth returns 0 for null while the classic height() returns -1. What accounts for the difference?",
+          "correctAnswers": [["maxDepth counts nodes, height counts edges"]],
+          "distractors": ["maxDepth rejects empty trees as invalid input", "height is measured from a leaf upward instead of the root downward", "maxDepth includes the root twice in its total"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "maxDepth is O(n) in time. What determines its stack space?",
+          "correctAnswers": [["the height of the tree, since that is the deepest chain of live calls"]],
+          "distractors": ["the total number of nodes, since each gets a frame at once", "the number of leaves, since each ends a recursive chain", "a constant, because the recursion is a tail call"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does maxDepth return for a tree that is a single root node with no children?",
+          "correctAnswers": [["1"]],
+          "distractors": ["0", "-1", "2"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does maxDepth(null) return?",
+          "correctAnswers": [["0"]],
+          "distractors": ["-1", "1", "undefined"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "For the BST built by inserting 3, 9, 20, 15, 7, what does maxDepth(root) return?",
+          "correctAnswers": [["4"]],
+          "distractors": ["3", "5", "2"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of maxDepth by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "if (root === null) {",
+            "  return 0;",
+            "}",
+            "return 1 + Math.max(maxDepth(root.left), maxDepth(root.right));"
+          ]],
+          "distractors": [
+            "  return -1;",
+            "return 1 + Math.min(maxDepth(root.left), maxDepth(root.right));",
+            "if (root.left === null) {"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the level loop and depth increment of an iterative maximum-depth that walks the tree with a queue.",
+          "correctAnswers": [[
+            "const levelSize = queue.length;",
+            "for (let i = 0; i < levelSize; i++) {",
+            "  const node = queue.shift()!;",
+            "  if (node.left) queue.push(node.left);",
+            "  if (node.right) queue.push(node.right);",
+            "}",
+            "depth++;"
+          ]],
+          "distractors": [
+            "for (let i = 0; i < queue.length; i++) {",
+            "depth += levelSize;",
+            "  const node = queue.pop()!;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This maxDepth returns 0 for a single-node tree instead of 1. Assemble the corrected base case.",
+          "correctAnswers": [[
+            "if (root === null) {",
+            "  return 0;",
+            "}"
+          ]],
+          "distractors": [
+            "if (root.left === null && root.right === null) {",
+            "  return -1;",
+            "  return 1;"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Move Zeroes (LeetCode #283 · Easy · Two Pointers, In-Place)",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Shift every zero in `nums` to the end while keeping the order of the non-zero values, modifying the array in place.\n\n```ts\nfunction moveZeroes(nums: number[]): void {\n  let insert = 0;\n  for (const num of nums) {\n    if (num !== 0) {\n      nums[insert] = num;\n      insert++;\n    }\n  }\n  while (insert < nums.length) {\n    nums[insert] = 0;\n    insert++;\n  }\n}\n```\n\nTwo passes, no extra array. The first compacts every non-zero value toward the front, with `insert` tracking where the next one belongs — it lags behind the read position by exactly the number of zeros seen so far. The second pass fills whatever remains with zeros.\n\nThe read pointer never falls behind `insert`, so overwriting `nums[insert]` mid-scan can never clobber a value still waiting to be read. Note the `void` return: the result *is* the mutation, and returning `nums` as well would be misleading about who owns the array.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "During moveZeroes's first pass, what does the gap between the read position and insert represent?",
+          "correctAnswers": [["the number of zeros seen so far"]],
+          "distractors": ["the number of values still to be read", "the number of swaps performed so far", "the index where the next zero will be written"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "moveZeroes is declared to return void rather than number[]. What does that signal about how it works?",
+          "correctAnswers": [["it mutates the caller's array in place rather than producing a new one"]],
+          "distractors": ["it may fail, so the caller must re-read the array", "it runs asynchronously and the result arrives later", "the array is left unusable after the call"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "After moveZeroes([0, 1, 0, 3, 12]), what does nums hold?",
+          "correctAnswers": [["[1, 3, 12, 0, 0]"]],
+          "distractors": ["[1, 3, 12]", "[0, 0, 1, 3, 12]", "[1, 0, 3, 12, 0]"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What is the value of insert when the first pass of moveZeroes([0, 1, 0, 3, 12]) finishes?",
+          "correctAnswers": [["3"]],
+          "distractors": ["2", "5", "0"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "After moveZeroes([0, 0]), what does nums hold?",
+          "correctAnswers": [["[0, 0]"]],
+          "distractors": ["[]", "[0]", "[0, 0, 0]"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the first pass of moveZeroes by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "let insert = 0;",
+            "for (const num of nums) {",
+            "  if (num !== 0) {",
+            "    nums[insert] = num;",
+            "    insert++;",
+            "  }",
+            "}"
+          ]],
+          "distractors": [
+            "  if (num === 0) {",
+            "    nums[num] = insert;",
+            "let insert = nums.length;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the second pass of moveZeroes, which pads the tail of the array with zeros.",
+          "correctAnswers": [[
+            "while (insert < nums.length) {",
+            "  nums[insert] = 0;",
+            "  insert++;",
+            "}"
+          ]],
+          "distractors": [
+            "while (insert > 0) {",
+            "  nums[insert] = insert;",
+            "  insert--;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This moveZeroes turns [0, 1, 0, 3, 12] into [0, 0, 0, 0, 0]. Assemble the corrected first-pass condition and its body.",
+          "correctAnswers": [[
+            "if (num !== 0) {",
+            "  nums[insert] = num;",
+            "  insert++;",
+            "}"
+          ]],
+          "distractors": [
+            "if (num === 0) {",
+            "  nums[num] = insert;",
+            "  insert--;"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -216,7 +216,18 @@ Distractor and answer quality rules — follow these strictly for every card:
   - Distractors must be plausibly wrong: subtly incorrect in a way that requires genuine knowledge to reject. Use the same vocabulary and phrasing as the correct answer but change a key detail — wrong type, inverted condition, off-by-one, incorrect complexity, swapped terms, etc.
   - Never use obviously nonsensical or unrelated distractors.
   - For trace and signature cards: distractors should be lines or signatures that could plausibly appear in similar code but contain a specific error.
-  - For line_order cards: distractors must never be identical to any correct answer line. Every distractor must differ from all correct lines (e.g. wrong condition, inverted logic, off-by-one, wrong return value).`)
+  - For line_order cards: distractors must never be identical to any correct answer line. Every distractor must differ from all correct lines (e.g. wrong condition, inverted logic, off-by-one, wrong return value).
+  - INDENTATION: for line_order, choose_snippet, and fix_bug cards, indent every distractor to match the nesting depth of the line it plausibly replaces. If the correct lines use indentation but all distractors sit flush-left, the learner can spot the decoys by shape alone without reading them. A distractor competing with a loop body line must carry that body's indentation.
+  - MUTUALLY EXCLUSIVE OPTIONS: no two distractors may be semantically equivalent to each other (e.g. "while (j > 0 ...)" alongside "while (j >= 1 ...)"). If two options mean the same thing, the learner eliminates both and the answer collapses. Every option must be independently plausible and distinct.
+  - Aim for 3 distractors on a card. Never ship a card with a single distractor: a two-way choice is a coin flip that teaches nothing. Prefer rephrasing a yes/no question into one with three or more genuinely competing answers.
+  - VARY DISTRACTOR SETS: do not reuse the same option set across cards (e.g. every complexity card offering the same four Big-O values). Learners start recognizing the option list instead of reasoning about the material.
+
+Card independence and question framing:
+  - Each card is reviewed alone: the learner sees only the front, and NOT the info object title or content. Every front must therefore be self-contained — name the specific function, method, or structure it asks about ("Reconstruct the body of binarySearch's while loop", never "Reconstruct the body of the loop").
+  - Do not write a card whose answer is stated verbatim in the info object's content. Test whether the learner can apply or reason about the fact, not whether they can recall the exact sentence. Instead of "A stack follows which access principle?" (LIFO is written in the content), ask why a stack fits a concrete use case.
+  - fix_bug cards: the front must describe the OBSERVABLE SYMPTOM only — a wrong return value, a crash, a hang, on concrete input ("This climbStairs(5) returns 12 instead of 8"). Never name the faulty construct or state the correction in the front, or there is nothing left to diagnose.
+  - fix_bug answers must be the minimal corrected fragment (typically 1-3 lines), never a re-assembly of the whole method the line_order card already covers. Two cards in one info object must not share an identical correct answer.
+  - Keep block-card answers under about 8 lines. Longer assemblies become tedious ordering busywork rather than a test of understanding; scope the card to the one method or fragment that carries the idea.`)
 }
 
 func generationUserPrompt(req llmCompletionRequest) string {

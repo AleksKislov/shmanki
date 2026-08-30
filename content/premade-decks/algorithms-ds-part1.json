@@ -20,9 +20,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "Does linearSearch(arr, target) mutate the input array, or leave it unchanged?",
-          "correctAnswers": [["leave it unchanged"]],
-          "distractors": ["mutate it", "sort it", "reverse it"]
+          "front": "After calling linearSearch(nums, 5), what is true of nums?",
+          "correctAnswers": [["it is unchanged"]],
+          "distractors": ["it is sorted", "the matched element is removed", "it is truncated at the match index"]
         },
         {
           "step": 1,
@@ -59,8 +59,8 @@
           ]],
           "distractors": [
             "for (let i = arr.length - 1; i >= 0; i--) {",
-            "return arr[i];",
-            "break;"
+            "    return arr[i];",
+            "    break;"
           ]
         },
         {
@@ -78,27 +78,20 @@
             "return -1;"
           ]],
           "distractors": [
-            "i--;",
-            "return target;",
+            "  i--;",
+            "    return target;",
             "i += 2;"
           ]
         },
         {
           "step": 3,
           "cardType": "fix_bug",
-          "front": "This linear search reads one element past the end of the array when the target is missing. Assemble the corrected version.",
-          "correctAnswers": [[
-            "for (let i = 0; i < arr.length; i++) {",
-            "  if (arr[i] === target) {",
-            "    return i;",
-            "  }",
-            "}",
-            "return -1;"
-          ]],
+          "front": "This linearSearch also reads one slot past the end of the array whenever the target is missing. Assemble the corrected loop header.",
+          "correctAnswers": [["for (let i = 0; i < arr.length; i++) {"]],
           "distractors": [
             "for (let i = 0; i <= arr.length; i++) {",
-            "if (arr[i] = target) {",
-            "return arr.length;"
+            "for (let i = 1; i < arr.length; i++) {",
+            "for (let i = 0; i < arr.length + 1; i++) {"
           ]
         }
       ]
@@ -119,9 +112,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "Binary search only works correctly if the input array is already ______.",
-          "correctAnswers": [["sorted"]],
-          "distractors": ["unique", "reversed", "non-empty"]
+          "front": "What goes wrong if you run binarySearch on an unsorted array?",
+          "correctAnswers": [["it may report -1 even though the target is present"]],
+          "distractors": ["it always returns index 0", "it loops forever", "it throws a RangeError"]
         },
         {
           "step": 1,
@@ -147,7 +140,7 @@
         {
           "step": 2,
           "cardType": "line_order",
-          "front": "Reconstruct the body of the while loop by putting these lines in the correct order.",
+          "front": "Reconstruct the body of binarySearch's while loop by putting these lines in the correct order.",
           "correctAnswers": [[
             "const mid = Math.floor((low + high) / 2);",
             "if (arr[mid] === target) {",
@@ -159,9 +152,9 @@
             "}"
           ]],
           "distractors": [
-            "return arr[mid];",
-            "high = mid;",
-            "low = mid;"
+            "  return arr[mid];",
+            "  high = mid;",
+            "  low = mid;"
           ]
         },
         {
@@ -180,28 +173,21 @@
           "distractors": [
             "if (low >= high) {",
             "return binarySearch(arr, target, low, mid);",
-            "return 0;"
+            "  return 0;"
           ]
         },
         {
           "step": 3,
           "cardType": "fix_bug",
-          "front": "This version never terminates when the target is missing, because the losing half isn't fully excluded. Assemble the corrected loop.",
+          "front": "This binarySearch loops forever whenever the target is absent. Assemble the corrected pair of bound updates — the low branch first, then the high branch.",
           "correctAnswers": [[
-            "while (low <= high) {",
-            "  const mid = Math.floor((low + high) / 2);",
-            "  if (arr[mid] === target) return mid;",
-            "  if (arr[mid] < target) {",
-            "    low = mid + 1;",
-            "  } else {",
-            "    high = mid - 1;",
-            "  }",
-            "}"
+            "  low = mid + 1;",
+            "  high = mid - 1;"
           ]],
           "distractors": [
-            "high = mid;",
-            "low = mid;",
-            "while (low < high) {"
+            "  low = mid;",
+            "  high = mid;",
+            "  low = mid - 1;"
           ]
         }
       ]
@@ -222,9 +208,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "Does bubbleSort(arr) sort the array in place (mutating the input), or return a new array leaving the input untouched?",
-          "correctAnswers": [["in place"]],
-          "distractors": ["returns a new array", "returns a copy", "neither — it only checks if the array is sorted"]
+          "front": "After const result = bubbleSort(nums), what is true of nums?",
+          "correctAnswers": [["nums is now sorted — the input was mutated"]],
+          "distractors": ["nums is unchanged; only result is sorted", "nums is emptied into result", "nums is sorted only if it was already partially sorted"]
         },
         {
           "step": 1,
@@ -243,9 +229,9 @@
         {
           "step": 1,
           "cardType": "trace",
-          "front": "Is [5, 1, 4, 2] already fully sorted after bubble sort's SECOND full pass?",
-          "correctAnswers": [["yes"]],
-          "distractors": ["no"]
+          "front": "After bubbleSort's second full pass over [5, 1, 4, 2], what is the array?",
+          "correctAnswers": [["[1, 2, 4, 5]"]],
+          "distractors": ["[1, 4, 2, 5]", "[1, 2, 5, 4]", "[5, 4, 2, 1]"]
         },
         {
           "step": 2,
@@ -259,8 +245,8 @@
             "}"
           ]],
           "distractors": [
-            "if (arr[j] < arr[j + 1]) {",
-            "arr[j] = arr[j + 1];",
+            "  if (arr[j] < arr[j + 1]) {",
+            "  arr[j] = arr[j + 1];",
             "for (let j = 0; j <= n - i; j++) {"
           ]
         },
@@ -281,23 +267,18 @@
           "distractors": [
             "if (swapped) break;",
             "continue;",
-            "let swapped = true;"
+            "    let swapped = true;"
           ]
         },
         {
           "step": 3,
           "cardType": "fix_bug",
-          "front": "This inner loop reads one index past the sorted tail, comparing against undefined. Assemble the corrected loop bound.",
-          "correctAnswers": [[
-            "for (let j = 0; j < n - i - 1; j++) {",
-            "  if (arr[j] > arr[j + 1]) {",
-            "    [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];",
-            "  }",
-            "}"
-          ]],
+          "front": "On its second pass and beyond, this bubbleSort compares a real element against undefined. Assemble the corrected inner-loop header.",
+          "correctAnswers": [["for (let j = 0; j < n - i - 1; j++) {"]],
           "distractors": [
             "for (let j = 0; j < n - i; j++) {",
-            "for (let j = 0; j <= n - i - 1; j++) {"
+            "for (let j = 0; j <= n - i - 1; j++) {",
+            "for (let j = 0; j < n; j++) {"
           ]
         }
       ]
@@ -318,9 +299,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "Does selectionSort(arr) sort the array in place (mutating the input), or return a new array leaving the input untouched?",
-          "correctAnswers": [["in place"]],
-          "distractors": ["returns a new array", "returns a copy", "neither — it only checks if the array is sorted"]
+          "front": "After const result = selectionSort(nums), what is true of nums?",
+          "correctAnswers": [["nums is now sorted — the input was mutated"]],
+          "distractors": ["nums is unchanged; only result is sorted", "nums holds the minimum at every index", "nums is sorted only from index 1 onward"]
         },
         {
           "step": 1,
@@ -346,7 +327,7 @@
         {
           "step": 2,
           "cardType": "line_order",
-          "front": "Reconstruct the body of one outer-loop pass by putting these lines in the correct order.",
+          "front": "Reconstruct the body of one selectionSort outer-loop pass by putting these lines in the correct order.",
           "correctAnswers": [[
             "let minIndex = i;",
             "for (let j = i + 1; j < n; j++) {",
@@ -357,8 +338,8 @@
             "[arr[i], arr[minIndex]] = [arr[minIndex], arr[i]];"
           ]],
           "distractors": [
-            "if (arr[j] > arr[minIndex]) {",
-            "arr[minIndex] = arr[j];",
+            "  if (arr[j] > arr[minIndex]) {",
+            "    arr[minIndex] = arr[j];",
             "for (let j = i; j < n; j++) {"
           ]
         },
@@ -376,7 +357,7 @@
             "[arr[i], arr[maxIndex]] = [arr[maxIndex], arr[i]];"
           ]],
           "distractors": [
-            "if (arr[j] < arr[maxIndex]) {",
+            "  if (arr[j] < arr[maxIndex]) {",
             "let maxIndex = 0;",
             "[arr[i], arr[maxIndex]] = [arr[i], arr[maxIndex]];"
           ]
@@ -384,19 +365,15 @@
         {
           "step": 3,
           "cardType": "fix_bug",
-          "front": "This inner loop compares against the wrong index, so it never actually tracks the running minimum. Assemble the corrected version.",
+          "front": "This selectionSort leaves the array unsorted — each pass swaps in a value that isn't the smallest remaining. Assemble the corrected comparison and its body.",
           "correctAnswers": [[
-            "let minIndex = i;",
-            "for (let j = i + 1; j < n; j++) {",
             "  if (arr[j] < arr[minIndex]) {",
-            "    minIndex = j;",
-            "  }",
-            "}",
-            "[arr[i], arr[minIndex]] = [arr[minIndex], arr[i]];"
+            "    minIndex = j;"
           ]],
           "distractors": [
-            "if (arr[j] < arr[i]) {",
-            "if (arr[i] < arr[minIndex]) {"
+            "  if (arr[j] < arr[i]) {",
+            "  if (arr[i] < arr[minIndex]) {",
+            "    minIndex = i;"
           ]
         }
       ]
@@ -417,9 +394,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "Does insertionSort(arr) sort the array in place (mutating the input), or return a new array leaving the input untouched?",
-          "correctAnswers": [["in place"]],
-          "distractors": ["returns a new array", "returns a copy", "neither — it only checks if the array is sorted"]
+          "front": "After const result = insertionSort(nums), what is true of nums?",
+          "correctAnswers": [["nums is now sorted — the input was mutated"]],
+          "distractors": ["nums is unchanged; only result is sorted", "nums keeps its original order below index 1", "nums is sorted only if it was already nearly sorted"]
         },
         {
           "step": 1,
@@ -445,7 +422,7 @@
         {
           "step": 2,
           "cardType": "line_order",
-          "front": "Reconstruct the body of one outer-loop pass by putting these lines in the correct order.",
+          "front": "Reconstruct the body of one insertionSort outer-loop pass by putting these lines in the correct order.",
           "correctAnswers": [[
             "const current = arr[i];",
             "let j = i - 1;",
@@ -457,8 +434,8 @@
           ]],
           "distractors": [
             "while (j >= 0 && arr[j] < current) {",
-            "arr[j] = arr[j + 1];",
-            "j++;"
+            "  arr[j] = arr[j + 1];",
+            "  j++;"
           ]
         },
         {
@@ -476,26 +453,19 @@
           ]],
           "distractors": [
             "while (j >= 0 && arr[j] > current) {",
-            "j++;",
-            "arr[j + 1] = arr[j - 1];"
+            "  j++;",
+            "  arr[j + 1] = arr[j - 1];"
           ]
         },
         {
           "step": 3,
           "cardType": "fix_bug",
-          "front": "This while loop condition stops one index too early, so the element at index 0 is never compared. Assemble the corrected loop.",
-          "correctAnswers": [[
-            "const current = arr[i];",
-            "let j = i - 1;",
-            "while (j >= 0 && arr[j] > current) {",
-            "  arr[j + 1] = arr[j];",
-            "  j--;",
-            "}",
-            "arr[j + 1] = current;"
-          ]],
+          "front": "This insertionSort sorts everything except the element at index 0, which never moves. Assemble the corrected while condition.",
+          "correctAnswers": [["while (j >= 0 && arr[j] > current) {"]],
           "distractors": [
             "while (j > 0 && arr[j] > current) {",
-            "while (j >= 1 && arr[j] > current) {"
+            "while (j >= 0 && arr[j] >= current) {",
+            "while (j >= 0 && arr[j] < current) {"
           ]
         }
       ]
@@ -516,9 +486,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "Unlike bubble, selection, and insertion sort, does mergeSort(arr) sort the array in place, or does it return a brand-new array leaving the input untouched?",
-          "correctAnswers": [["returns a new array"]],
-          "distractors": ["in place, like bubble sort", "in place, but only for arrays under length 2", "depends on whether the array is already sorted"]
+          "front": "After const result = mergeSort(nums), what is true of nums?",
+          "correctAnswers": [["nums is unchanged; only result is sorted"]],
+          "distractors": ["nums is now sorted — the input was mutated", "nums is emptied into result", "nums is sorted only if its length is a power of two"]
         },
         {
           "step": 1,
@@ -539,7 +509,7 @@
           "cardType": "trace",
           "front": "What does mergeSort([]) return, given the base case checks arr.length <= 1?",
           "correctAnswers": [["[]"]],
-          "distractors": ["undefined", "null", "[undefined]"]
+          "distractors": ["[undefined]", "[0]", "undefined"]
         },
         {
           "step": 2,
@@ -558,8 +528,8 @@
             "return [...result, ...left.slice(i), ...right.slice(j)];"
           ]],
           "distractors": [
-            "result.push(left[i] + right[j]);",
-            "i--;",
+            "    result.push(left[i] + right[j]);",
+            "    i--;",
             "return result;"
           ]
         },
@@ -585,20 +555,16 @@
         {
           "step": 3,
           "cardType": "fix_bug",
-          "front": "This base case causes infinite recursion whenever a sub-array becomes empty. Assemble the corrected divide step.",
+          "front": "This mergeSort recurses forever once a half becomes empty. Assemble the corrected base case.",
           "correctAnswers": [[
             "if (arr.length <= 1) {",
             "  return arr;",
-            "}",
-            "const mid = Math.floor(arr.length / 2);",
-            "const left = mergeSort(arr.slice(0, mid));",
-            "const right = mergeSort(arr.slice(mid));",
-            "return merge(left, right);"
+            "}"
           ]],
           "distractors": [
             "if (arr.length === 1) {",
-            "if (arr.length < 1) {",
-            "return [];"
+            "if (arr.length === 0) {",
+            "  return [];"
           ]
         }
       ]
@@ -614,7 +580,7 @@
           "cardType": "concept",
           "front": "What is the worst-case time complexity of quicksort with a naive pivot choice (e.g. sorted input, always picking the last element)?",
           "correctAnswers": [["O(n^2)"]],
-          "distractors": ["O(n log n)", "O(n)", "O(log n)"]
+          "distractors": ["O(n log n)", "O(n)", "O(1)"]
         },
         {
           "step": 0,
@@ -642,7 +608,7 @@
           "cardType": "trace",
           "front": "What does quickSort([]) return, given low = 0 and high = arr.length - 1 by default?",
           "correctAnswers": [["[]"]],
-          "distractors": ["undefined", "null", "[undefined]"]
+          "distractors": ["[undefined]", "[0]", "undefined"]
         },
         {
           "step": 2,
@@ -659,8 +625,8 @@
             "return i + 1;"
           ]],
           "distractors": [
-            "if (arr[j] > pivot) {",
-            "i--;",
+            "  if (arr[j] > pivot) {",
+            "    i--;",
             "return i;"
           ]
         },
@@ -677,26 +643,23 @@
             "return arr;"
           ]],
           "distractors": [
-            "quickSort(arr, low, pivotIndex);",
-            "quickSort(arr, pivotIndex, high);",
+            "  quickSort(arr, low, pivotIndex);",
+            "  quickSort(arr, pivotIndex, high);",
             "if (low <= high) {"
           ]
         },
         {
           "step": 3,
           "cardType": "fix_bug",
-          "front": "This driver's recursive calls include the pivot's final index, causing infinite recursion. Assemble the corrected version.",
+          "front": "This quickSort never terminates — each recursive call receives a sub-array the same size as its parent. Assemble the corrected pair of recursive calls.",
           "correctAnswers": [[
-            "if (low < high) {",
-            "  const pivotIndex = partition(arr, low, high);",
             "  quickSort(arr, low, pivotIndex - 1);",
-            "  quickSort(arr, pivotIndex + 1, high);",
-            "}",
-            "return arr;"
+            "  quickSort(arr, pivotIndex + 1, high);"
           ]],
           "distractors": [
-            "quickSort(arr, low, pivotIndex);",
-            "quickSort(arr, pivotIndex, high);"
+            "  quickSort(arr, low, pivotIndex);",
+            "  quickSort(arr, pivotIndex, high);",
+            "  quickSort(arr, low + 1, pivotIndex);"
           ]
         }
       ]
@@ -717,9 +680,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "LinkedList.head is typed as ListNode | null rather than always ListNode. Why does the type need to include null?",
-          "correctAnswers": [["because the list can be empty"]],
-          "distractors": ["for performance", "to support multiple lists", "because ListNode is generic"]
+          "front": "LinkedList.head is typed ListNode | null rather than ListNode. What does the null case represent?",
+          "correctAnswers": [["a list with no nodes at all"]],
+          "distractors": ["a node whose value has not been set yet", "the end of the chain after the final node", "a list whose nodes were removed but capacity kept"]
         },
         {
           "step": 1,
@@ -761,7 +724,7 @@
           "distractors": [
             "current.next = current;",
             "while (current !== null) {",
-            "this.tail = node;"
+            "  this.tail = node;"
           ]
         },
         {
@@ -782,17 +745,16 @@
         {
           "step": 3,
           "cardType": "fix_bug",
-          "front": "This traversal loop advances one node too far and crashes reading .next off null. Assemble the corrected loop.",
+          "front": "This append() throws \"Cannot read properties of null\" on a list that already has nodes. Assemble the corrected traversal loop.",
           "correctAnswers": [[
-            "let current = this.head;",
             "while (current.next !== null) {",
             "  current = current.next;",
-            "}",
-            "current.next = node;"
+            "}"
           ]],
           "distractors": [
             "while (current !== null) {",
-            "current = current.next.next;"
+            "  current = current.next.next;",
+            "while (current.next.next !== null) {"
           ]
         }
       ]
@@ -806,16 +768,16 @@
         {
           "step": 0,
           "cardType": "concept",
-          "front": "A stack follows which access principle?",
-          "correctAnswers": [["LIFO"]],
-          "distractors": ["FIFO", "LILO", "random access"]
+          "front": "Why is a stack the right structure for tracking nested function calls?",
+          "correctAnswers": [["the most recent call must finish first"]],
+          "distractors": ["calls must finish in the order they started", "each call needs O(1) access by index", "calls must be processed in priority order"]
         },
         {
           "step": 0,
           "cardType": "signature",
-          "front": "pop(): T | undefined — why is the return type a union with undefined instead of just T?",
-          "correctAnswers": [["because pop() can fail on an empty stack"]],
-          "distractors": ["for performance", "to support async operations", "because T is a generic type parameter"]
+          "front": "pop(): T | undefined — what does the undefined half of that return type represent?",
+          "correctAnswers": [["a pop() call on an empty stack"]],
+          "distractors": ["a stack whose element type T is itself nullable", "a pop() that has not finished executing yet", "a stack that has exceeded its capacity"]
         },
         {
           "step": 1,
@@ -851,9 +813,9 @@
             "}"
           ]],
           "distractors": [
-            "return this.items.shift();",
-            "this.items.unshift(item);",
-            "return this.items[0];"
+            "  return this.items.shift();",
+            "  this.items.unshift(item);",
+            "  return this.items[0];"
           ]
         },
         {
@@ -869,23 +831,24 @@
             "}"
           ]],
           "distractors": [
-            "return this.items[0];",
-            "return this.items.length > 0;",
-            "return this.items.length;"
+            "  return this.items[0];",
+            "  return this.items.length > 0;",
+            "  return this.items.length;"
           ]
         },
         {
           "step": 3,
           "cardType": "fix_bug",
-          "front": "This pop() removes from the wrong end, breaking LIFO order. Assemble the corrected method.",
+          "front": "After push(1); push(2); push(3), this Stack's pop() returns 1 instead of 3. Assemble the corrected method.",
           "correctAnswers": [[
             "pop(): T | undefined {",
             "  return this.items.pop();",
             "}"
           ]],
           "distractors": [
-            "return this.items.shift();",
-            "return this.items[0];"
+            "  return this.items.shift();",
+            "  return this.items[0];",
+            "  return this.items[this.items.length];"
           ]
         }
       ]
@@ -899,16 +862,16 @@
         {
           "step": 0,
           "cardType": "concept",
-          "front": "A queue follows which access principle?",
-          "correctAnswers": [["FIFO"]],
-          "distractors": ["LIFO", "LILO", "random access"]
+          "front": "Why is a queue the right structure for breadth-first search?",
+          "correctAnswers": [["nodes must be visited in the order they were discovered"]],
+          "distractors": ["the most recently discovered node must be visited first", "nodes must be visited in sorted order", "each node needs O(1) access by index"]
         },
         {
           "step": 0,
           "cardType": "signature",
-          "front": "dequeue(): T | undefined — why is the return type a union with undefined instead of just T?",
-          "correctAnswers": [["because dequeue() can fail on an empty queue"]],
-          "distractors": ["for performance", "to support async operations", "because T is a generic type parameter"]
+          "front": "dequeue(): T | undefined — what does the undefined half of that return type represent?",
+          "correctAnswers": [["a dequeue() call on an empty queue"]],
+          "distractors": ["a queue whose element type T is itself nullable", "a dequeue() that has not finished executing yet", "a queue that has exceeded its capacity"]
         },
         {
           "step": 1,
@@ -944,9 +907,9 @@
             "}"
           ]],
           "distractors": [
-            "return this.items.pop();",
-            "this.items.unshift(item);",
-            "return this.items[this.items.length - 1];"
+            "  return this.items.pop();",
+            "  this.items.unshift(item);",
+            "  return this.items[this.items.length - 1];"
           ]
         },
         {
@@ -962,23 +925,24 @@
             "}"
           ]],
           "distractors": [
-            "return this.items[this.items.length - 1];",
-            "return this.items.length > 0;",
-            "return this.items.pop();"
+            "  return this.items[this.items.length - 1];",
+            "  return this.items.length > 0;",
+            "  return this.items.pop();"
           ]
         },
         {
           "step": 3,
           "cardType": "fix_bug",
-          "front": "This dequeue() removes from the wrong end, breaking FIFO order. Assemble the corrected method.",
+          "front": "After enqueue(1); enqueue(2); enqueue(3), this Queue's dequeue() returns 3 instead of 1. Assemble the corrected method.",
           "correctAnswers": [[
             "dequeue(): T | undefined {",
             "  return this.items.shift();",
             "}"
           ]],
           "distractors": [
-            "return this.items.pop();",
-            "return this.items[this.items.length - 1];"
+            "  return this.items.pop();",
+            "  return this.items[this.items.length - 1];",
+            "  return this.items[0];"
           ]
         }
       ]
@@ -1020,7 +984,7 @@
         {
           "step": 2,
           "cardType": "line_order",
-          "front": "Order these operations from fastest to slowest asymptotic growth: binary search, linear search, merge sort, bubble sort.",
+          "front": "Arrange these four algorithms from fastest to slowest worst-case growth.",
           "correctAnswers": [[
             "binary search",
             "linear search",
@@ -1028,9 +992,6 @@
             "bubble sort"
           ]],
           "distractors": [
-            "selection sort",
-            "insertion sort",
-            "quicksort"
           ]
         },
         {
@@ -1046,7 +1007,8 @@
           "distractors": [
             "Stable: yes",
             "Average case: O(n)",
-            "In-place: no"
+            "In-place: no",
+            "Worst case: O(n log n)"
           ]
         },
         {
@@ -1062,7 +1024,8 @@
           "distractors": [
             "In-place: yes",
             "Stable: no",
-            "Worst case: O(n^2)"
+            "Worst case: O(n^2)",
+            "Average case: O(n^2)"
           ]
         }
       ]

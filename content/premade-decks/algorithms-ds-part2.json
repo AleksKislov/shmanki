@@ -1,0 +1,1009 @@
+{
+  "title": "Algorithms & Data Structures II: Trees, Heaps, Hashing, and Graphs",
+  "description": "The second half of a first course: recursion and the call stack, hash tables, binary and binary-search trees, depth-first and breadth-first traversal, binary heaps, and graph search including shortest paths — in TypeScript, with execution traces and debugging exercises.",
+  "languageCode": "en",
+  "category": "algorithms",
+  "infoObjects": [
+    {
+      "title": "Recursion and the Call Stack",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Every recursive function needs two things: a **base case** that stops the recursion, and a **recursive case** that moves closer to it. Miss either one and the calls never stop.\n\n```ts\nfunction factorial(n: number): number {\n  if (n <= 1) {\n    return 1;\n  }\n  return n * factorial(n - 1);\n}\n```\n\nEach call gets its own **stack frame** holding its own copy of `n`. Frames pile up until the base case returns, then unwind in reverse. That means recursion depth costs O(n) memory even when the function itself allocates nothing — and if the base case is unreachable, the frames keep stacking until the runtime throws a stack overflow.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What happens at runtime when a recursive function's base case is never reached?",
+          "correctAnswers": [["the call stack overflows"]],
+          "distractors": ["it returns undefined", "it loops forever without consuming memory", "the compiler refuses to build it"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "factorial(n: number): number returns a plain number, never a union. What does factorial(0) return?",
+          "correctAnswers": [["1"]],
+          "distractors": ["0", "undefined", "it throws a RangeError"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does factorial(4) return?",
+          "correctAnswers": [["24"]],
+          "distractors": ["12", "10", "64"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "At its deepest point, how many factorial frames are live on the call stack during factorial(4)?",
+          "correctAnswers": [["4"]],
+          "distractors": ["3", "5", "1"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "How many recursive calls does factorial(1) make before returning?",
+          "correctAnswers": [["0"]],
+          "distractors": ["1", "2", "it never returns"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of factorial by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "if (n <= 1) {",
+            "  return 1;",
+            "}",
+            "return n * factorial(n - 1);"
+          ]],
+          "distractors": [
+            "if (n <= 0) {",
+            "  return n;",
+            "return factorial(n - 1);"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble an iterative factorial that uses a loop instead of recursion.",
+          "correctAnswers": [[
+            "let result = 1;",
+            "for (let i = 2; i <= n; i++) {",
+            "  result *= i;",
+            "}",
+            "return result;"
+          ]],
+          "distractors": [
+            "let result = 0;",
+            "for (let i = 1; i < n; i++) {",
+            "  result += i;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This factorial(4) dies with a stack overflow instead of returning 24. Assemble the corrected recursive case.",
+          "correctAnswers": [["return n * factorial(n - 1);"]],
+          "distractors": [
+            "return n * factorial(n);",
+            "return n * factorial(n + 1);",
+            "return factorial(n - 1);"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Hash Tables",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "A hash table turns a key into an array index by running it through a **hash function**, then stores the entry in that bucket.\n\n```ts\nclass HashTable<V> {\n  private buckets: Array<Array<[string, V]>> =\n    Array.from({ length: 16 }, () => []);\n\n  private hash(key: string): number {\n    let total = 0;\n    for (const char of key) {\n      total += char.charCodeAt(0);\n    }\n    return total % this.buckets.length;\n  }\n\n  get(key: string): V | undefined {\n    const bucket = this.buckets[this.hash(key)];\n    return bucket.find(([k]) => k === key)?.[1];\n  }\n}\n```\n\nTwo different keys can land in the same bucket — a **collision** — handled here by *chaining*: each bucket holds a list, and lookup scans it. With keys spread evenly, buckets stay short and `get` is O(1) on average. In the worst case every key collides into one bucket and the scan degrades to O(n), which is why the quality of the hash function matters more than the size of the table.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What is the worst-case time complexity of HashTable.get() when every key hashes into the same bucket?",
+          "correctAnswers": [["O(n)"]],
+          "distractors": ["O(1)", "O(log n)", "O(n log n)"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "HashTable.get(key: string): V | undefined — what does the undefined half of that return type represent?",
+          "correctAnswers": [["a key that was never stored in the table"]],
+          "distractors": ["a bucket that has not been allocated yet", "a key whose hash fell outside the bucket range", "a key that collided with an existing key"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "With 16 buckets, what index does hash(\"ab\") produce? ('a' is char code 97, 'b' is 98.)",
+          "correctAnswers": [["3"]],
+          "distractors": ["11", "5", "195"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "Keys \"ab\" and \"ba\" both hash to the same bucket. After storing both, how many entries does that bucket hold?",
+          "correctAnswers": [["2"]],
+          "distractors": ["1", "0", "16"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does HashTable.get(\"zz\") return when \"zz\" was never stored?",
+          "correctAnswers": [["undefined"]],
+          "distractors": ["null", "an empty array", "it throws"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of HashTable's hash() method by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "let total = 0;",
+            "for (const char of key) {",
+            "  total += char.charCodeAt(0);",
+            "}",
+            "return total % this.buckets.length;"
+          ]],
+          "distractors": [
+            "let total = 1;",
+            "  total += char.length;",
+            "return total;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble a set() method that overwrites an existing key instead of appending a duplicate entry.",
+          "correctAnswers": [[
+            "const bucket = this.buckets[this.hash(key)];",
+            "const existing = bucket.find(([k]) => k === key);",
+            "if (existing) {",
+            "  existing[1] = value;",
+            "  return;",
+            "}",
+            "bucket.push([key, value]);"
+          ]],
+          "distractors": [
+            "const bucket = this.buckets[key.length];",
+            "if (!existing) {",
+            "  bucket.push([key, value]);"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This HashTable throws \"Cannot read properties of undefined\" on almost every get(). Assemble the corrected final line of hash().",
+          "correctAnswers": [["return total % this.buckets.length;"]],
+          "distractors": [
+            "return total;",
+            "return total % key.length;",
+            "return this.buckets.length % total;"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Binary Trees",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "A binary tree is built from nodes that each hold a value and at most two children.\n\n```ts\nclass TreeNode {\n  value: number;\n  left: TreeNode | null = null;\n  right: TreeNode | null = null;\n  constructor(value: number) {\n    this.value = value;\n  }\n}\n\nfunction height(node: TreeNode | null): number {\n  if (node === null) {\n    return -1;\n  }\n  return 1 + Math.max(height(node.left), height(node.right));\n}\n```\n\n**Height** is the longest path from a node down to a leaf, counted in *edges*. A single leaf therefore has height 0, and the empty tree is defined as -1 — that convention is exactly what makes the `1 + Math.max(...)` line come out right, since a leaf computes `1 + max(-1, -1) = 0`. Depth is the mirror image: distance counted upward to the root.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "Why does height() return -1 for a null node rather than 0?",
+          "correctAnswers": [["so that a single leaf node computes to height 0"]],
+          "distractors": ["so that empty trees sort before non-empty ones", "to signal an error condition to the caller", "because -1 marks the root's array index"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "height(node: TreeNode | null): number — what does the null case of the parameter type represent?",
+          "correctAnswers": [["an absent child, or an entirely empty tree"]],
+          "distractors": ["a leaf node that has no children", "a node whose value has not been assigned", "a node that failed to be allocated"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does height() return for a tree that is a single root node with no children?",
+          "correctAnswers": [["0"]],
+          "distractors": ["1", "-1", "2"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does height(null) return?",
+          "correctAnswers": [["-1"]],
+          "distractors": ["0", "1", "undefined"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "A tree is a chain: root, its left child, and that child's left child. What does height(root) return?",
+          "correctAnswers": [["2"]],
+          "distractors": ["3", "1", "0"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of height() by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "if (node === null) {",
+            "  return -1;",
+            "}",
+            "return 1 + Math.max(height(node.left), height(node.right));"
+          ]],
+          "distractors": [
+            "if (node.left === null) {",
+            "  return 0;",
+            "return 1 + Math.min(height(node.left), height(node.right));"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble a countNodes() that returns the total number of nodes in a binary tree.",
+          "correctAnswers": [[
+            "if (node === null) {",
+            "  return 0;",
+            "}",
+            "return 1 + countNodes(node.left) + countNodes(node.right);"
+          ]],
+          "distractors": [
+            "  return -1;",
+            "return countNodes(node.left) + countNodes(node.right);",
+            "return 1 + Math.max(countNodes(node.left), countNodes(node.right));"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This height() reports 1 for a single leaf node instead of 0. Assemble the corrected base case.",
+          "correctAnswers": [[
+            "if (node === null) {",
+            "  return -1;",
+            "}"
+          ]],
+          "distractors": [
+            "  return 0;",
+            "  return 1;",
+            "if (node.left === null && node.right === null) {"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Binary Search Trees",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "A binary search tree adds one invariant to the binary tree: **every value in a node's left subtree is smaller than the node, and every value in its right subtree is larger.**\n\n```ts\nfunction search(node: TreeNode | null, target: number): TreeNode | null {\n  if (node === null || node.value === target) {\n    return node;\n  }\n  if (target < node.value) {\n    return search(node.left, target);\n  }\n  return search(node.right, target);\n}\n\nfunction insert(node: TreeNode | null, value: number): TreeNode {\n  if (node === null) {\n    return new TreeNode(value);\n  }\n  if (value < node.value) {\n    node.left = insert(node.left, value);\n  } else {\n    node.right = insert(node.right, value);\n  }\n  return node;\n}\n```\n\nThat invariant lets `search` discard half the remaining tree at every step, giving O(log n) on a balanced tree. The catch: nothing here rebalances. Insert values in already-sorted order and every node becomes a right child — the tree degenerates into a linked list and search drops back to O(n).",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "Inserting 1, 2, 3, 4, 5 in that order into an empty BST produces what shape?",
+          "correctAnswers": [["a right-leaning chain, effectively a linked list"]],
+          "distractors": ["a balanced tree of height 2", "a left-leaning chain", "a complete tree with 5 nodes filled level by level"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "insert returns TreeNode while search returns TreeNode | null. Why can insert never return null?",
+          "correctAnswers": [["it always yields a node — a newly created one, or the subtree root it was given"]],
+          "distractors": ["it throws instead of returning null on failure", "null is only used for values that are absent", "it reuses the root node on every call"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "In the BST built by inserting 8, 3, 10, 1, 6, what does search(root, 6) find as the parent of the matched node?",
+          "correctAnswers": [["3"]],
+          "distractors": ["8", "10", "1"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "In the BST built by inserting 8, 3, 10, what does search(root, 5) return?",
+          "correctAnswers": [["null"]],
+          "distractors": ["the node holding 3", "the node holding 8", "undefined"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "Starting from an empty tree, insert 8, 3, 10, 1. Which node ends up as the left child of the node holding 3?",
+          "correctAnswers": [["1"]],
+          "distractors": ["8", "10", "none — 3 stays a leaf"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of the BST search() by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "if (node === null || node.value === target) {",
+            "  return node;",
+            "}",
+            "if (target < node.value) {",
+            "  return search(node.left, target);",
+            "}",
+            "return search(node.right, target);"
+          ]],
+          "distractors": [
+            "if (target > node.value) {",
+            "  return search(node.right, target);",
+            "  return null;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the branch of BST insert() that picks a side to descend, plus its final return.",
+          "correctAnswers": [[
+            "if (value < node.value) {",
+            "  node.left = insert(node.left, value);",
+            "} else {",
+            "  node.right = insert(node.right, value);",
+            "}",
+            "return node;"
+          ]],
+          "distractors": [
+            "  node.right = insert(node.left, value);",
+            "  node.left = insert(node.right, value);",
+            "return new TreeNode(value);"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This BST search() returns null for 1 in the tree built from 8, 3, 10, 1, even though 1 is present. Assemble the corrected comparison branch.",
+          "correctAnswers": [[
+            "if (target < node.value) {",
+            "  return search(node.left, target);",
+            "}"
+          ]],
+          "distractors": [
+            "if (target > node.value) {",
+            "  return search(node.right, target);",
+            "if (target <= node.value) {"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Depth-First Tree Traversal",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "All three depth-first orders run the same two recursive calls. The only thing that changes is **where the node's own visit sits relative to them**.\n\n```ts\nfunction inorder(node: TreeNode | null, out: number[] = []): number[] {\n  if (node === null) {\n    return out;\n  }\n  inorder(node.left, out);\n  out.push(node.value);\n  inorder(node.right, out);\n  return out;\n}\n```\n\n- **Preorder** — visit, then left, then right (`out.push` moves to the top).\n- **Inorder** — left, visit, right (shown above).\n- **Postorder** — left, right, then visit (`out.push` moves to the bottom).\n\nInorder is the one worth remembering: run it on a binary *search* tree and the values come out in ascending sorted order, because the BST invariant guarantees the whole left subtree is smaller than the node.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "Which depth-first order emits a binary search tree's values in ascending sorted order?",
+          "correctAnswers": [["inorder"]],
+          "distractors": ["preorder", "postorder", "level order"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "inorder(node, out: number[] = []) threads out through every recursive call instead of returning fresh arrays to concatenate. What does that buy?",
+          "correctAnswers": [["every call appends into one shared array, with no per-call allocation"]],
+          "distractors": ["it lets the traversal run without recursion", "it guarantees the output ends up sorted", "it prevents the caller from mutating the result"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "For the BST built from 8, 3, 10, what does inorder(root) return?",
+          "correctAnswers": [["[3, 8, 10]"]],
+          "distractors": ["[8, 3, 10]", "[3, 10, 8]", "[10, 8, 3]"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "For the same tree built from 8, 3, 10, what would a preorder traversal return?",
+          "correctAnswers": [["[8, 3, 10]"]],
+          "distractors": ["[3, 8, 10]", "[3, 10, 8]", "[10, 3, 8]"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "For the same tree built from 8, 3, 10, what would a postorder traversal return?",
+          "correctAnswers": [["[3, 10, 8]"]],
+          "distractors": ["[8, 3, 10]", "[3, 8, 10]", "[10, 8, 3]"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of inorder() by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "if (node === null) {",
+            "  return out;",
+            "}",
+            "inorder(node.left, out);",
+            "out.push(node.value);",
+            "inorder(node.right, out);",
+            "return out;"
+          ]],
+          "distractors": [
+            "  return [];",
+            "out.push(node.left);",
+            "inorder(node.right, []);"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the three traversal lines of a preorder walk, in preorder sequence.",
+          "correctAnswers": [[
+            "out.push(node.value);",
+            "preorder(node.left, out);",
+            "preorder(node.right, out);"
+          ]],
+          "distractors": [
+            "out.push(node.left);",
+            "preorder(node.right, []);",
+            "out.unshift(node.value);"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This traversal returns [8, 3, 10] for the BST built from 8, 3, 10, but inorder should give [3, 8, 10]. Assemble the corrected three traversal lines.",
+          "correctAnswers": [[
+            "inorder(node.left, out);",
+            "out.push(node.value);",
+            "inorder(node.right, out);"
+          ]],
+          "distractors": [
+            "out.unshift(node.value);",
+            "inorder(node.right, out);  // before the visit",
+            "out.push(node.left);"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Breadth-First Tree Traversal",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Depth-first traversal dives to the bottom of one branch before backtracking. Breadth-first does the opposite: it finishes an entire level before touching the next one.\n\n```ts\nfunction levelOrder(root: TreeNode | null): number[] {\n  if (root === null) {\n    return [];\n  }\n  const result: number[] = [];\n  const queue: TreeNode[] = [root];\n  while (queue.length > 0) {\n    const node = queue.shift()!;\n    result.push(node.value);\n    if (node.left !== null) {\n      queue.push(node.left);\n    }\n    if (node.right !== null) {\n      queue.push(node.right);\n    }\n  }\n  return result;\n}\n```\n\nThe queue is the whole trick. Nodes come out in exactly the order they went in, so a node's children are always processed after every node already waiting at the current level. Swap that queue for a stack and the same code becomes a depth-first traversal — the data structure, not the logic, is what picks the order.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "In levelOrder, replacing the queue with a stack (pop from the end instead of shift from the front) turns the traversal into what?",
+          "correctAnswers": [["a depth-first traversal"]],
+          "distractors": ["an inorder traversal", "a reversed level-order traversal", "an infinite loop"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "levelOrder(root: TreeNode | null): number[] declares a plain array return, never null. What does it return for an empty tree?",
+          "correctAnswers": [["[]"]],
+          "distractors": ["null", "undefined", "[0]"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "For the BST built from 8, 3, 10, 1, what does levelOrder(root) return?",
+          "correctAnswers": [["[8, 3, 10, 1]"]],
+          "distractors": ["[1, 3, 8, 10]", "[8, 3, 1, 10]", "[8, 10, 3, 1]"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "During levelOrder on the tree built from 8, 3, 10, how many nodes are in the queue right after the root has been dequeued and its children enqueued?",
+          "correctAnswers": [["2"]],
+          "distractors": ["1", "3", "0"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "What does levelOrder(null) return?",
+          "correctAnswers": [["[]"]],
+          "distractors": ["null", "[null]", "it throws"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of levelOrder's while loop by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "const node = queue.shift()!;",
+            "result.push(node.value);",
+            "if (node.left !== null) {",
+            "  queue.push(node.left);",
+            "}",
+            "if (node.right !== null) {",
+            "  queue.push(node.right);",
+            "}"
+          ]],
+          "distractors": [
+            "const node = queue.pop()!;",
+            "  queue.push(node.value);",
+            "  result.push(node.left);"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the loop header and dequeue step of a level-order walk that processes one whole level per outer iteration.",
+          "correctAnswers": [[
+            "while (queue.length > 0) {",
+            "  const levelSize = queue.length;",
+            "  for (let i = 0; i < levelSize; i++) {",
+            "    const node = queue.shift()!;"
+          ]],
+          "distractors": [
+            "  const levelSize = result.length;",
+            "  for (let i = 0; i < queue.length; i++) {",
+            "while (queue.length > 1) {"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This levelOrder crashes reading .value of null on any tree with a missing child. Assemble the corrected left-child enqueue.",
+          "correctAnswers": [[
+            "if (node.left !== null) {",
+            "  queue.push(node.left);",
+            "}"
+          ]],
+          "distractors": [
+            "  queue.push(node.left.value);",
+            "if (node.left === null) {",
+            "  queue.push(node);"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Binary Heap and Priority Queue",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "A binary heap keeps one weak promise: **every parent is smaller than both of its children** (for a min-heap). That is far less order than a BST maintains — siblings are unordered — but it is exactly enough to make the smallest element always sit at the root.\n\n```ts\nclass MinHeap {\n  private items: number[] = [];\n\n  push(value: number): void {\n    this.items.push(value);\n    let i = this.items.length - 1;\n    while (i > 0) {\n      const parent = Math.floor((i - 1) / 2);\n      if (this.items[parent] <= this.items[i]) {\n        break;\n      }\n      [this.items[parent], this.items[i]] = [this.items[i], this.items[parent]];\n      i = parent;\n    }\n  }\n}\n```\n\nThere are no node objects at all — the tree is stored flat in an array, where the children of index `i` live at `2i + 1` and `2i + 2`, and the parent is at `Math.floor((i - 1) / 2)`. A new value is appended at the end and then **sifted up**, swapping with its parent until the heap property holds again, which takes at most the height of the tree: O(log n).",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "In an array-backed binary heap, which expression gives the parent index of the element at index i?",
+          "correctAnswers": [["Math.floor((i - 1) / 2)"]],
+          "distractors": ["Math.floor(i / 2)", "Math.floor((i + 1) / 2)", "i - 1"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "MinHeap stores its tree in a flat number[] with no node objects. What is guaranteed about items[0]?",
+          "correctAnswers": [["it holds the smallest value in the heap"]],
+          "distractors": ["it holds the most recently pushed value", "it holds the largest value in the heap", "it is always left empty as a sentinel"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "Starting from an empty MinHeap, push 5, then 3. What does items look like afterwards?",
+          "correctAnswers": [["[3, 5]"]],
+          "distractors": ["[5, 3]", "[3]", "[5, 5]"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "Pushing 5, 3, 8, 1 into an empty MinHeap gives items = [1, 3, 8, 5]. How many swaps did pushing the 1 perform?",
+          "correctAnswers": [["2"]],
+          "distractors": ["1", "3", "0"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "A MinHeap holds items = [2, 7, 4]. Are 7 and 4 ordered relative to each other by the heap property?",
+          "correctAnswers": [["no — siblings are unordered"]],
+          "distractors": ["yes — left is always smaller than right", "yes — right is always smaller than left", "only when the heap has an even number of items"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of MinHeap's sift-up while loop by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "const parent = Math.floor((i - 1) / 2);",
+            "if (this.items[parent] <= this.items[i]) {",
+            "  break;",
+            "}",
+            "[this.items[parent], this.items[i]] = [this.items[i], this.items[parent]];",
+            "i = parent;"
+          ]],
+          "distractors": [
+            "const parent = Math.floor(i / 2);",
+            "  continue;",
+            "i = parent + 1;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the two lines that compute the child indices of index i in an array-backed heap.",
+          "correctAnswers": [[
+            "const left = 2 * i + 1;",
+            "const right = 2 * i + 2;"
+          ]],
+          "distractors": [
+            "const left = 2 * i;",
+            "const right = 2 * i + 1;",
+            "const right = i / 2 + 1;"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This MinHeap ends up with the largest value at items[0] instead of the smallest. Assemble the corrected early-exit check.",
+          "correctAnswers": [[
+            "if (this.items[parent] <= this.items[i]) {",
+            "  break;",
+            "}"
+          ]],
+          "distractors": [
+            "if (this.items[parent] >= this.items[i]) {",
+            "if (this.items[i] <= this.items[parent]) {",
+            "  continue;"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Graph Representations",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "A graph is a set of vertices plus the edges between them, and there are two standard ways to store one.\n\n```ts\ntype AdjacencyList = Map<string, string[]>;\n\nfunction buildGraph(edges: Array<[string, string]>): AdjacencyList {\n  const graph: AdjacencyList = new Map();\n  for (const [a, b] of edges) {\n    if (!graph.has(a)) {\n      graph.set(a, []);\n    }\n    if (!graph.has(b)) {\n      graph.set(b, []);\n    }\n    graph.get(a)!.push(b);\n    graph.get(b)!.push(a);\n  }\n  return graph;\n}\n```\n\nAn **adjacency list** maps each vertex to its neighbours: O(V + E) space, and iterating one vertex's neighbours is proportional to how many it actually has. An **adjacency matrix** is a V×V grid of booleans: O(V²) space regardless of how few edges exist, but answering \"is there an edge between these two?\" is a single O(1) lookup. Real graphs are usually sparse, so lists win by default.\n\nNote that `buildGraph` pushes each edge in *both* directions — that is what makes this an undirected graph. Push only one direction and you have a directed one.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "For a graph with many vertices but very few edges, which representation uses less memory?",
+          "correctAnswers": [["the adjacency list"]],
+          "distractors": ["the adjacency matrix", "both use the same amount", "it depends on whether the edges are weighted"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "buildGraph pushes b onto a's neighbour list and also pushes a onto b's. What kind of graph does that produce?",
+          "correctAnswers": [["an undirected graph"]],
+          "distractors": ["a directed graph", "a weighted graph", "an acyclic graph"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "After buildGraph([[\"a\", \"b\"], [\"a\", \"c\"]]), what does graph.get(\"a\") return?",
+          "correctAnswers": [["[\"b\", \"c\"]"]],
+          "distractors": ["[\"b\"]", "[\"c\"]", "[\"a\", \"b\", \"c\"]"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "After buildGraph([[\"a\", \"b\"], [\"a\", \"c\"]]), what does graph.get(\"b\") return?",
+          "correctAnswers": [["[\"a\"]"]],
+          "distractors": ["[]", "[\"a\", \"c\"]", "undefined"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "After buildGraph([[\"a\", \"b\"], [\"a\", \"c\"]]), how many keys does the returned Map hold?",
+          "correctAnswers": [["3"]],
+          "distractors": ["2", "4", "6"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of buildGraph's for loop by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "if (!graph.has(a)) {",
+            "  graph.set(a, []);",
+            "}",
+            "if (!graph.has(b)) {",
+            "  graph.set(b, []);",
+            "}",
+            "graph.get(a)!.push(b);",
+            "graph.get(b)!.push(a);"
+          ]],
+          "distractors": [
+            "if (graph.has(a)) {",
+            "  graph.set(a, [b]);",
+            "graph.get(a)!.push(a);"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the edge-recording lines for a DIRECTED graph, where an edge a to b is not also an edge b to a.",
+          "correctAnswers": [[
+            "if (!graph.has(a)) {",
+            "  graph.set(a, []);",
+            "}",
+            "graph.get(a)!.push(b);"
+          ]],
+          "distractors": [
+            "graph.get(b)!.push(a);",
+            "  graph.set(b, []);",
+            "graph.get(a)!.push(a);"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "After buildGraph([[\"a\", \"b\"]]), graph.get(\"b\") comes back as an empty array instead of [\"a\"]. Assemble the corrected pair of push lines.",
+          "correctAnswers": [[
+            "graph.get(a)!.push(b);",
+            "graph.get(b)!.push(a);"
+          ]],
+          "distractors": [
+            "graph.get(a)!.push(a);",
+            "graph.get(b)!.push(b);",
+            "graph.set(b, [a]);"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Graph Depth-First Search",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Tree traversal never needs to ask \"have I been here before?\" — a tree has no cycles, so you cannot arrive twice. Graphs have no such guarantee, and that single difference is what a `visited` set exists to handle.\n\n```ts\nfunction dfs(\n  graph: AdjacencyList,\n  start: string,\n  visited = new Set<string>(),\n): string[] {\n  if (visited.has(start)) {\n    return [];\n  }\n  visited.add(start);\n  const order = [start];\n  for (const neighbour of graph.get(start) ?? []) {\n    order.push(...dfs(graph, neighbour, visited));\n  }\n  return order;\n}\n```\n\nRemove the `visited` guard and any cycle — even a single undirected edge, since a-b also means b-a — sends the recursion bouncing between two nodes until the stack overflows. Note that `visited` is a *default parameter*, created once by the top-level call and then threaded through every recursive call, so all of them share one set. Make it a local variable instead and each call would get its own empty set, which defeats the entire purpose.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "What happens when you run this graph DFS on a graph containing a cycle, after removing the visited set?",
+          "correctAnswers": [["it recurses forever until the stack overflows"]],
+          "distractors": ["it silently skips the cycle and finishes", "it visits every node exactly twice", "it throws immediately on the first repeated node"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "visited is declared as a default parameter (visited = new Set()) rather than a local variable inside dfs. What does that achieve?",
+          "correctAnswers": [["all recursive calls share one set, created once by the outermost call"]],
+          "distractors": ["it lets the caller disable cycle checking by passing null", "it resets the set at each level so branches stay independent", "it makes the traversal run without recursion"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "For the undirected graph built from edges [[\"a\",\"b\"], [\"a\",\"c\"], [\"b\",\"c\"]], what does dfs(graph, \"a\") return?",
+          "correctAnswers": [["[\"a\", \"b\", \"c\"]"]],
+          "distractors": ["[\"a\", \"c\", \"b\"]", "[\"a\", \"b\", \"c\", \"a\"]", "[\"a\"]"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "In that same traversal of [[\"a\",\"b\"], [\"a\",\"c\"], [\"b\",\"c\"]], what does the nested dfs(graph, \"c\") call from a's neighbour loop return?",
+          "correctAnswers": [["[]"]],
+          "distractors": ["[\"c\"]", "[\"c\", \"a\"]", "[\"c\", \"b\"]"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "For a graph with vertices a, b and no edges at all between them, what does dfs(graph, \"a\") return?",
+          "correctAnswers": [["[\"a\"]"]],
+          "distractors": ["[\"a\", \"b\"]", "[]", "[\"b\"]"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the part of graph dfs() that records the visit and recurses into neighbours.",
+          "correctAnswers": [[
+            "visited.add(start);",
+            "const order = [start];",
+            "for (const neighbour of graph.get(start) ?? []) {",
+            "  order.push(...dfs(graph, neighbour, visited));",
+            "}",
+            "return order;"
+          ]],
+          "distractors": [
+            "visited.add(neighbour);",
+            "  order.push(dfs(graph, neighbour, visited));",
+            "const order = [];"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the body of an iterative graph DFS's while loop, using an explicit stack instead of recursion.",
+          "correctAnswers": [[
+            "const node = stack.pop()!;",
+            "if (visited.has(node)) {",
+            "  continue;",
+            "}",
+            "visited.add(node);",
+            "order.push(node);",
+            "stack.push(...(graph.get(node) ?? []));"
+          ]],
+          "distractors": [
+            "const node = stack.shift()!;",
+            "  break;",
+            "order.unshift(node);"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This graph dfs() overflows the stack on the graph built from [[\"a\",\"b\"]]. Assemble the corrected guard that must run first.",
+          "correctAnswers": [[
+            "if (visited.has(start)) {",
+            "  return [];",
+            "}"
+          ]],
+          "distractors": [
+            "if (!visited.has(start)) {",
+            "  return [start];",
+            "  return order;"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Graph Breadth-First Search and Shortest Paths",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Swap DFS's stack for a queue and you get breadth-first search — but the change is worth far more than a data-structure swap, because BFS gains a property DFS does not have: **the first time it reaches a node, it has done so by a shortest path.**\n\n```ts\nfunction bfs(graph: AdjacencyList, start: string): Map<string, number> {\n  const distance = new Map<string, number>([[start, 0]]);\n  const queue: string[] = [start];\n  while (queue.length > 0) {\n    const node = queue.shift()!;\n    for (const neighbour of graph.get(node) ?? []) {\n      if (distance.has(neighbour)) {\n        continue;\n      }\n      distance.set(neighbour, distance.get(node)! + 1);\n      queue.push(neighbour);\n    }\n  }\n  return distance;\n}\n```\n\nBFS expands in rings: everything one edge away, then everything two edges away, and so on. Since nodes enter the queue in non-decreasing distance order, the first arrival is necessarily the cheapest — which is why BFS solves shortest paths on **unweighted** graphs and DFS does not. Add edge weights and this breaks down; you need Dijkstra's algorithm instead.\n\nHere `distance` doubles as the visited set: a node already holding a distance has been reached, so it is skipped.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "Why does BFS find shortest paths on an unweighted graph when DFS does not?",
+          "correctAnswers": [["BFS reaches nodes in order of increasing distance, so the first arrival is the shortest"]],
+          "distractors": ["BFS explores every possible path and keeps the cheapest", "DFS revisits nodes while BFS visits each one only once", "BFS sorts the queue by distance before each step"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "bfs returns Map<string, number>. What does it mean when a vertex of the graph is absent from that map?",
+          "correctAnswers": [["it cannot be reached from start at all"]],
+          "distractors": ["it sits at distance zero from start", "it was reached but by more than one path", "it is a neighbour that was skipped as already visited"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "For the path graph built from [[\"a\",\"b\"], [\"b\",\"c\"], [\"c\",\"d\"]], what does bfs(graph, \"a\").get(\"d\") return?",
+          "correctAnswers": [["3"]],
+          "distractors": ["1", "2", "4"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "For that same path graph [[\"a\",\"b\"], [\"b\",\"c\"], [\"c\",\"d\"]], what does bfs(graph, \"a\").get(\"a\") return?",
+          "correctAnswers": [["0"]],
+          "distractors": ["1", "undefined", "-1"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "For the triangle graph built from [[\"a\",\"b\"], [\"a\",\"c\"], [\"b\",\"c\"]], what does bfs(graph, \"a\").get(\"c\") return?",
+          "correctAnswers": [["1"]],
+          "distractors": ["2", "0", "3"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Reconstruct the body of bfs's inner neighbour loop by putting these lines in the correct order.",
+          "correctAnswers": [[
+            "if (distance.has(neighbour)) {",
+            "  continue;",
+            "}",
+            "distance.set(neighbour, distance.get(node)! + 1);",
+            "queue.push(neighbour);"
+          ]],
+          "distractors": [
+            "if (!distance.has(neighbour)) {",
+            "  break;",
+            "distance.set(neighbour, distance.get(neighbour)! + 1);"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the lines that record a parent pointer during BFS, so the actual shortest path can be rebuilt afterwards.",
+          "correctAnswers": [[
+            "if (distance.has(neighbour)) {",
+            "  continue;",
+            "}",
+            "parent.set(neighbour, node);",
+            "distance.set(neighbour, distance.get(node)! + 1);",
+            "queue.push(neighbour);"
+          ]],
+          "distractors": [
+            "parent.set(node, neighbour);",
+            "  parent.delete(neighbour);",
+            "queue.unshift(neighbour);"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This bfs enqueues the same vertex several times and reports a distance of 2 for a direct neighbour. Assemble the corrected pair of lines that must run before the vertex is enqueued.",
+          "correctAnswers": [[
+            "distance.set(neighbour, distance.get(node)! + 1);",
+            "queue.push(neighbour);"
+          ]],
+          "distractors": [
+            "queue.push(neighbour);  // enqueued before its distance is set",
+            "distance.set(neighbour, distance.get(neighbour)! + 1);",
+            "distance.set(node, distance.get(neighbour)! + 1);"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Choosing the Right Structure",
+      "discipline": "programming",
+      "contentType": "text",
+      "content": "Part 2 covered four structures and two traversal orders. The useful skill now is not recalling any one of them, but knowing which to reach for.\n\n| Structure | Lookup | Ordered? | Reach for it when |\n|---|---|---|---|\n| Hash table | O(1) average | no | you need membership or key to value, and never order |\n| Binary search tree | O(log n) balanced, O(n) degenerate | fully sorted | you need lookup *and* in-order iteration |\n| Binary heap | O(1) peek min, O(log n) push | partially | you only ever need the smallest (or largest) item |\n| Adjacency list | O(degree) per vertex | no | edges are sparse relative to vertices |\n\nThe heap is the one people over-reach for: it does **not** support \"find an arbitrary value\" any faster than a plain array, because siblings are unordered. It only makes the extreme cheap.\n\nAnd for traversals: **BFS** for shortest paths and anything level-related, **DFS** for exhaustive exploration, cycle detection, and topological work. DFS also costs stack depth proportional to the longest path, which on a deep graph can overflow where BFS's explicit queue would not.",
+      "cards": [
+        {
+          "step": 0,
+          "cardType": "concept",
+          "front": "You need to repeatedly pull out the smallest item and never search for anything else. Which structure fits best?",
+          "correctAnswers": [["a binary heap"]],
+          "distractors": ["a hash table", "a binary search tree", "an adjacency list"]
+        },
+        {
+          "step": 0,
+          "cardType": "signature",
+          "front": "Finding an arbitrary value in a binary heap is no faster than scanning a plain array. Why?",
+          "correctAnswers": [["the heap only orders parents against children, leaving siblings unordered"]],
+          "distractors": ["the heap stores its values in insertion order", "the heap keeps values sorted but forbids indexed access", "the heap must be rebuilt before any search"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "A binary search tree receives 200 already-sorted values. What does lookup cost degrade to?",
+          "correctAnswers": [["O(n)"]],
+          "distractors": ["O(log n)", "O(n log n)", "O(2^n)"]
+        },
+        {
+          "step": 1,
+          "cardType": "trace",
+          "front": "You must report the fewest edges between two vertices of an unweighted graph. Which traversal gives it directly?",
+          "correctAnswers": [["BFS"]],
+          "distractors": ["DFS", "inorder", "postorder"]
+        },
+        {
+          "step": 2,
+          "cardType": "line_order",
+          "front": "Arrange these four operations from cheapest to most expensive average-case cost.",
+          "correctAnswers": [[
+            "hash table lookup",
+            "balanced BST lookup",
+            "heap push",
+            "unsorted array scan"
+          ]],
+          "distractors": [
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "choose_snippet",
+          "front": "Assemble the profile of a binary heap, in this order: peek cost, push cost, ordering, arbitrary search.",
+          "correctAnswers": [[
+            "Peek extreme: O(1)",
+            "Push: O(log n)",
+            "Ordering: parents before children only",
+            "Arbitrary search: O(n)"
+          ]],
+          "distractors": [
+            "Peek extreme: O(log n)",
+            "Ordering: fully sorted",
+            "Arbitrary search: O(log n)",
+            "Push: O(1)"
+          ]
+        },
+        {
+          "step": 3,
+          "cardType": "fix_bug",
+          "front": "This profile of a hash table states two things that are wrong. Assemble the corrected profile, in this order: average lookup, worst lookup, ordering, iteration order.",
+          "correctAnswers": [[
+            "Average lookup: O(1)",
+            "Worst lookup: O(n)",
+            "Ordering: none",
+            "Iteration order: unspecified"
+          ]],
+          "distractors": [
+            "Average lookup: O(log n)",
+            "Worst lookup: O(log n)",
+            "Ordering: fully sorted",
+            "Iteration order: ascending by key"
+          ]
+        }
+      ]
+    }
+  ]
+}

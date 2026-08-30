@@ -15,12 +15,12 @@
           "cardType": "concept",
           "front": "What is the time complexity of solving Two Sum with a hash map in one pass, compared to the brute-force nested-loop approach?",
           "correctAnswers": [["O(n)"]],
-          "distractors": ["O(n^2)", "O(log n)", "O(1)"]
+          "distractors": ["O(n^2)", "O(log n)", "O(n^3)"]
         },
         {
           "step": 0,
           "cardType": "signature",
-          "front": "twoSum's return type is number[], with no null or undefined variant. Although the problem guarantees a solution always exists, what does the code defensively return if no pair is found?",
+          "front": "twoSum's declared return type is number[]. If no valid pair existed, what would the code return?",
           "correctAnswers": [["[]"]],
           "distractors": ["null", "undefined", "[-1, -1]"]
         },
@@ -48,7 +48,7 @@
         {
           "step": 2,
           "cardType": "line_order",
-          "front": "Reconstruct the body of the loop by putting these lines in the correct order.",
+          "front": "Reconstruct the body of twoSum's loop by putting these lines in the correct order.",
           "correctAnswers": [[
             "for (let i = 0; i < nums.length; i++) {",
             "  const complement = target - nums[i];",
@@ -60,9 +60,9 @@
             "return [];"
           ]],
           "distractors": [
-            "if (seen.has(nums[i])) {",
-            "seen.set(complement, i);",
-            "return [i, seen.get(complement)!];"
+            "  if (seen.has(nums[i])) {",
+            "    seen.set(complement, i);",
+            "    return [i, seen.get(complement)!];"
           ]
         },
         {
@@ -79,15 +79,15 @@
             "}"
           ]],
           "distractors": [
-            "for (let j = 0; j < nums.length; j++) {",
-            "if (nums[i] + nums[j] === target * 2) {",
-            "return [j, i];"
+            "  for (let j = 0; j < nums.length; j++) {",
+            "    if (nums[i] + nums[j] === target * 2) {",
+            "      return [j, i];"
           ]
         },
         {
           "step": 3,
           "cardType": "fix_bug",
-          "front": "This version calls seen.set(nums[i], i) BEFORE checking for the complement, so an element can incorrectly pair with itself. Assemble the corrected order.",
+          "front": "This twoSum returns [0, 0] for the input ([3, 2, 4], 6) — it pairs an element with itself. Assemble the corrected loop body.",
           "correctAnswers": [[
             "const complement = target - nums[i];",
             "if (seen.has(complement)) {",
@@ -98,7 +98,7 @@
           "distractors": [
             "seen.set(target, i);",
             "if (seen.has(nums[i])) {",
-            "return [i, i];"
+            "  return [i, i];"
           ]
         }
       ]
@@ -126,28 +126,28 @@
         {
           "step": 1,
           "cardType": "trace",
-          "front": "isValid('()[]{}') — what does it return?",
-          "correctAnswers": [["true"]],
-          "distractors": ["false"]
+          "front": "Which of these strings does isValid return false for?",
+          "correctAnswers": [["([)]"]],
+          "distractors": ["()[]{}", "{[]}", "(())"]
         },
         {
           "step": 1,
           "cardType": "trace",
-          "front": "isValid('(]') — what does it return?",
-          "correctAnswers": [["false"]],
-          "distractors": ["true"]
+          "front": "isValid('((') — what does it return, and which check catches it?",
+          "correctAnswers": [["false, via the final stack.length === 0 check"]],
+          "distractors": ["false, via the pairs mismatch inside the loop", "true — nothing ever mismatched", "false, via a pop() on an empty stack"]
         },
         {
           "step": 1,
           "cardType": "trace",
           "front": "isValid('') — what does an empty string return?",
           "correctAnswers": [["true"]],
-          "distractors": ["false"]
+          "distractors": ["false", "it throws on an empty string", "undefined"]
         },
         {
           "step": 2,
           "cardType": "line_order",
-          "front": "Reconstruct the body of the loop and the final check by putting these lines in the correct order.",
+          "front": "Reconstruct the body of isValid's loop and its final check by putting these lines in the correct order.",
           "correctAnswers": [[
             "for (const char of s) {",
             "  if (char in pairs) {",
@@ -161,8 +161,8 @@
             "return stack.length === 0;"
           ]],
           "distractors": [
-            "if (stack.pop() === pairs[char]) {",
-            "stack.push(pairs[char]);",
+            "    if (stack.pop() === pairs[char]) {",
+            "    stack.push(pairs[char]);",
             "return stack.length > 0;"
           ]
         },
@@ -183,7 +183,7 @@
         {
           "step": 3,
           "cardType": "fix_bug",
-          "front": "This version uses stack.pop() === pairs[char] to decide when to fail, inverting the logic so mismatches pass. Assemble the corrected check.",
+          "front": "This isValid returns true for the input '(]'. Assemble the corrected check.",
           "correctAnswers": [[
             "if (stack.pop() !== pairs[char]) {",
             "  return false;",
@@ -191,7 +191,8 @@
           ]],
           "distractors": [
             "if (stack.pop() === pairs[char]) {",
-            "if (stack.pop() != char) {"
+            "if (stack.pop() != char) {",
+            "  return true;"
           ]
         }
       ]
@@ -212,9 +213,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "Does maxProfit(prices) mutate the input prices array?",
-          "correctAnswers": [["no"]],
-          "distractors": ["yes", "only if prices is unsorted", "only on the first call"]
+          "front": "maxProfit returns 0 rather than a negative number when every price declines. What does that 0 represent?",
+          "correctAnswers": [["choosing not to trade at all"]],
+          "distractors": ["buying and selling on the same day", "the loss from the worst possible trade", "an error sentinel meaning the input was invalid"]
         },
         {
           "step": 1,
@@ -240,7 +241,7 @@
         {
           "step": 2,
           "cardType": "line_order",
-          "front": "Reconstruct the body of the loop by putting these lines in the correct order.",
+          "front": "Reconstruct the body of maxProfit's loop by putting these lines in the correct order.",
           "correctAnswers": [[
             "for (const price of prices) {",
             "  if (price < minPrice) {",
@@ -251,9 +252,9 @@
             "}"
           ]],
           "distractors": [
-            "if (price > minPrice) {",
-            "maxProfit = price + minPrice;",
-            "minPrice = Math.min(minPrice, maxProfit);"
+            "  if (price > minPrice) {",
+            "    maxProfit = price + minPrice;",
+            "    minPrice = Math.min(minPrice, maxProfit);"
           ]
         },
         {
@@ -272,15 +273,15 @@
             "}"
           ]],
           "distractors": [
-            "const profit = prices[i] - prices[j];",
-            "for (let j = 0; j < prices.length; j++) {",
-            "if (profit < maxProfit) {"
+            "    const profit = prices[i] - prices[j];",
+            "  for (let j = 0; j < prices.length; j++) {",
+            "    if (profit < maxProfit) {"
           ]
         },
         {
           "step": 3,
           "cardType": "fix_bug",
-          "front": "This version initializes minPrice to 0 instead of Infinity, so it never updates and profit is measured against a false floor of zero. Assemble the corrected initialization.",
+          "front": "This maxProfit returns 7 for prices = [7, 1, 5, 3, 6, 4], but the correct answer is 5. Assemble the corrected initialization.",
           "correctAnswers": [[
             "let minPrice = Infinity;",
             "let maxProfit = 0;"
@@ -309,9 +310,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "maxSubArray reads nums[0] before the loop even starts. What is the minimum array length this function requires to behave correctly?",
-          "correctAnswers": [["1"]],
-          "distractors": ["0", "2", "n / 2"]
+          "front": "What does maxSubArray([]) do on an empty array?",
+          "correctAnswers": [["returns undefined"]],
+          "distractors": ["returns 0", "throws a TypeError", "returns -Infinity"]
         },
         {
           "step": 1,
@@ -337,7 +338,7 @@
         {
           "step": 2,
           "cardType": "line_order",
-          "front": "Reconstruct the body of the loop by putting these lines in the correct order.",
+          "front": "Reconstruct the body of maxSubArray's loop by putting these lines in the correct order.",
           "correctAnswers": [[
             "for (let i = 1; i < nums.length; i++) {",
             "  currentSum = Math.max(nums[i], currentSum + nums[i]);",
@@ -345,8 +346,8 @@
             "}"
           ]],
           "distractors": [
-            "currentSum = Math.min(nums[i], currentSum + nums[i]);",
-            "maxSum = currentSum;",
+            "  currentSum = Math.min(nums[i], currentSum + nums[i]);",
+            "  maxSum = currentSum;",
             "for (let i = 0; i < nums.length; i++) {"
           ]
         },
@@ -365,15 +366,15 @@
             "}"
           ]],
           "distractors": [
-            "let maxSum = 0;",
-            "sum += nums[i];",
-            "for (let j = 0; j < nums.length; j++) {"
+            "  let maxSum = 0;",
+            "    sum += nums[i];",
+            "  for (let j = 0; j < nums.length; j++) {"
           ]
         },
         {
           "step": 3,
           "cardType": "fix_bug",
-          "front": "This version initializes currentSum and maxSum to 0 instead of nums[0], so an all-negative array incorrectly returns 0. Assemble the corrected initialization.",
+          "front": "This maxSubArray returns 0 for nums = [-3, -1, -2], but the correct answer is -1. Assemble the corrected initialization.",
           "correctAnswers": [[
             "let currentSum = nums[0];",
             "let maxSum = nums[0];"
@@ -402,9 +403,9 @@
         {
           "step": 0,
           "cardType": "signature",
-          "front": "climbStairs(n) follows the same recurrence as which classic sequence — ways(n) = ways(n-1) + ways(n-2)?",
-          "correctAnswers": [["Fibonacci"]],
-          "distractors": ["factorial", "binary", "geometric"]
+          "front": "climbStairs(n) equals climbStairs(n-1) + climbStairs(n-2). Why does reaching step n decompose into exactly those two terms?",
+          "correctAnswers": [["because the last move was either 1 step or 2 steps"]],
+          "distractors": ["because n is split in half at each recursive call", "because each step can be reached from any earlier step", "because the two terms count odd- and even-length paths"]
         },
         {
           "step": 1,
@@ -430,7 +431,7 @@
         {
           "step": 2,
           "cardType": "line_order",
-          "front": "Reconstruct the iterative loop by putting these lines in the correct order.",
+          "front": "Reconstruct climbStairs' iterative loop by putting these lines in the correct order.",
           "correctAnswers": [[
             "let prev = 1;",
             "let curr = 2;",
@@ -442,8 +443,8 @@
             "return curr;"
           ]],
           "distractors": [
-            "const next = prev - curr;",
-            "prev = next;",
+            "  const next = prev - curr;",
+            "  prev = next;",
             "for (let i = 3; i < n; i++) {"
           ]
         },
@@ -466,7 +467,7 @@
         {
           "step": 3,
           "cardType": "fix_bug",
-          "front": "This version updates curr before prev, so prev picks up the wrong value on the next iteration. Assemble the corrected update order.",
+          "front": "This climbStairs(5) returns 12 instead of 8. Assemble the corrected update order.",
           "correctAnswers": [[
             "const next = prev + curr;",
             "prev = curr;",
@@ -491,14 +492,14 @@
           "cardType": "concept",
           "front": "What is the time complexity of iteratively reversing a singly linked list of n nodes?",
           "correctAnswers": [["O(n)"]],
-          "distractors": ["O(n^2)", "O(log n)", "O(1)"]
+          "distractors": ["O(n^2)", "O(log n)", "O(sqrt n)"]
         },
         {
           "step": 0,
           "cardType": "signature",
-          "front": "reverseList(head: ListNode | null): ListNode | null — why must the parameter type include | null?",
-          "correctAnswers": [["to support reversing an empty list"]],
-          "distractors": ["for performance", "because ListNode is generic", "to allow recursive calls"]
+          "front": "reverseList(head: ListNode | null) — what does the null case of the parameter type represent?",
+          "correctAnswers": [["an empty list with no nodes"]],
+          "distractors": ["a node whose next pointer was already cleared", "the tail of the list after reversal", "a list that has exactly one node"]
         },
         {
           "step": 1,
@@ -524,7 +525,7 @@
         {
           "step": 2,
           "cardType": "line_order",
-          "front": "Reconstruct the body of the while loop by putting these lines in the correct order.",
+          "front": "Reconstruct the body of reverseList's while loop by putting these lines in the correct order.",
           "correctAnswers": [[
             "while (current !== null) {",
             "  const next = current.next;",
@@ -534,8 +535,8 @@
             "}"
           ]],
           "distractors": [
-            "current.next = next;",
-            "prev = next;",
+            "  current.next = next;",
+            "  prev = next;",
             "while (current !== prev) {"
           ]
         },
@@ -554,26 +555,22 @@
           ]],
           "distractors": [
             "head.next = head;",
-            "return head.next;",
+            "  return head.next;",
             "if (head === null) return null.next;"
           ]
         },
         {
           "step": 3,
           "cardType": "fix_bug",
-          "front": "This version overwrites current.next before saving a reference to the rest of the list, orphaning every node after it. Assemble the corrected loop.",
+          "front": "This reverseList returns a single-node list instead of the full reversed list. Assemble the corrected first two statements of the loop body.",
           "correctAnswers": [[
-            "while (current !== null) {",
             "  const next = current.next;",
-            "  current.next = prev;",
-            "  prev = current;",
-            "  current = next;",
-            "}"
+            "  current.next = prev;"
           ]],
           "distractors": [
-            "current = current.next;",
-            "prev = current.next;",
-            "const next = prev.next;"
+            "  prev = current.next;",
+            "  const next = prev.next;",
+            "  current = current.next;"
           ]
         }
       ]
